@@ -27,7 +27,9 @@ A modern Minecraft launcher built with focus on performance, lightweight resourc
 # Notes
 
 - You can sign in using an Ely.by account for skin support and authenticated sessions.
-- Leaving the password field empty launches the game in offline mode.
+- Leaving the password field empty while using the same username as a previously successfully authenticated Ely.by account will launch a cached session:
+  - When connected to the internet, skins will load automatically.
+  - When disconnected from the internet, the session runs in offline mode.
 - Offline skins require the CustomSkinLoader mod.
 - By default, the launcher uses the standard `.minecraft` directory.
 
