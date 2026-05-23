@@ -4,13 +4,14 @@ A modern Minecraft launcher built with focus on performance, lightweight resourc
 
 # Preview
 ### Light Mode
-<img width="1392" height="831" alt="{E2D0AEEF-4C26-44AE-99B4-F7958EB193AC}" src="https://github.com/user-attachments/assets/a9eb7b3d-2882-4ccd-b254-552d36f0954d" />
+<img width="1404" height="811" alt="{1702E451-7C99-4276-8C75-B554BF4FE3FA}" src="https://github.com/user-attachments/assets/6a08b79c-c641-4f3b-b41e-66d7b55d704c" />
 
 ### Dark Mode
-<img width="1392" height="826" alt="{BC956E87-AE3D-445D-BEF0-FECF4C74A59E}" src="https://github.com/user-attachments/assets/7500f73e-15ab-4af4-a1e3-fe163625eb31" />
+<img width="1401" height="811" alt="{42F725FA-A0C2-4A87-BCA9-22338529CC60}" src="https://github.com/user-attachments/assets/022545d7-c782-49cc-8292-5f760adb7897" />
 
 ## Features
 - Ely.by account support with skin support
+- Mod Downloading and Management through launcher
 - Fabric and Vanilla version support
 - Modern WinUI 3 interface
 - Lightweight and optimized launcher behavior
