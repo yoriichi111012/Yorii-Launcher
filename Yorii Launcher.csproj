@@ -6,8 +6,8 @@
 	<Version>0.8.0</Version>
 	<RootNamespace>Yorii_Launcher</RootNamespace>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
-	<Platforms>x86;x64;ARM64</Platforms>
-	<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+	<Platforms>x64;ARM64</Platforms>
+	<RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
 	  <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
 	  <SelfContained>true</SelfContained>
 	<UseWinUI>true</UseWinUI>
@@ -139,6 +139,8 @@
 	<HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
 	<PublishAot>False</PublishAot>
 	<PackageIcon>128.png</PackageIcon>
+	<AppxBundlePlatforms>x64|arm64</AppxBundlePlatforms>
+	<PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
 	<DebugType>none</DebugType>
