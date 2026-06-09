@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Yorii Launcher (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Yorii Launcher (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

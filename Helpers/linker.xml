@@ -1,0 +1,4 @@
+﻿<linker>
+	<assembly fullname="CmlLib.Core" preserve="all"/>
+	
+</linker>
