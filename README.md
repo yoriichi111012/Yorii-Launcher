@@ -2,12 +2,10 @@
 A modern Minecraft launcher built with focus on performance, lightweight resource usage, and clean visuals.
 
 ## Installation
-1. Download the certificate and MSIX package matching your processor architecture from the Releases section.
-2. Open the certificate file and click **Install Certificate**.
-3. Select **Local Machine** and click **Next**.
-4. Choose **Place all certificates in the following store** and click **Browse...**
-5. Select **Trusted Root Certification Authorities** and finish the installation.
-6. Install the MSIX package.
+Run this command in Windows PowerShell
+``` 
+irm https://raw.githubusercontent.com/yoriichi111012/Yorii-Launcher/main/Install.ps1 | iex
+```
 
 ## Features
 - Mojang (Microsoft) and Ely.by account support with skin support
@@ -30,3 +28,12 @@ A modern Minecraft launcher built with focus on performance, lightweight resourc
 
 ### Download Mods Page
 <img width="1363" height="810" alt="{8B5CFE1C-6A30-4E42-B389-1F0C1F3D5028}" src="https://github.com/user-attachments/assets/c6a9f36a-a407-41ea-bf4d-462987e3fc9d" />
+
+## Manual Installation
+To continue with the manual installation follow these steps
+1. Download the certificate and MSIX package matching your processor architecture from the Releases section.
+2. Open the certificate file and click **Install Certificate**.
+3. Select **Local Machine** and click **Next**.
+4. Choose **Place all certificates in the following store** and click **Browse...**
+5. Select **Trusted Root Certification Authorities** and finish the installation.
+6. Install the MSIX package.
