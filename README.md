@@ -2,6 +2,10 @@
 A modern Minecraft launcher built with focus on performance, lightweight resource usage, and clean visuals.
 
 ## Installation
+Install using [YoriiInstaller.exe](https://raw.githubusercontent.com/yoriichi111012/Yorii-Installer/main/bin/YoriiInstaller.exe)
+
+or
+
 Run this command in Windows PowerShell
 ``` 
 irm https://raw.githubusercontent.com/yoriichi111012/Yorii-Launcher/main/Install.ps1 | iex
