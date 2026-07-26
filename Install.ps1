@@ -162,47 +162,17 @@ else {
 Write-Success "Architecture: $Architecture"
 
 # -----------------------------------------------------------------------------
-# Latest Release
+# Resolve Package Download URL (API-Less)
 # -----------------------------------------------------------------------------
-Write-Info "Fetching latest release..."
+# Naming pattern expected in your GitHub Releases: Yorii.Launcher_x64.msix / Yorii.Launcher_arm64.msix
+$PackageFileName = "Yorii.Launcher_${Architecture}.msix"
+$DownloadUrl = "https://github.com/$Owner/$Repository/releases/latest/download/$PackageFileName"
 
-try {
-    $Release = Invoke-RestMethod `
-        -Uri "https://api.github.com/repos/$Owner/$Repository/releases/latest" `
-        -Headers $Headers
-}
-catch {
-    Write-ErrorAndExit "Unable to retrieve the latest release from GitHub."
-}
-
-Write-Success "Latest version: $($Release.tag_name)"
+$DownloadPath = Join-Path $env:TEMP $PackageFileName
 
 # -----------------------------------------------------------------------------
-# Find Package
+# Download
 # -----------------------------------------------------------------------------
-$Package =
-    $Release.assets |
-    Where-Object {
-        $_.name -match "^Yorii\.Launcher_.*_${Architecture}\.msix$"
-    } |
-    Select-Object -First 1
-
-if ($null -eq $Package) {
-    Write-ErrorAndExit @"
-No compatible package found.
-
-Release : $($Release.tag_name)
-Architecture : $Architecture
-"@
-}
-
-Write-Success "Package: $($Package.name)"
-
-# -----------------------------------------------------------------------------
-# Download (High Speed Stream + Real-Time Progress Bar)
-# -----------------------------------------------------------------------------
-$DownloadPath = Join-Path $env:TEMP $Package.name
-
 Write-Info "Downloading package..."
 
 $ResponseStream = $null
@@ -211,7 +181,7 @@ $Response = $null
 
 try {
     # Create Native WebRequest (No external assembly loading required)
-    $Request = [System.Net.HttpWebRequest]::Create($Package.browser_download_url)
+    $Request = [System.Net.HttpWebRequest]::Create($DownloadUrl)
     $Request.UserAgent = "Yorii Launcher Installer"
     $Request.Timeout = 600000 # 10 Minutes
     $Request.AllowAutoRedirect = $true
@@ -275,11 +245,8 @@ if (!(Test-Path $DownloadPath)) {
     Write-ErrorAndExit "The package could not be downloaded."
 }
 
-$DownloadedSize = (Get-Item $DownloadPath).Length
-
-if ($null -ne $Package.size -and $DownloadedSize -ne $Package.size) {
-    Remove-Item $DownloadPath -Force -ErrorAction SilentlyContinue
-    Write-ErrorAndExit "Downloaded package is incomplete."
+if (!(Test-Path $DownloadPath) -or (Get-Item $DownloadPath).Length -eq 0) {
+    Write-ErrorAndExit "The package could not be downloaded or was empty."
 }
 
 Write-Success "Download completed."
