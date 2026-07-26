@@ -60,7 +60,7 @@ Write-Info "Checking internet connection..."
 
 try {
     Invoke-WebRequest `
-        -Uri "https://api.github.com" `
+        -Uri "https://www.google.com" `
         -Method Head `
         -Headers $Headers `
         -UseBasicParsing `
