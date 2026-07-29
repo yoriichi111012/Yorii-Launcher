@@ -16,21 +16,20 @@
 
     <Grid x:Name="rootGrid">
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="auto" />
+            <RowDefinition x:Name="titleBarRow" Height="auto" />
+            <RowDefinition x:Name="contentRow" Height="*" />
         </Grid.RowDefinitions>
 
         <Image
             x:Name="backgroundImage"
-            Grid.RowSpan="3"
+            Grid.RowSpan="2"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             Stretch="UniformToFill"
             Visibility="Collapsed" />
         <Grid
             x:Name="overlayGrid"
-            Grid.RowSpan="3"
+            Grid.RowSpan="2"
             Opacity="0" />
 
         <TitleBar
@@ -38,7 +37,7 @@
             Title="Yorii Launcher"
             Grid.Row="0"
             VerticalAlignment="Top"
-            BackRequested="TitleBar_BackRequested"
+            BackRequested="titleBar_BackRequested"
             IsBackButtonVisible="True"
             IsPaneToggleButtonVisible="False"
             Subtitle="Preview">
@@ -46,140 +45,133 @@
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="/Assets/Tiles/GalleryIcon.ico" />
             </TitleBar.IconSource>
-            <TitleBar.RightHeader>
-                <StackPanel Orientation="Horizontal" Spacing="2">
-                    <Button
-                        x:Name="BugReportButton"
-                        Width="32"
-                        Height="32"
-                        Padding="0,0,0,0"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        Click="BugReportButton_Click"
-                        ToolTipService.ToolTip="Report Bug">
-                        <FontIcon
-                            FontSize="16"
-                            FontWeight="Light"
-                            Glyph="&#xEBE8;" />
-                    </Button>
-                    <Button
-                        x:Name="OpenFolderButton"
-                        Width="32"
-                        Height="32"
-                        Padding="0,0,0,0"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        Click="OpenFolderButton_Click"
-                        ToolTipService.ToolTip="Open Minecraft Directory">
-                        <FontIcon
-                            Margin="0,0,0,0"
-                            FontSize="16"
-                            FontWeight="Light"
-                            Glyph="&#xE838;" />
-                    </Button>
-                    <Button
-                        x:Name="NotesButton"
-                        Width="36"
-                        Height="36"
-                        Padding="0,0,0,0"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        Click="NotesButton_Click">
-                        <FontIcon
-                            FontSize="16"
-                            FontWeight="Light"
-                            Glyph="&#xE789;" />
-                    </Button>
-                    <Button
-                        x:Name="ModsButton"
-                        Width="32"
-                        Height="32"
-                        Padding="0,0,0,0"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        Click="ModsButton_Click"
-                        ToolTipService.ToolTip="Manage Mods">
-                        <FontIcon
-                            FontSize="16"
-                            FontWeight="Light"
-                            Glyph="&#xEA86;" />
-                    </Button>
-                    <Button
-                        x:Name="settingsButton"
-                        Width="32"
-                        Height="32"
-                        Padding="0,0,0,0"
-                        Background="Transparent"
-                        BorderBrush="Transparent"
-                        Click="SettingsButton_Click"
-                        ToolTipService.ToolTip="Settings">
-                        <FontIcon
-                            Margin="0,0,0,0"
-                            FontSize="16"
-                            FontWeight="Light"
-                            Glyph="&#xE713;" />
-                    </Button>
 
-
-                </StackPanel>
-            </TitleBar.RightHeader>
-        </TitleBar>
-        <Frame x:Name="mainFrame" Grid.Row="1" />
-        <StackPanel Grid.Row="2" Visibility="Visible">
-            <ProgressBar
-                x:Name="downloadProgressBar"
-                Height="8"
-                Maximum="100"
-                Minimum="0"
-                Opacity="0" />
-            <Border
-                Height="86"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Bottom">
-                <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-
+            <TitleBar.Content>
+                <Grid>
+                    <!--<AutoSuggestBox
+                        x:Name="searchBox"
+                        Width="360"
+                        VerticalAlignment="Center"
+                        PlaceholderText="Search.."
+                        QueryIcon="Find" />-->
+                    <Grid
+                        x:Name="compactTitleBarControls"
+                        HorizontalAlignment="Center"
+                        ColumnSpacing="8"
+                        RowSpacing="2"
+                        Visibility="Collapsed">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="36" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="188" />
+                            <ColumnDefinition Width="220" />
+                        </Grid.ColumnDefinitions>
                         <ComboBox
-                            x:Name="accountComboBox"
+                            x:Name="compactAccountComboBox"
+                            Grid.Row="0"
                             Grid.Column="0"
-                            Width="250"
-                            Height="36"
-                            Margin="36,0,0,0"
-                            HorizontalAlignment="Left"
+                            Width="220"
+                            Height="32"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Center"
                             PlaceholderText="Player"
                             SelectionChanged="AccountComboBox_SelectionChanged"
                             Style="{StaticResource AcrylicComboBoxStyle}" />
+                        <Button
+                            x:Name="compactPlayButton"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Width="188"
+                            Height="32"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Click="PlayButton_Click"
+                            Content="Play"
+                            Style="{ThemeResource AccentButtonStyle}" />
 
-                    </StackPanel>
-                    <Button
-                        x:Name="playButton"
-                        Grid.Column="1"
-                        Width="188"
-                        Height="36"
-                        Margin="0,0,0,0"
-                        HorizontalAlignment="Center"
-                        Click="PlayButton_Click"
-                        Content="Play"
-                        Style="{ThemeResource AccentButtonStyle}" />
-
-                    <ComboBox
-                        x:Name="versionComboBox"
-                        Grid.Column="2"
-                        Width="250"
-                        Height="36"
-                        Margin="0,0,24,0"
-                        HorizontalAlignment="Right"
-                        DropDownClosed="VersionList_DropDownClosed"
-                        SelectionChanged="VersionList_SelectionChanged"
-                        Style="{StaticResource AcrylicComboBoxStyle}" />
-
+                        <ComboBox
+                            x:Name="compactVersionComboBox"
+                            Grid.Row="0"
+                            Grid.Column="2"
+                            Width="220"
+                            Height="32"
+                            VerticalAlignment="Center"
+                            DropDownClosed="VersionList_DropDownClosed"
+                            PlaceholderText="Version"
+                            SelectionChanged="VersionList_SelectionChanged"
+                            Style="{StaticResource AcrylicComboBoxStyle}" />
+                        <ProgressBar
+                            x:Name="compactDownloadProgressBar"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="3"
+                            Opacity="0"
+                            Value="0" />
+                    </Grid>
                 </Grid>
-            </Border>
-        </StackPanel>
+            </TitleBar.Content>
+            <TitleBar.RightHeader>
+                <Grid>
+                    <StackPanel
+                        x:Name="normalTitleBarButtons"
+                        Orientation="Horizontal"
+                        Spacing="2">
+                        <Button
+                            x:Name="BugReportButton"
+                            Width="32"
+                            Height="32"
+                            Padding="0,0,0,0"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="BugReportButton_Click"
+                            ToolTipService.ToolTip="Report Bug">
+                            <FontIcon
+                                FontSize="16"
+                                FontWeight="Light"
+                                Glyph="&#xEBE8;" />
+                        </Button>
+                        <Button
+                            x:Name="CompactModeButton"
+                            Width="32"
+                            Height="32"
+                            Padding="0,0,0,0"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="CompactModeButton_Click"
+                            ToolTipService.ToolTip="Compact Mode">
+                            <FontIcon
+                                FontSize="16"
+                                FontWeight="Light"
+                                Glyph="&#xE8A7;" />
+                        </Button>
+                    </StackPanel>
+                    <StackPanel
+                        x:Name="compactRightHeaderControls"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        Visibility="Collapsed">
+                        <Button
+                            x:Name="RestoreOriginalModeButton"
+                            Width="32"
+                            Height="32"
+                            Padding="0,0,0,0"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="RestoreOriginalModeButton_Click"
+                            ToolTipService.ToolTip="Restore Original Mode">
+                            <FontIcon
+                                FontSize="16"
+                                FontWeight="Light"
+                                Glyph="&#xE740;" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </TitleBar.RightHeader>
+        </TitleBar>
+
+        <Frame x:Name="mainFrame" Grid.Row="1" />
+
     </Grid>
 </Window>

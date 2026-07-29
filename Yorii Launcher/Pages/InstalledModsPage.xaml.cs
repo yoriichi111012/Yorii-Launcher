@@ -1,4 +1,4 @@
-using CommunityToolkit.WinUI;
+﻿using CommunityToolkit.WinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -41,12 +41,22 @@ namespace Yorii_Launcher.Pages
 
             this.NavigationCacheMode = NavigationCacheMode.Required;
             ModsList.ItemsSource = Mods;
+            var savedMode = (PluginViewMode)SettingsManager.Current.InstalledModsViewMode;
+            PluginViewModeHelper.Apply(ModsList, savedMode);
+            ModsViewModeSegmented.SelectedIndex = (int)savedMode;
 
             _ = LoadMods();
 
             StartModsWatcher();
 
             MemoryOptimizer.ReduceMemory();
+        }
+
+        private void ViewModeSegmented_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            PluginViewModeHelper.ApplyFromSelectedIndex(ModsList, ModsViewModeSegmented.SelectedIndex);
+            SettingsManager.Current.InstalledModsViewMode = ModsViewModeSegmented.SelectedIndex;
+            SettingsManager.SaveSettings();
         }
 
         // watch mods folder for changes and refresh the list
@@ -181,6 +191,8 @@ namespace Yorii_Launcher.Pages
                     Title = "Error",
                     Content = ex.Message,
                     CloseButtonText = "OK",
+                    Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                    RequestedTheme = ThemeHelper.GetCurrentTheme(),
                     XamlRoot = XamlRoot
                 }.ShowAsync();
             }

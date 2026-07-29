@@ -13,12 +13,15 @@
         IsBackButtonVisible="Collapsed"
         IsSettingsVisible="False"
         OpenPaneLength="240"
-        PaneDisplayMode="Left"
+        PaneDisplayMode="Top"
         SelectionChanged="ModsNavigation_SelectionChanged">
+        <NavigationView.Resources>
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent" />
+        </NavigationView.Resources>
 
         <NavigationView.MenuItems>
 
-            <NavigationViewItem Content="Installed Mods" Tag="installed">
+            <NavigationViewItem Content="Installed Mods" Tag="installedmods">
 
                 <NavigationViewItem.Icon>
                     <SymbolIcon Symbol="Library" />
@@ -26,7 +29,39 @@
 
             </NavigationViewItem>
 
-            <NavigationViewItem Content="Download Mods" Tag="download">
+            <NavigationViewItem Content="Installed Resource Packs" Tag="installedrspacks">
+
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Library" />
+                </NavigationViewItem.Icon>
+
+            </NavigationViewItem>
+
+            <!--<NavigationViewItem Content="Installed Modpacks" Tag="installedmodpacks">
+
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Library" />
+                </NavigationViewItem.Icon>
+
+            </NavigationViewItem>-->
+
+            <NavigationViewItem Content="Download Mods" Tag="downloadmods">
+
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Download" />
+                </NavigationViewItem.Icon>
+
+            </NavigationViewItem>
+
+            <!--<NavigationViewItem Content="Download Modpacks" Tag="downloadmodpacks">
+
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Download" />
+                </NavigationViewItem.Icon>
+
+            </NavigationViewItem>-->
+
+            <NavigationViewItem Content="Download Resource Packs" Tag="downloadrspacks">
 
                 <NavigationViewItem.Icon>
                     <SymbolIcon Symbol="Download" />

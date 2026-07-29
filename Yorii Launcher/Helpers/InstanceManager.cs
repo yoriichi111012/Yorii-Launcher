@@ -131,6 +131,7 @@ namespace Yorii_Launcher.Helpers
             // create standard minecraft folders
             Directory.CreateDirectory(Path.Combine(minecraftPath, "versions"));
             Directory.CreateDirectory(Path.Combine(minecraftPath, "mods"));
+            Directory.CreateDirectory(Path.Combine(minecraftPath, "modpacks"));
             Directory.CreateDirectory(Path.Combine(minecraftPath, "resourcepacks"));
             Directory.CreateDirectory(Path.Combine(minecraftPath, "shaderpacks"));
             Directory.CreateDirectory(Path.Combine(minecraftPath, "config"));
@@ -179,7 +180,7 @@ namespace Yorii_Launcher.Helpers
             var fullInstancePath = Path.GetFullPath(instance.InstancePath);
             var fullRootPath = Path.GetFullPath(InstancesRoot);
 
-            // path traversal check
+            // path traversal check so user cant delete folders outside the instances root
             if (!fullInstancePath.StartsWith(fullRootPath, StringComparison.OrdinalIgnoreCase))
                 return;
 
@@ -204,6 +205,21 @@ namespace Yorii_Launcher.Helpers
                 return;
 
             metadata.LastPlayedAt = DateTimeOffset.UtcNow.ToString("O");
+            SaveMetadata(instancePath, metadata);
+        }
+
+        public static void RenameInstance(LauncherInstance instance, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            var instancePath = Path.Combine(InstancesRoot, instance.Id);
+            var metadata = LoadMetadata(instancePath);
+
+            if (metadata == null)
+                return;
+
+            metadata.Name = name.Trim();
             SaveMetadata(instancePath, metadata);
         }
 
@@ -265,7 +281,7 @@ namespace Yorii_Launcher.Helpers
             if (string.IsNullOrWhiteSpace(iconPath) || !File.Exists(iconPath))
                 return null;
 
-            // scale to 62px base
+            // scale to 62px base, high dpi displays need larger decode pixels
             var decodeSize = (int)Math.Round(62 * scale);
             return new BitmapImage(new Uri(iconPath)) { DecodePixelWidth = decodeSize, DecodePixelHeight = decodeSize };
         }

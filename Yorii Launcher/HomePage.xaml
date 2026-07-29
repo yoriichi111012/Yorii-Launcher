@@ -10,294 +10,611 @@
     mc:Ignorable="d">
 
     <Grid
-        x:Name="contentGrid"
-        MaxWidth="1400"
-        Padding="32,20,32,0"
+        MaxWidth="1300"
+        Padding="28,16,28,16"
         HorizontalAlignment="Stretch"
-        ColumnSpacing="20">
+        VerticalAlignment="Stretch"
+        ColumnSpacing="18">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MinWidth="420" />
-            <ColumnDefinition Width="398" />
+            <ColumnDefinition Width="*" MinWidth="560" />
+            <ColumnDefinition x:Name="serverColumn" Width="360" />
         </Grid.ColumnDefinitions>
 
-        <Grid MaxWidth="1200" RowSpacing="14">
+        <Grid RowSpacing="18">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Grid ColumnSpacing="12">
+            <Border
+                MinHeight="260"
+                Padding="24"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid ColumnSpacing="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="270" />
+                        <!--<ColumnDefinition Width="220" />-->
+                    </Grid.ColumnDefinitions>
+
+                    <Grid RowSpacing="18">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource SystemAccentColor}"
+                                Text="YORII LAUNCHER" />
+                            <TextBlock
+                                FontSize="34"
+                                FontWeight="SemiBold"
+                                Text="Play Minecraft" />
+                            <TextBlock
+                                Opacity="0.72"
+                                Text="Pick your player and version, then jump in."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <Grid
+                            Grid.Row="1"
+                            Margin="0,8,0,0"
+                            ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <ComboBox
+                                x:Name="accountComboBox"
+                                HorizontalAlignment="Stretch"
+                                Header="Player"
+                                PlaceholderText="Select player"
+                                SelectionChanged="AccountComboBox_SelectionChanged"
+                                Style="{StaticResource AcrylicComboBoxStyle}" />
+
+                            <ComboBox
+                                x:Name="versionComboBox"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                DropDownClosed="VersionList_DropDownClosed"
+                                Header="Version"
+                                PlaceholderText="Select version"
+                                SelectionChanged="VersionList_SelectionChanged"
+                                Style="{StaticResource AcrylicComboBoxStyle}" />
+                        </Grid>
+
+                        <ProgressBar
+                            x:Name="downloadProgressBar"
+                            Grid.Row="2"
+                            Maximum="100"
+                            Minimum="0"
+                            Opacity="0" />
+
+
+                    </Grid>
+
+                    <StackPanel
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="top"
+                        Orientation="Horizontal"
+                        Spacing="2">
+
+                        <Button
+                            Width="44"
+                            Height="36"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Click="OpenFolderButton_Click"
+                            ToolTipService.ToolTip="Open Minecraft folder">
+                            <FontIcon FontSize="16" Glyph="&#xE838;" />
+                        </Button>
+                        <Button
+                            x:Name="instancesButton"
+                            Grid.Column="1"
+                            Width="44"
+                            Height="36"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Click="InstancesButton_Click"
+                            ToolTipService.ToolTip="Instances">
+                            <FontIcon FontSize="16" Glyph="&#xE81E;" />
+                        </Button>
+                        <Button
+                            Grid.Column="2"
+                            Width="44"
+                            Height="36"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Click="ModsButton_Click"
+                            ToolTipService.ToolTip="Mods and resouce packs">
+                            <FontIcon FontSize="16" Glyph="&#xEA86;" />
+                        </Button>
+                        <Button
+                            Grid.Column="3"
+                            Width="44"
+                            Height="36"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Click="SettingsButton_Click"
+                            ToolTipService.ToolTip="Settings">
+                            <FontIcon FontSize="16" Glyph="&#xE713;" />
+                        </Button>
+                    </StackPanel>
+
+                    <Grid
+                        Grid.Column="1"
+                        Height="150"
+                        VerticalAlignment="Bottom">
+                        <Border
+                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8" />
+
+                        <StackPanel
+                            Padding="18"
+                            VerticalAlignment="Center"
+                            Spacing="16">
+                            <!--<FontIcon
+                                HorizontalAlignment="Center"
+                                FontSize="46"
+                                Foreground="{ThemeResource SystemAccentColor}"
+                                Glyph="&#xE768;" />-->
+                            <Button
+                                x:Name="playButton"
+                                Height="36"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Bottom"
+                                Click="PlayButton_Click"
+                                Content="Play"
+                                Style="{ThemeResource AccentButtonStyle}" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" ColumnSpacing="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel>
-                    <TextBlock
-                        FontSize="28"
-                        FontWeight="SemiBold"
-                        Text="Release Notes" />
-                    <TextBlock
-                        Margin="0,4,0,0"
-                        Opacity="0.72"
-                        Text="Official Minecraft changelogs for available versions." />
-                </StackPanel>
+                <Border
+                    Padding="16"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <StackPanel Spacing="4">
+                        <TextBlock FontWeight="SemiBold" Text="Instance" />
+                        <TextBlock
+                            x:Name="instanceSummaryText"
+                            Opacity="0.72"
+                            Text="Default Minecraft folder"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Border>
 
-                <ComboBox
-                    x:Name="releaseNotesVersionComboBox"
+                <Border
                     Grid.Column="1"
-                    Height="36"
-                    HorizontalAlignment="Stretch"
-                    SelectionChanged="ReleaseNotesVersionComboBox_SelectionChanged"
-                    Style="{StaticResource AcrylicComboBoxStyle}" />
+                    Padding="16"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock FontWeight="SemiBold" Text="Auto-connect" />
+                            <TextBlock
+                                x:Name="serverSummaryText"
+                                Opacity="0.72"
+                                Text="No auto-connect target"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Button
+                            x:Name="clearAutoConnectButton"
+                            Grid.Column="1"
+                            Width="32"
+                            Height="32"
+                            Padding="0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="ClearAutoConnectButton_Click"
+                            ToolTipService.ToolTip="Clear auto-connect">
+                            <FontIcon FontSize="16" Glyph="&#xE711;" />
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <Border
+                    Grid.Column="2"
+                    Padding="16"
+                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock FontWeight="SemiBold" Text="Memory" />
+                            <TextBlock
+                                x:Name="memorySummaryText"
+                                Opacity="0.72"
+                                Text="2 GB allocated" />
+                        </StackPanel>
+                        <Button
+                            Grid.Column="1"
+                            Width="32"
+                            Height="32"
+                            Padding="0"
+                            VerticalAlignment="Center"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="EditMemoryButton_Click"
+                            ToolTipService.ToolTip="Edit memory">
+                            <FontIcon FontSize="16" Glyph="&#xE70F;" />
+                        </Button>
+                    </Grid>
+                </Border>
             </Grid>
 
-            <Grid Grid.Row="1">
-                <ProgressRing
-                    x:Name="releaseNotesProgressRing"
-                    Width="36"
-                    Height="36"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    IsActive="True" />
-
-                <TextBlock
-                    x:Name="releaseNotesErrorText"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    FontSize="16"
-                    Opacity="0.7"
-                    Text="Release notes are unavailable right now."
-                    TextAlignment="Center"
-                    TextWrapping="Wrap"
-                    Visibility="Collapsed" />
-
-                <ScrollViewer
-                    x:Name="releaseNotesScrollViewer"
-                    VerticalScrollBarVisibility="Auto"
-                    Visibility="Collapsed">
-                    <ContentControl x:Name="releaseNotesContentControl" Padding="0,12,20,12" />
-                </ScrollViewer>
-            </Grid>
-        </Grid>
-
-        <Grid
-            x:Name="rightColumn"
-            Grid.Column="1"
-            RowSpacing="0">
-            <Grid.RowDefinitions>
-                <RowDefinition x:Name="instancesRow" Height="*" />
-                <RowDefinition x:Name="serverRow" Height="*" />
-            </Grid.RowDefinitions>
-
-            <Grid
-                x:Name="instancesPanel"
-                Grid.Row="0"
-                Margin="0,0,0,14"
-                RowSpacing="14">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
+            <Border
+                x:Name="releaseNotesPanel"
+                Grid.Row="2"
+                Padding="18"
+                VerticalAlignment="Top"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
                 <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel>
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon
+                                FontSize="15"
+                                Foreground="{ThemeResource SystemAccentColor}"
+                                Glyph="&#xE789;" />
+                            <TextBlock FontWeight="SemiBold" Text="What's new" />
+                            <TextBlock
+                                x:Name="releaseNotesVersionText"
+                                Opacity="0.65"
+                                Text="" />
+                        </StackPanel>
                         <TextBlock
-                            FontSize="28"
+                            x:Name="releaseNotesTitleText"
+                            FontSize="20"
                             FontWeight="SemiBold"
-                            Text="Instances" />
+                            Text="Release notes" />
                         <TextBlock
-                            Margin="0,4,0,0"
+                            x:Name="releaseNotesSummaryText"
+                            MaxLines="2"
                             Opacity="0.72"
-                            Text="Choose a Minecraft instance to play or create a new one."
+                            Text="Loading Minecraft release notes..."
+                            TextTrimming="Clip"
                             TextWrapping="Wrap" />
+                        <ProgressRing
+                            x:Name="releaseNotesProgressRing"
+                            Width="24"
+                            Height="24"
+                            HorizontalAlignment="Left"
+                            IsActive="False"
+                            Visibility="Collapsed" />
                     </StackPanel>
 
-                    <Button
+                    <StackPanel
                         Grid.Column="1"
-                        Height="36"
-                        Click="CreateInstance_Click"
-                        Style="{ThemeResource AccentButtonStyle}">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon FontSize="14" Glyph="&#xE710;" />
-                            <TextBlock Text="Create" />
-                        </StackPanel>
-                    </Button>
-                </Grid>
-
-                <Grid Grid.Row="1">
-                    <TextBlock
-                        x:Name="emptyInstancesText"
-                        HorizontalAlignment="Center"
                         VerticalAlignment="Center"
-                        FontSize="16"
-                        Opacity="0.7"
-                        Text="No instances yet. Create one to start with a clean Minecraft folder."
-                        TextAlignment="Center"
-                        TextWrapping="Wrap" />
-
-                    <GridView
-                        x:Name="instancesGrid"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        IsItemClickEnabled="True"
-                        ItemClick="InstancesGrid_ItemClick"
-                        SelectionMode="Single">
-                        <GridView.ItemTemplate>
-                            <DataTemplate x:DataType="models:LauncherInstance">
-                                <Grid Width="180" Height="140">
-                                    <Border
-                                        Padding="12"
-                                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="6">
-                                        <Grid>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="*" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-
-                                            <Grid>
-                                                <Border
-                                                    Width="62"
-                                                    Height="62"
-                                                    HorizontalAlignment="Left"
-                                                    VerticalAlignment="Top"
-                                                    CornerRadius="8">
-                                                    <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
-                                                </Border>
-
-                                                <Button
-                                                    Width="30"
-                                                    Height="30"
-                                                    Padding="0"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Top"
-                                                    Click="OpenInstanceFolder_Click"
-                                                    ToolTipService.ToolTip="Open folder">
-                                                    <FontIcon FontSize="16" Glyph="&#xE838;" />
-                                                </Button>
-
-                                                <Button
-                                                    Width="30"
-                                                    Height="30"
-                                                    Margin="0,36,0,0"
-                                                    Padding="0"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Top"
-                                                    Click="DeleteInstance_Click"
-                                                    ToolTipService.ToolTip="Delete instance">
-                                                    <FontIcon
-                                                        FontSize="16"
-                                                        Foreground="#FF7878"
-                                                        Glyph="&#xE74D;" />
-                                                </Button>
-                                            </Grid>
-
-                                            <StackPanel Grid.Row="1" Spacing="2">
-                                                <TextBlock
-                                                    FontWeight="SemiBold"
-                                                    Text="{x:Bind Name}"
-                                                    TextTrimming="CharacterEllipsis" />
-                                                <TextBlock
-                                                    FontSize="12"
-                                                    Opacity="0.65"
-                                                    Text="{x:Bind Id}"
-                                                    TextTrimming="CharacterEllipsis" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </DataTemplate>
-                        </GridView.ItemTemplate>
-                    </GridView>
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <ComboBox
+                            x:Name="releaseNotesVersionComboBox"
+                            Width="180"
+                            Height="36"
+                            SelectionChanged="ReleaseNotesVersionComboBox_SelectionChanged"
+                            Style="{StaticResource AcrylicComboBoxStyle}" />
+                        <Button
+                            Width="44"
+                            Height="36"
+                            Padding="0"
+                            Click="OpenReleaseNotesButton_Click"
+                            ToolTipService.ToolTip="Open full release notes">
+                            <FontIcon FontSize="16" Glyph="&#xE8A7;" />
+                        </Button>
+                    </StackPanel>
                 </Grid>
-            </Grid>
-
-            <Grid
-                x:Name="serverListPanel"
-                Grid.Row="1"
-                RowSpacing="14">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
-                <StackPanel>
-                    <TextBlock
-                        FontSize="28"
-                        FontWeight="SemiBold"
-                        Text="Servers" />
-                    <TextBlock
-                        Margin="0,4,0,0"
-                        Opacity="0.72"
-                        Text="Select a server to auto-connect when launching."
-                        TextWrapping="Wrap" />
-                </StackPanel>
-
-                <Grid Grid.Row="1">
-                    <TextBlock
-                        x:Name="emptyServersText"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        FontSize="16"
-                        Opacity="0.7"
-                        Text="No servers found. Add servers in Minecraft first."
-                        TextAlignment="Center"
-                        TextWrapping="Wrap" />
-
-                    <ListView
-                        x:Name="serversListView"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        SelectionChanged="ServersListView_SelectionChanged"
-                        SelectionMode="Single">
-                        <ListView.ItemTemplate>
-                            <DataTemplate x:DataType="models:ServerItem">
-                                <Grid Padding="12,10" ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Grid
-                                        Width="32"
-                                        Height="32"
-                                        VerticalAlignment="Center">
-                                        <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
-                                        <FontIcon
-                                            FontSize="20"
-                                            Foreground="{ThemeResource SystemAccentColor}"
-                                            Glyph="&#xE7F4;"
-                                            Visibility="{x:Bind local:HomePage.IconVisibility(Icon)}" />
-                                    </Grid>
-
-                                    <StackPanel
-                                        Grid.Column="1"
-                                        VerticalAlignment="Center"
-                                        Spacing="2">
-                                        <TextBlock
-                                            FontWeight="SemiBold"
-                                            Text="{x:Bind Name}"
-                                            TextTrimming="CharacterEllipsis" />
-                                        <TextBlock
-                                            FontSize="12"
-                                            Opacity="0.65"
-                                            Text="{x:Bind Address}"
-                                            TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
-                                </Grid>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                </Grid>
-            </Grid>
+            </Border>
         </Grid>
+
+        <StackPanel
+            x:Name="autoConnectColumn"
+            Grid.Column="1"
+            VerticalAlignment="Top"
+            Spacing="18">
+            <Border
+                x:Name="serverListPanel"
+                MaxHeight="340"
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource SystemAccentColor}"
+                                Text="MULTIPLAYER" />
+                            <TextBlock
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Text="Servers" />
+                            <TextBlock
+                                Opacity="0.72"
+                                Text="Choose a server to auto-connect."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button
+                            x:Name="addServerButton"
+                            Grid.Column="1"
+                            Width="32"
+                            Height="32"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="AddServerButton_Click"
+                            ToolTipService.ToolTip="Add server">
+                            <FontIcon FontSize="16" Glyph="&#xE710;" />
+                        </Button>
+                    </Grid>
+
+                    <Grid Grid.Row="1" MinHeight="120">
+                        <StackPanel
+                            x:Name="serversDisabledPanel"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="10"
+                            Visibility="Collapsed">
+                            <FontIcon
+                                HorizontalAlignment="Center"
+                                FontSize="28"
+                                Foreground="{ThemeResource SystemAccentColor}"
+                                Glyph="&#xE774;" />
+                            <TextBlock
+                                MaxWidth="260"
+                                Opacity="0.72"
+                                Text="Server list is turned off. Enable it to read servers.dat from the active Minecraft folder."
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <TextBlock
+                            x:Name="emptyServersText"
+                            Margin="24"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Opacity="0.7"
+                            Text="No servers found. Add servers in Minecraft first."
+                            TextAlignment="Center"
+                            TextWrapping="Wrap" />
+
+                        <ListView
+                            x:Name="serversListView"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            SelectionChanged="ServersListView_SelectionChanged"
+                            SelectionMode="Single">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="models:ServerItem">
+                                    <Grid Padding="2,10" ColumnSpacing="12">
+                                        <Grid.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuFlyoutItem Click="EditServer_Click" Text="Edit" />
+                                                <MenuFlyoutItem
+                                                    Click="DeleteServer_Click"
+                                                    Foreground="#FF5555"
+                                                    Text="Delete" />
+                                            </MenuFlyout>
+                                        </Grid.ContextFlyout>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Grid
+                                            Width="32"
+                                            Height="32"
+                                            VerticalAlignment="Center">
+                                            <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
+                                            <FontIcon
+                                                FontSize="20"
+                                                Foreground="{ThemeResource SystemAccentColor}"
+                                                Glyph="&#xE774;"
+                                                Visibility="{x:Bind local:HomePage.IconVisibility(Icon)}" />
+                                        </Grid>
+
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Spacing="2">
+                                            <TextBlock
+                                                FontWeight="SemiBold"
+                                                Text="{x:Bind Name}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Opacity="0.65"
+                                                Text="{x:Bind Address}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border
+                x:Name="worldListPanel"
+                Height="300"
+                MaxHeight="340"
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource SystemAccentColor}"
+                                Text="SINGLEPLAYER" />
+                            <TextBlock
+                                FontSize="24"
+                                FontWeight="SemiBold"
+                                Text="Worlds" />
+                            <TextBlock
+                                Opacity="0.72"
+                                Text="Choose a world to auto-connect."
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button
+                            x:Name="addWorldButton"
+                            Grid.Column="1"
+                            Width="32"
+                            Height="32"
+                            Padding="0"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Click="AddWorldButton_Click"
+                            IsEnabled="False"
+                            ToolTipService.ToolTip="Under work at the moment"
+                            Visibility="Collapsed">
+                            <FontIcon FontSize="16" Glyph="&#xE710;" />
+                        </Button>
+                    </Grid>
+
+                    <Grid Grid.Row="1" MinHeight="120">
+                        <TextBlock
+                            x:Name="emptyWorldsText"
+                            Margin="24"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Opacity="0.7"
+                            Text="No worlds found in the active Minecraft folder."
+                            TextAlignment="Center"
+                            TextWrapping="Wrap" />
+
+                        <ListView
+                            x:Name="worldsListView"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            SelectionChanged="WorldsListView_SelectionChanged"
+                            SelectionMode="Single">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="models:WorldItem">
+                                    <Grid Padding="2,10" ColumnSpacing="12">
+                                        <Grid.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuFlyoutItem Click="EditWorld_Click" Text="Edit" />
+                                                <MenuFlyoutItem
+                                                    Click="DeleteWorld_Click"
+                                                    Foreground="#FF5555"
+                                                    Text="Delete" />
+                                            </MenuFlyout>
+                                        </Grid.ContextFlyout>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Grid
+                                            Width="32"
+                                            Height="32"
+                                            VerticalAlignment="Center">
+                                            <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
+                                            <FontIcon
+                                                FontSize="20"
+                                                Foreground="{ThemeResource SystemAccentColor}"
+                                                Glyph="&#xE80F;"
+                                                Visibility="{x:Bind local:HomePage.IconVisibility(Icon)}" />
+                                        </Grid>
+
+                                        <StackPanel
+                                            Grid.Column="1"
+                                            VerticalAlignment="Center"
+                                            Spacing="2">
+                                            <TextBlock
+                                                FontWeight="SemiBold"
+                                                Text="{x:Bind Name}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Opacity="0.65"
+                                                Text="{x:Bind Address}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </Grid>
+                </Grid>
+            </Border>
+        </StackPanel>
     </Grid>
 </Page>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yorii_Launcher.Pages.AccountsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <TextBlock
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            FontSize="16"
+            Opacity="0.7"
+            Text="Accounts page coming soon"
+            TextWrapping="Wrap" />
+    </Grid>
+</Page>

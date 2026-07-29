@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yorii_Launcher.Pages.InstancesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Yorii_Launcher.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Yorii_Launcher.Models"
+    mc:Ignorable="d">
+
+    <Grid
+        x:Name="instancesPanel"
+        MaxWidth="1200"
+        Padding="0,32"
+        RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel>
+                <TextBlock
+                    FontSize="28"
+                    FontWeight="SemiBold"
+                    Text="Instances" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    Opacity="0.72"
+                    Text="Choose a Minecraft instance to play or create a new one."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Button
+                x:Name="createInstanceButton"
+                Grid.Column="1"
+                Height="36"
+                Click="CreateInstance_Click"
+                Style="{ThemeResource AccentButtonStyle}"
+                ToolTipService.ToolTip="Create a new instance">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="14" Glyph="&#xE710;" />
+                    <TextBlock Text="Create" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <StackPanel
+                x:Name="instancesDisabledPanel"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="6"
+                Visibility="Collapsed">
+                <FontIcon
+                    HorizontalAlignment="Center"
+                    FontSize="32"
+                    Glyph="&#xE785;"
+                    Opacity="0.5" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="16"
+                    FontWeight="SemiBold"
+                    Text="Instances are disabled" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    FontSize="13"
+                    Opacity="0.6"
+                    Text="Enable instances in Settings to use isolated Minecraft folders."
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <TextBlock
+                x:Name="emptyInstancesText"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="16"
+                Opacity="0.7"
+                Text="No instances yet. Create one to start with a clean Minecraft folder."
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
+
+            <GridView
+                x:Name="instancesGrid"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                CanDragItems="True"
+                CanReorderItems="True"
+                IsItemClickEnabled="True"
+                ItemClick="InstancesGrid_ItemClick"
+                SelectionMode="Single">
+                <GridView.ItemTemplate>
+                    <DataTemplate x:DataType="models:LauncherInstance">
+                        <Grid Width="180" MinHeight="140">
+
+                            <Border
+                                Padding="12"
+                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+
+                                    <Grid>
+                                        <Border
+                                            Width="62"
+                                            Height="62"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Top"
+                                            CornerRadius="8">
+                                            <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
+                                        </Border>
+
+                                        <StackPanel Spacing="4">
+                                            <Button
+                                                Width="30"
+                                                Height="30"
+                                                Padding="0"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Top"
+                                                Click="EditInstanceClick"
+                                                ToolTipService.ToolTip="Edit">
+                                                <FontIcon FontSize="16" Glyph="&#xE70F;" />
+                                            </Button>
+
+                                            <Button
+                                                Width="30"
+                                                Height="30"
+                                                Padding="0"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Top"
+                                                Click="DeleteInstance_Click"
+                                                ToolTipService.ToolTip="Delete instance">
+                                                <FontIcon
+                                                    FontSize="16"
+                                                    Foreground="#FF7878"
+                                                    Glyph="&#xE74D;" />
+                                            </Button>
+                                        </StackPanel>
+
+                                    </Grid>
+
+                                    <StackPanel Grid.Row="1" Spacing="2">
+                                        <TextBlock
+                                            FontWeight="SemiBold"
+                                            Text="{x:Bind Name}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            Opacity="0.65"
+                                            Text="{x:Bind Id}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </GridView.ItemTemplate>
+            </GridView>
+        </Grid>
+    </Grid>
+</Page>

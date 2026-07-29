@@ -1,15 +1,43 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <Application
     x:Class="Yorii_Launcher.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Yorii_Launcher">
     <Application.Resources>
-         <ResourceDictionary>
-        <ResourceDictionary.MergedDictionaries>
-            <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
-            <ResourceDictionary Source="Resources/ComboBox.xaml" />
-        </ResourceDictionary.MergedDictionaries>
-    </ResourceDictionary>
+        <ResourceDictionary>
+            <!--<Color x:Key="SystemAccentColor">#107CF0</Color>-->
+            <AcrylicBrush
+                x:Key="CustomAcrylicBrush"
+                FallbackColor="#FF008000"
+                TintColor="#FF000000"
+                TintOpacity="0.1" />
+
+            <ItemsPanelTemplate x:Key="PluginListItemsPanel">
+                <ItemsStackPanel Orientation="Vertical" />
+            </ItemsPanelTemplate>
+
+            <ItemsPanelTemplate x:Key="PluginGridItemsPanel">
+                <ItemsWrapGrid Orientation="Horizontal" HorizontalAlignment="Center" />
+            </ItemsPanelTemplate>
+
+            <Style x:Key="PluginListViewItemContainerStyle" TargetType="ListViewItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+
+            <Style x:Key="PluginGridViewItemContainerStyle" TargetType="ListViewItem">
+                <Setter Property="Width" Value="360" />
+                <Setter Property="MinWidth" Value="280" />
+                <Setter Property="MaxWidth" Value="420" />
+                <Setter Property="Margin" Value="0,0,0,0" />
+                <Setter Property="Padding" Value="4,0,0,0" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            </Style>
+
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="Resources/ComboBox.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

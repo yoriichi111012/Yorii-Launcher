@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yorii_Launcher.Pages.ReleaseNotesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Yorii_Launcher.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid
+        MaxWidth="1200"
+        Padding="0,32"
+        RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="220" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel>
+                <TextBlock
+                    FontSize="28"
+                    FontWeight="SemiBold"
+                    Text="Release Notes" />
+                <TextBlock
+                    Margin="0,4,0,0"
+                    Opacity="0.72"
+                    Text="Official Minecraft changelogs for available versions." />
+            </StackPanel>
+
+            <ComboBox
+                x:Name="releaseNotesVersionComboBox"
+                Grid.Column="1"
+                Height="36"
+                HorizontalAlignment="Stretch"
+                SelectionChanged="ReleaseNotesVersionComboBox_SelectionChanged"
+                Style="{StaticResource AcrylicComboBoxStyle}" />
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <ProgressRing
+                x:Name="releaseNotesProgressRing"
+                Width="36"
+                Height="36"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsActive="True" />
+
+            <TextBlock
+                x:Name="releaseNotesErrorText"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                FontSize="16"
+                Opacity="0.7"
+                Text="Release notes are unavailable right now."
+                TextAlignment="Center"
+                TextWrapping="Wrap"
+                Visibility="Collapsed" />
+
+            <ScrollView
+                x:Name="releaseNotesScrollView"
+                VerticalScrollBarVisibility="Auto"
+                Visibility="Collapsed">
+                <ContentControl x:Name="releaseNotesContentControl" Padding="0,12,20,12" />
+            </ScrollView>
+        </Grid>
+    </Grid>
+</Page>

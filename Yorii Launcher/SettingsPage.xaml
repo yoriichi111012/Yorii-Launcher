@@ -8,304 +8,387 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     mc:Ignorable="d">
-    <ScrollView VerticalScrollBarVisibility="Auto">
-        <StackPanel MaxWidth="1000" Margin="16">
-            <TextBlock
-                Margin="0,0,0,24"
-                FontSize="24"
-                FontWeight="SemiBold"
-                Text="Settings" />
-            <StackPanel>
-                <TextBlock
-                    Margin="0,0,0,6"
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    Text="Appearance &amp; Behavior" />
-                <toolkit:SettingsCard Description="Select which app theme to display" Header="App Theme">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE790;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <Grid MinWidth="124" HorizontalAlignment="Right">
-                        <ComboBox
-                            x:Name="themeMode"
-                            MinWidth="124"
-                            SelectionChanged="ThemeMode_SelectionChanged"
-                            Style="{StaticResource AcrylicComboBoxStyle}">
-                            <ComboBoxItem Content="Light" Tag="Light" />
-                            <ComboBoxItem Content="Dark" Tag="Dark" />
-                            <ComboBoxItem Content="System" Tag="Default" />
-                        </ComboBox>
-                    </Grid>
-                </toolkit:SettingsCard>
-                <toolkit:SettingsExpander Description="Customize the launcher background image" Header="Background">
-                    <toolkit:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE91B;" />
-                    </toolkit:SettingsExpander.HeaderIcon>
-                    <toolkit:SettingsExpander.Items>
-                        <toolkit:SettingsCard
-                            Padding="58,12,16,12"
-                            Description="Select a background image for the launcher"
-                            Header="Background Image">
-                            <StackPanel
-                                HorizontalAlignment="Right"
-                                Orientation="Vertical"
-                                Spacing="6">
+    <Grid x:Name="rootGrid">
+        <!--<Grid.Resources>
+            <SolidColorBrush x:Key="SliderTrackValueFill" Color="{ThemeResource SystemAccentColor}" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="{ThemeResource SystemAccentColor}" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="{ThemeResource SystemAccentColor}" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="{ThemeResource SystemAccentColor}" />
+            <SolidColorBrush x:Key="SliderThumbBackground" Color="{ThemeResource SystemAccentColor}" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="{ThemeResource SystemAccentColor}" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="{ThemeResource SystemAccentColor}" />
+
+
+        </Grid.Resources>-->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock
+            Grid.Row="0"
+            MaxWidth="1200"
+            Margin="36,24,36,0"
+            FontSize="24"
+            FontWeight="SemiBold"
+            Text="Settings" />
+        <ScrollView
+            x:Name="settingsScrollView"
+            Grid.Row="1"
+            Padding="36,0,36,0"
+            VerticalScrollBarVisibility="Auto"
+            VerticalScrollMode="Auto">
+            <Border>
+                <StackPanel MaxWidth="1200" Margin="16">
+                    <TextBlock
+                        Margin="0,0,0,6"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Text="Appearance &amp; Behavior" />
+                    <toolkit:SettingsCard Description="Select which app theme to display" Header="App Theme">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE790;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <Grid MinWidth="124" HorizontalAlignment="Right">
+                            <ComboBox
+                                x:Name="themeMode"
+                                MinWidth="124"
+                                SelectionChanged="ThemeMode_SelectionChanged"
+                                Style="{StaticResource AcrylicComboBoxStyle}">
+                                <ComboBoxItem Content="Light" Tag="Light" />
+                                <ComboBoxItem Content="Dark" Tag="Dark" />
+                                <ComboBoxItem Content="System" Tag="Default" />
+                            </ComboBox>
+                        </Grid>
+                    </toolkit:SettingsCard>
+                    <!--<toolkit:SettingsExpander Description="Select accent color" Header="Accent Color">
+                        <toolkit:SettingsExpander.HeaderIcon>
+                            <FontIcon Glyph="&#xE790;" />
+                        </toolkit:SettingsExpander.HeaderIcon>
+                        <TextBlock x:Name="accentColor" />
+                        <toolkit:SettingsExpander.Items>
+                            <toolkit:SettingsCard>
+                                <ColorPicker
+                                    x:Name="accentColorPicker"
+                                    HorizontalAlignment="Right"
+                                    ColorChanged="accentColorPicker_ColorChanged"
+                                    IsAlphaEnabled="False"
+                                    IsColorChannelTextInputVisible="True"
+                                    IsColorSliderVisible="True"
+                                    IsColorSpectrumVisible="True" />
+                            </toolkit:SettingsCard>
+                        </toolkit:SettingsExpander.Items>
+                    </toolkit:SettingsExpander>-->
+                    <toolkit:SettingsExpander Description="Customize the launcher background image" Header="Background">
+                        <toolkit:SettingsExpander.HeaderIcon>
+                            <FontIcon Glyph="&#xE91B;" />
+                        </toolkit:SettingsExpander.HeaderIcon>
+                        <toolkit:SettingsExpander.Items>
+                            <toolkit:SettingsCard
+                                Padding="58,12,16,12"
+                                Description="Select a background image for the launcher"
+                                Header="Background Image">
                                 <StackPanel
                                     HorizontalAlignment="Right"
-                                    Orientation="Horizontal"
+                                    Orientation="Vertical"
                                     Spacing="6">
-                                    <ComboBox
-                                        x:Name="backgroundImage"
-                                        MinWidth="124"
-                                        SelectionChanged="backgroundImage_SelectionChanged"
-                                        Style="{StaticResource AcrylicComboBoxStyle}">
-                                        <ComboBoxItem Content="None" Tag="None" />
-                                        <ComboBoxItem Content="Custom" Tag="Custom" />
-                                    </ComboBox>
+                                    <StackPanel
+                                        HorizontalAlignment="Right"
+                                        Orientation="Horizontal"
+                                        Spacing="6">
+                                        <ComboBox
+                                            x:Name="backgroundImage"
+                                            MinWidth="124"
+                                            SelectionChanged="backgroundImage_SelectionChanged"
+                                            Style="{StaticResource AcrylicComboBoxStyle}">
+                                            <ComboBoxItem Content="None" Tag="None" />
+                                            <ComboBoxItem Content="Custom" Tag="Custom" />
+                                        </ComboBox>
+                                    </StackPanel>
+                                    <TextBlock
+                                        x:Name="backgroundImageTextBlock"
+                                        FontSize="12"
+                                        HorizontalTextAlignment="Right"
+                                        Opacity="0.7"
+                                        Text=""
+                                        TextTrimming="CharacterEllipsis" />
                                 </StackPanel>
-                                <TextBlock
-                                    x:Name="backgroundImageTextBlock"
-                                    FontSize="12"
-                                    HorizontalTextAlignment="Right"
-                                    Opacity="0.7"
-                                    Text=""
-                                    TextTrimming="CharacterEllipsis" />
+                            </toolkit:SettingsCard>
+                            <toolkit:SettingsCard
+                                Padding="58,8,16,8"
+                                Description="Adjust the darkness of the overlay behind content"
+                                Header="Overlay Opacity">
+                                <Slider
+                                    x:Name="overlayOpacitySlider"
+                                    Width="200"
+                                    Maximum="1"
+                                    Minimum="0"
+                                    StepFrequency="0.05"
+                                    ValueChanged="OverlayOpacitySlider_ValueChanged" />
+                            </toolkit:SettingsCard>
+                            <toolkit:SettingsCard
+                                Padding="58,8,16,8"
+                                Description="Enable a blur effect on the overlay"
+                                Header="Overlay Blur">
+                                <ToggleSwitch
+                                    x:Name="overlayBlurToggle"
+                                    OffContent=""
+                                    OnContent=""
+                                    Toggled="OverlayBlurToggle_Toggled" />
+                            </toolkit:SettingsCard>
+                        </toolkit:SettingsExpander.Items>
+                    </toolkit:SettingsExpander>
+                    <toolkit:SettingsCard Description="Select what happens to the launcher window when the game launches" Header="Window Behavior">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE7F4;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <Grid MinWidth="124" HorizontalAlignment="Right">
+                            <ComboBox
+                                x:Name="windowBehavior"
+                                MinWidth="124"
+                                HorizontalAlignment="Stretch"
+                                SelectionChanged="WindowBehavior_SelectionChanged"
+                                Style="{StaticResource AcrylicComboBoxStyle}">
+                                <ComboBoxItem Content="Do Nothing" Tag="None" />
+                                <ComboBoxItem Content="Hide" Tag="Hide" />
+                                <ComboBoxItem Content="Close" Tag="Close" />
+                            </ComboBox>
+                        </Grid>
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Description="Display a console window with game logs when the game launches" Header="Show Console">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE756;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ToggleSwitch
+                            x:Name="showConsoleToggle"
+                            OffContent=""
+                            OnContent=""
+                            Toggled="ShowConsoleToggle_Toggled" />
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Description="Choose where to install the game" Header="Installation Folder">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8B7;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <StackPanel Orientation="Vertical" Spacing="6">
+                            <StackPanel
+                                HorizontalAlignment="Right"
+                                Orientation="Horizontal"
+                                Spacing="6">
+                                <Button
+                                    x:Name="pickFolderButton"
+                                    HorizontalAlignment="Right"
+                                    Click="PickFolderButton_Click"
+                                    Content="Change Folder"
+                                    FontSize="12" />
                             </StackPanel>
-                        </toolkit:SettingsCard>
-                        <toolkit:SettingsCard
-                            Padding="58,8,16,8"
-                            Description="Adjust the darkness of the overlay behind content"
-                            Header="Overlay Opacity">
+                            <TextBlock
+                                x:Name="pickedFolderTextBlock"
+                                HorizontalAlignment="Right"
+                                FontSize="12"
+                                Opacity="0.7"
+                                Text="" />
+                        </StackPanel>
+                    </toolkit:SettingsCard>
+                    <TextBlock
+                        Margin="0,8,0,6"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Text="Performance" />
+                    <toolkit:SettingsCard
+                        x:Name="memoryCard"
+                        Description="Choose the amount of memory allocated to the game"
+                        Header="Memory Size">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xEEA0;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <StackPanel Orientation="Vertical">
                             <Slider
-                                x:Name="overlayOpacitySlider"
+                                x:Name="ramAmount"
                                 Width="200"
-                                Maximum="1"
-                                Minimum="0"
-                                StepFrequency="0.05"
-                                ValueChanged="OverlayOpacitySlider_ValueChanged" />
-                        </toolkit:SettingsCard>
-                        <toolkit:SettingsCard
-                            Padding="58,8,16,8"
-                            Description="Enable a blur effect on the overlay"
-                            Header="Overlay Blur">
-                            <ToggleSwitch
-                                x:Name="overlayBlurToggle"
-                                OffContent=""
-                                OnContent=""
-                                Toggled="OverlayBlurToggle_Toggled" />
-                        </toolkit:SettingsCard>
-                    </toolkit:SettingsExpander.Items>
-                </toolkit:SettingsExpander>
-                <toolkit:SettingsCard Description="Select what happens to the launcher window when the game launches" Header="Window Behavior">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE7F4;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <Grid MinWidth="124" HorizontalAlignment="Right">
-                        <ComboBox
-                            x:Name="windowBehavior"
-                            MinWidth="124"
-                            HorizontalAlignment="Stretch"
-                            SelectionChanged="WindowBehavior_SelectionChanged"
-                            Style="{StaticResource AcrylicComboBoxStyle}">
-                            <ComboBoxItem Content="Do Nothing" Tag="None" />
-                            <ComboBoxItem Content="Hide" Tag="Hide" />
-                            <ComboBoxItem Content="Close" Tag="Close" />
-                        </ComboBox>
-                    </Grid>
-                </toolkit:SettingsCard>
-                <toolkit:SettingsCard Description="Display a console window with game logs when the game launches" Header="Show Console">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE756;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <ToggleSwitch
-                        x:Name="showConsoleToggle"
-                        OffContent=""
-                        OnContent=""
-                        Toggled="ShowConsoleToggle_Toggled" />
-                </toolkit:SettingsCard>
-                <toolkit:SettingsCard Description="Choose where to install the game" Header="Installation Folder">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE8B7;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <StackPanel Orientation="Vertical" Spacing="6">
+                                Height="27"
+                                Margin="0,-4,0,0"
+                                LargeChange="1"
+                                Maximum="32"
+                                Minimum="1"
+                                SmallChange="0.5"
+                                StepFrequency="0.5"
+                                ValueChanged="RamAmount_ValueChanged" />
+                            <TextBlock
+                                x:Name="ramDisplay"
+                                Height="15"
+                                Padding="0,0,0,0"
+                                HorizontalTextAlignment="Center" />
+                        </StackPanel>
+                    </toolkit:SettingsCard>
+                    <TextBlock
+                        Margin="0,8,0,6"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Text="Updates" />
+                    <toolkit:SettingsCard Description="Check GitHub for a newer version of Yorii_Launcher" Header="Check for Updates">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE777;" />
+                        </toolkit:SettingsCard.HeaderIcon>
                         <StackPanel
                             HorizontalAlignment="Right"
                             Orientation="Horizontal"
-                            Spacing="6">
+                            Spacing="8">
+                            <TextBlock
+                                x:Name="updateStatusText"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Opacity="0.7"
+                                Text="v0.7.0" />
                             <Button
-                                x:Name="pickFolderButton"
-                                HorizontalAlignment="Right"
-                                Click="PickFolderButton_Click"
-                                Content="Change Folder"
-                                FontSize="12" />
+                                x:Name="checkUpdateButton"
+                                Click="CheckUpdateButton_Click"
+                                Content="Check" />
                         </StackPanel>
-                        <TextBlock
-                            x:Name="pickedFolderTextBlock"
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard
+                        x:Name="updateAvailableCard"
+                        Description="A newer version is ready to install"
+                        Header="Update Available"
+                        Visibility="Collapsed">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE777;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <StackPanel
                             HorizontalAlignment="Right"
-                            FontSize="12"
-                            Opacity="0.7"
-                            Text="" />
-                    </StackPanel>
-                </toolkit:SettingsCard>
-                <TextBlock
-                    Margin="0,8,0,6"
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    Text="Performance" />
-                <toolkit:SettingsCard Description="Choose the amount of memory allocated to the game" Header="Memory Size">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xEEA0;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <StackPanel Orientation="Vertical">
-                        <Slider
-                            x:Name="ramAmount"
-                            Width="200"
-                            Height="27"
-                            Margin="0,-4,0,0"
-                            LargeChange="1"
-                            Maximum="32"
-                            Minimum="1"
-                            SmallChange="0.5"
-                            StepFrequency="0.5"
-                            ValueChanged="RamAmount_ValueChanged" />
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <TextBlock
+                                x:Name="updateVersionText"
+                                VerticalAlignment="Center"
+                                FontSize="12" />
+                            <Button
+                                x:Name="installUpdateButton"
+                                Click="InstallUpdateButton_Click"
+                                Content="Update"
+                                Style="{StaticResource AccentButtonStyle}" />
+                        </StackPanel>
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard
+                        x:Name="updateProgressCard"
+                        Description="Please wait while the update is being downloaded"
+                        Header="Downloading Update..."
+                        Visibility="Collapsed">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE896;" />
+                        </toolkit:SettingsCard.HeaderIcon>
                         <TextBlock
-                            x:Name="ramDisplay"
-                            Height="15"
-                            Padding="0,0,0,0"
-                            HorizontalTextAlignment="Center" />
-                    </StackPanel>
-                </toolkit:SettingsCard>
-                <TextBlock
-                    Margin="0,8,0,6"
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    Text="Updates" />
-                <toolkit:SettingsCard Description="Check GitHub for a newer version of Yorii Launcher" Header="Check for Updates">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE777;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <StackPanel
-                        HorizontalAlignment="Right"
-                        Orientation="Horizontal"
-                        Spacing="8">
-                        <TextBlock
-                            x:Name="updateStatusText"
+                            x:Name="updateProgressText"
                             VerticalAlignment="Center"
                             FontSize="12"
-                            Opacity="0.7"
-                            Text="v0.7.0" />
-                        <Button
-                            x:Name="checkUpdateButton"
-                            Click="CheckUpdateButton_Click"
-                            Content="Check" />
-                    </StackPanel>
-                </toolkit:SettingsCard>
-                <toolkit:SettingsCard
-                    x:Name="updateAvailableCard"
-                    Description="A newer version is ready to install"
-                    Header="Update Available"
-                    Visibility="Collapsed">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE777;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <StackPanel
-                        HorizontalAlignment="Right"
-                        Orientation="Horizontal"
-                        Spacing="8">
-                        <TextBlock
-                            x:Name="updateVersionText"
-                            VerticalAlignment="Center"
-                            FontSize="12" />
-                        <Button
-                            x:Name="installUpdateButton"
-                            Click="InstallUpdateButton_Click"
-                            Content="Update"
-                            Style="{StaticResource AccentButtonStyle}" />
-                    </StackPanel>
-                </toolkit:SettingsCard>
-                <toolkit:SettingsCard
-                    x:Name="updateProgressCard"
-                    Description="Please wait while the update is being downloaded"
-                    Header="Downloading Update..."
-                    Visibility="Collapsed">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE896;" />
-                    </toolkit:SettingsCard.HeaderIcon>
+                            Text="0%" />
+                    </toolkit:SettingsCard>
+
                     <TextBlock
-                        x:Name="updateProgressText"
-                        VerticalAlignment="Center"
-                        FontSize="12"
-                        Text="0%" />
-                </toolkit:SettingsCard>
+                        Margin="0,8,0,6"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Text="Miscellaneous" />
 
-                <TextBlock
-                    Margin="0,8,0,6"
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    Text="Miscellaneous" />
+                    <toolkit:SettingsCard Description="Show the server list on the home page (reads from Minecraft servers.dat)" Header="Server List">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE774;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ToggleSwitch
+                            x:Name="serverListToggle"
+                            OffContent=""
+                            OnContent=""
+                            Toggled="ServerListToggle_Toggled" />
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Description="Show the world list on the home page (reads from Minecraft saves)" Header="World List">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE80F;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ToggleSwitch
+                            x:Name="worldListToggle"
+                            OffContent=""
+                            OnContent=""
+                            Toggled="WorldListToggle_Toggled" />
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Description="Show official Minecraft changelogs on the home page" Header="Home Release Notes">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE789;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ToggleSwitch
+                            x:Name="homeReleaseNotesToggle"
+                            OffContent=""
+                            OnContent=""
+                            Toggled="HomeReleaseNotesToggle_Toggled" />
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Description="Enable isolated Minecraft folders and per-instance version choices" Header="Instances">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE81E;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ToggleSwitch
+                            x:Name="instancesToggleSwitch"
+                            OffContent=""
+                            OnContent=""
+                            Toggled="InstancesToggleSwitch_Toggled" />
+                    </toolkit:SettingsCard>
 
-                <toolkit:SettingsCard Description="Show the server list on the home page (reads from Minecraft servers.dat)" Header="Server List">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE774;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <ToggleSwitch
-                        x:Name="serverListToggle"
-                        OffContent=""
-                        OnContent=""
-                        Toggled="ServerListToggle_Toggled" />
-                </toolkit:SettingsCard>
-                <toolkit:SettingsCard Description="Enable isolated Minecraft folders and per-instance version choices" Header="Instances">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE81E;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <ToggleSwitch
-                        x:Name="instancesToggleSwitch"
-                        OffContent=""
-                        OnContent=""
-                        Toggled="InstancesToggleSwitch_Toggled" />
-                </toolkit:SettingsCard>
+                    <toolkit:SettingsExpander Header="Versions in list">
+                        <toolkit:SettingsExpander.HeaderIcon>
+                            <FontIcon Glyph="&#xE71C;" />
+                        </toolkit:SettingsExpander.HeaderIcon>
+                        <toolkit:SettingsExpander.Items>
+                            <toolkit:SettingsCard ContentAlignment="Left">
+                                <StackPanel
+                                    Margin="-45,2,0,2"
+                                    HorizontalAlignment="Stretch"
+                                    Background="Transparent"
+                                    Orientation="Horizontal">
+                                    <CheckBox Content="Snapshots" IsChecked="{x:Bind MainApp.VersionVM.ShowSnapshots, Mode=TwoWay}" />
+                                    <CheckBox Content="Fabric" IsChecked="{x:Bind MainApp.VersionVM.ShowFabric, Mode=TwoWay}" />
+                                    <CheckBox Content="&lt; 1.16" IsChecked="{x:Bind MainApp.VersionVM.ShowOld, Mode=TwoWay}" />
+                                </StackPanel>
+                            </toolkit:SettingsCard>
+                        </toolkit:SettingsExpander.Items>
+                    </toolkit:SettingsExpander>
 
-                <toolkit:SettingsExpander Header="Versions in list">
-                    <toolkit:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xE71C;" />
-                    </toolkit:SettingsExpander.HeaderIcon>
-                    <toolkit:SettingsExpander.Items>
-                        <toolkit:SettingsCard ContentAlignment="Left">
-                            <StackPanel
-                                Margin="-45,2,0,2"
-                                HorizontalAlignment="Stretch"
-                                Background="Transparent"
-                                Orientation="Horizontal">
-                                <CheckBox Content="Snapshots" IsChecked="{x:Bind MainApp.VersionVM.ShowSnapshots, Mode=TwoWay}" />
-                                <CheckBox Content="Fabric" IsChecked="{x:Bind MainApp.VersionVM.ShowFabric, Mode=TwoWay}" />
-                                <CheckBox Content="&lt; 1.16" IsChecked="{x:Bind MainApp.VersionVM.ShowOld, Mode=TwoWay}" />
-                            </StackPanel>
-                        </toolkit:SettingsCard>
-                    </toolkit:SettingsExpander.Items>
-                </toolkit:SettingsExpander>
+                    <TextBlock
+                        Margin="0,8,0,6"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Text="Experimental" />
+                    <toolkit:SettingsCard Margin="0,0,0,3" Header="Allow any resource pack version">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE7BA;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ToggleSwitch
+                            x:Name="experimentalResourcePackToggle"
+                            OffContent=""
+                            OnContent=""
+                            Toggled="ExperimentalResourcePackToggle_Toggled" />
+                    </toolkit:SettingsCard>
 
-                <TextBlock
-                    Margin="0,8,0,6"
-                    FontSize="14"
-                    FontWeight="SemiBold"
-                    Text="Backup &amp; Restore" />
-                <toolkit:SettingsCard Margin="0,0,0,3" Header="Back up and restore your settings">
-                    <toolkit:SettingsCard.HeaderIcon>
-                        <FontIcon Glyph="&#xE753;" />
-                    </toolkit:SettingsCard.HeaderIcon>
-                    <StackPanel Orientation="Horizontal">
-                        <Button
-                            x:Name="ExportButton"
-                            Margin="0,0,6,0"
-                            Click="ExportButton_Click"
-                            Content="Export Settings" />
-                        <Button
-                            x:Name="ImportButton"
-                            Click="ImportButton_Click"
-                            Content="Import Settings" />
-                    </StackPanel>
-                </toolkit:SettingsCard>
-            </StackPanel>
-        </StackPanel>
-    </ScrollView>
+                    <TextBlock
+                        Margin="0,8,0,6"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Text="Backup &amp; Restore" />
+                    <toolkit:SettingsCard Margin="0,0,0,3" Header="Back up and restore your settings">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE753;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <StackPanel Orientation="Horizontal">
+                            <Button
+                                x:Name="ExportButton"
+                                Margin="0,0,6,0"
+                                Click="ExportButton_Click"
+                                Content="Export Settings" />
+                            <Button
+                                x:Name="ImportButton"
+                                Click="ImportButton_Click"
+                                Content="Import Settings" />
+                        </StackPanel>
+                    </toolkit:SettingsCard>
+                </StackPanel>
+
+            </Border>
+        </ScrollView>
+    </Grid>
+
 </Page>

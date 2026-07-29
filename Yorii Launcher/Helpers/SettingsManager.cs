@@ -17,7 +17,7 @@ namespace Yorii_Launcher.Helpers
             "Yorii Launcher",
             "settings.json"
         );
-        // main access point for settings
+        // main access point for settings, lazy init so RestoreSettings can replace it
         public static UserSettings Current
         {
             get
@@ -104,6 +104,7 @@ namespace Yorii_Launcher.Helpers
                 // misc settings
                 TryMigrateBool("InstancesEnabled", v => current.InstancesEnabled = v);
                 TryMigrateBool("ServerListEnabled", v => current.ServerListEnabled = v);
+                TryMigrateBool("WorldListEnabled", v => current.WorldListEnabled = v);
                 TryMigrateBool("ShowConsole", v => current.ShowConsole = v); // i mean it should count as misc. i dont really know where to put it in the settings page.
                 TryMigrateString("WindowBehavior", v => current.WindowBehavior = v); // same for this one
                 // performance settings
@@ -121,6 +122,7 @@ namespace Yorii_Launcher.Helpers
                 TryMigrateString("SelectedInstanceId", v => current.SelectedInstanceId = v);
                 TryMigrateString("SelectedAccountId", v => current.SelectedAccountId = v);
                 TryMigrateString("SelectedServerAddress", v => current.SelectedServerAddress = v);
+                TryMigrateString("SelectedWorldId", v => current.SelectedWorldId = v);
                 TryMigrateString("ClientToken", v => current.ClientToken = v);
                 TryMigrateString("CachedUsername", v => current.CachedUsername = v);
                 TryMigrateString("CachedUUID", v => current.CachedUUID = v);

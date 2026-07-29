@@ -3,9 +3,11 @@
     x:Class="Yorii_Launcher.Pages.InstalledModsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:Yorii_Launcher.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
 
     <Grid>
@@ -27,14 +29,32 @@
                     FontSize="24"
                     FontWeight="SemiBold"
                     Text="Installed Mods" />
-                <TextBox
-                    x:Name="ModsSearchBox"
+                <Grid
                     Grid.Row="1"
-                    Width="480"
+                    MaxWidth="592"
                     Margin="0,8,0,8"
                     HorizontalAlignment="Center"
-                    PlaceholderText="Search Installed Mods..."
-                    TextChanged="ModsSearchBox_TextChanged" />
+                    ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="480" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox
+                        x:Name="ModsSearchBox"
+                        Grid.Column="0"
+                        PlaceholderText="Search Installed Mods..."
+                        TextChanged="ModsSearchBox_TextChanged" />
+
+                    <controls:Segmented
+                        x:Name="ModsViewModeSegmented"
+                        Grid.Column="1"
+                        HorizontalAlignment="Right"
+                        SelectionChanged="ViewModeSegmented_SelectionChanged">
+                        <controls:SegmentedItem AutomationProperties.Name="List view" Icon="{ui:FontIcon Glyph=&#xE8FD;}" />
+                        <controls:SegmentedItem AutomationProperties.Name="Grid view" Icon="{ui:FontIcon Glyph=&#xE8A9;}" />
+                    </controls:Segmented>
+                </Grid>
                 <TextBlock
                     x:Name="ModsErrorText"
                     Grid.Row="2"
@@ -55,79 +75,81 @@
                     SelectionMode="None">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <Border
-                                MaxWidth="1200"
-                                Margin="0,0,0,6"
-                                Padding="10"
-                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                CornerRadius="4"
-                                Opacity="1">
+                            <Grid>
+                                <Border
+                                    MaxWidth="1200"
+                                    Margin="0,0,0,6"
+                                    Padding="10"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4"
+                                    Opacity="1">
 
-                                <Border.ContextFlyout>
+                                    <Border.ContextFlyout>
 
-                                    <MenuFlyout>
+                                        <MenuFlyout>
 
-                                        <MenuFlyoutItem Click="OpenFile_Click" Text="Reveal in Explorer" />
+                                            <MenuFlyoutItem Click="OpenFile_Click" Text="Reveal in Explorer" />
 
-                                        <MenuFlyoutItem Click="OpenFolder_Click" Text="Open Mods Folder" />
+                                            <MenuFlyoutItem Click="OpenFolder_Click" Text="Open Mods Folder" />
 
-                                        <MenuFlyoutItem Click="OpenModrinth_Click" Text="Open Modrinth Page" />
+                                            <MenuFlyoutItem Click="OpenModrinth_Click" Text="Open Modrinth Page" />
 
-                                        <MenuFlyoutSeparator />
+                                            <MenuFlyoutSeparator />
 
-                                        <MenuFlyoutItem
-                                            Click="DeleteMod_Click"
-                                            Foreground="#FF5555"
-                                            Text="Delete Mod">
-                                            <MenuFlyoutItem.Resources>
-                                                <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="#FF7575" />
+                                            <MenuFlyoutItem
+                                                Click="DeleteMod_Click"
+                                                Foreground="#FF5555"
+                                                Text="Delete Mod">
+                                                <MenuFlyoutItem.Resources>
+                                                    <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="#FF7575" />
 
-                                                <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="#FF6565" />
-                                            </MenuFlyoutItem.Resources>
-                                        </MenuFlyoutItem>
+                                                    <SolidColorBrush x:Key="MenuFlyoutItemForegroundPressed" Color="#FF6565" />
+                                                </MenuFlyoutItem.Resources>
+                                            </MenuFlyoutItem>
 
-                                    </MenuFlyout>
+                                        </MenuFlyout>
 
-                                </Border.ContextFlyout>
+                                    </Border.ContextFlyout>
 
-                                <Grid Padding="0,0,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="auto" />
-                                    </Grid.ColumnDefinitions>
+                                    <Grid Padding="0,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="auto" />
+                                        </Grid.ColumnDefinitions>
 
-                                    <StackPanel
-                                        Grid.Column="0"
-                                        Margin="6,0,0,0"
-                                        Orientation="Horizontal"
-                                        Spacing="16">
-                                        <Image
-                                            Width="40"
-                                            Height="40"
-                                            Source="{Binding Icon}" />
-                                        <StackPanel VerticalAlignment="Center">
-                                            <TextBlock
-                                                FontSize="14"
-                                                FontWeight="SemiBold"
-                                                Text="{Binding Name}" />
-                                            <TextBlock
-                                                FontSize="12"
-                                                Opacity="0.7"
-                                                Text="{Binding Version}" />
+                                        <StackPanel
+                                            Grid.Column="0"
+                                            Margin="6,0,0,0"
+                                            Orientation="Horizontal"
+                                            Spacing="16">
+                                            <Image
+                                                Width="40"
+                                                Height="40"
+                                                Source="{Binding Icon}" />
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock
+                                                    FontSize="14"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding Name}" />
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    Opacity="0.7"
+                                                    Text="{Binding Version}" />
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
 
-                                    <ToggleSwitch
-                                        Width="50"
-                                        MinWidth="0"
-                                        HorizontalAlignment="Right"
-                                        VerticalAlignment="Center"
-                                        IsOn="{Binding IsEnabled}"
-                                        OffContent=""
-                                        OnContent=""
-                                        Toggled="ToggleSwitch_Toggled" />
-                                </Grid>
-                            </Border>
+                                        <ToggleSwitch
+                                            Width="50"
+                                            MinWidth="0"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Center"
+                                            IsOn="{Binding IsEnabled}"
+                                            OffContent=""
+                                            OnContent=""
+                                            Toggled="ToggleSwitch_Toggled" />
+                                    </Grid>
+                                </Border>
+                            </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>

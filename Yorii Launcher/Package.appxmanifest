@@ -12,7 +12,7 @@
   <Identity
     Name="yoriilauncher-samarium"
     Publisher="CN=yorii"
-    Version="0.8.0.0" />
+    Version="0.9.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="a18a5722-8573-42f5-896b-9bd818be8df2" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

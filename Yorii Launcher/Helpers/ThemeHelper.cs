@@ -1,6 +1,7 @@
-﻿using Microsoft.UI;
+using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
+using System;
 using Windows.UI;
 
 namespace Yorii_Launcher.Helpers
@@ -15,6 +16,7 @@ namespace Yorii_Launcher.Helpers
                 root.RequestedTheme = theme;
             }
             var titleBar = App.MainWindow.AppWindow.TitleBar;
+            // different mica styles and title bar button colors for light vs dark so it doesnt look wrong
             switch (theme)
             {
                 case ElementTheme.Light:
@@ -38,7 +40,7 @@ namespace Yorii_Launcher.Helpers
                     break;
 
                 default:
-                    // system theme, just call again
+                    // system theme, resolve to actual light/dark and reapply
                     ApplyTheme(Application.Current.RequestedTheme == ApplicationTheme.Light
                         ? ElementTheme.Light
                         : ElementTheme.Dark);
@@ -76,6 +78,7 @@ namespace Yorii_Launcher.Helpers
 
         public static ElementTheme GetCurrentTheme()
         {
+            // resolve "System" to whatever the actual OS theme is so dialogs get the right background
             return SettingsManager.Current.CurrentTheme switch
             {
                 "Light" => ElementTheme.Light,

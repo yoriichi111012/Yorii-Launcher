@@ -22,8 +22,10 @@ public sealed partial class ModsPage : Page
     public ModsPage()
     {
         InitializeComponent();
+        NavigationCacheMode = NavigationCacheMode.Required;
 
         ModsFrame.Navigate(typeof(Pages.InstalledModsPage), null, new SuppressNavigationTransitionInfo());
+        ModsNavigation.SelectedItem = ModsNavigation.MenuItems[0];
     }
 
     private void ModsNavigation_SelectionChanged(
@@ -38,7 +40,7 @@ public sealed partial class ModsPage : Page
 
         switch (tag)
         {
-            case "installed":
+            case "installedmods":
                 if (ModsFrame.CurrentSourcePageType != typeof(InstalledModsPage))
                 {
                     ModsFrame.Navigate(typeof(Pages.InstalledModsPage), null, new SuppressNavigationTransitionInfo());
@@ -46,10 +48,40 @@ public sealed partial class ModsPage : Page
 
                 break;
 
-            case "download":
+            case "downloadmods":
                 if (ModsFrame.CurrentSourcePageType != typeof(DownloadModsPage))
                 {
                     ModsFrame.Navigate(typeof(Pages.DownloadModsPage), null, new SuppressNavigationTransitionInfo());
+                }
+                break;
+
+            case "installedmodpacks":
+                if (ModsFrame.CurrentSourcePageType != typeof(InstalledModpacksPage))
+                {
+                    ModsFrame.Navigate(typeof(Pages.InstalledModpacksPage), null, new SuppressNavigationTransitionInfo());
+                }
+
+                break;
+
+            case "installedrspacks":
+                if (ModsFrame.CurrentSourcePageType != typeof(InstalledResourcePacksPage))
+                {
+                    ModsFrame.Navigate(typeof(Pages.InstalledResourcePacksPage), null, new SuppressNavigationTransitionInfo());
+                }
+
+                break;
+
+            case "downloadrspacks":
+                if (ModsFrame.CurrentSourcePageType != typeof(DownloadResourcePacksPage))
+                {
+                    ModsFrame.Navigate(typeof(Pages.DownloadResourcePacksPage), null, new SuppressNavigationTransitionInfo());
+                }
+                break;
+
+            case "downloadmodpacks":
+                if (ModsFrame.CurrentSourcePageType != typeof(DownloadModpacksPage))
+                {
+                    ModsFrame.Navigate(typeof(Pages.DownloadModpacksPage), null, new SuppressNavigationTransitionInfo());
                 }
                 break;
         }

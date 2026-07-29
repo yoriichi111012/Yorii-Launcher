@@ -17,6 +17,8 @@ namespace Yorii_Launcher
     {
         // to prevent settings handlers from firing while the page is loading
         private bool isInitializing = true;
+        // set false when navigating away so delayed callbacks skip UI access
+        private bool isActive = true;
         // reference to mainwindow
         public MainWindow MainApp => MainWindow.Instance!;
 
@@ -35,10 +37,52 @@ namespace Yorii_Launcher
             LoadSavedFolder();
             LoadInstancesSetting();
             LoadServerListSetting();
+            LoadWorldListSetting();
+            LoadHomeReleaseNotesSetting();
             LoadUpdateVersion();
             ShowCachedUpdateIfAvailable();
+            //LoadAccentColor();
 
             isInitializing = false;
+        }
+
+        //private async void LoadAccentColor()
+        //{
+        //    var color = accentColorPicker.Color.ToString();
+        //    Debug.WriteLine($"[Settings] Current accent color: {color}");
+
+        //    accentColor.Text = color;
+        //}
+
+
+
+        protected override void OnNavigatedTo(NavigationEventArgs e)
+        {
+            base.OnNavigatedTo(e);
+            isActive = true;
+
+            if (e.Parameter is string section &&
+                section.Equals("memory", StringComparison.OrdinalIgnoreCase))
+            {
+                // wait a frame so the scrollview layout is ready before scrolling
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(100);
+                    if (!isActive) return;
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (!isActive) return;
+                        memoryCard.StartBringIntoView();
+                        ramAmount.Focus(FocusState.Programmatic);
+                    });
+                });
+            }
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            base.OnNavigatedFrom(e);
+            isActive = false;
         }
 
         private async void PickFolderButton_Click(object sender, RoutedEventArgs e)
@@ -143,6 +187,16 @@ namespace Yorii_Launcher
             serverListToggle.IsOn = SettingsManager.Current.ServerListEnabled;
         }
 
+        private void LoadWorldListSetting()
+        {
+            worldListToggle.IsOn = SettingsManager.Current.WorldListEnabled;
+        }
+
+        private void LoadHomeReleaseNotesSetting()
+        {
+            homeReleaseNotesToggle.IsOn = SettingsManager.Current.ShowReleaseNotesOnHome;
+        }
+
         private void LoadShowConsoleSetting()
         {
             showConsoleToggle.IsOn = SettingsManager.Current.ShowConsole;
@@ -163,13 +217,46 @@ namespace Yorii_Launcher
             SettingsManager.SaveSettings();
 
             if (MainWindow.Instance != null) // since mainwindow is cached it wouldn't call refreshinstancecontextasync again so we call it here
+            {
+                MainWindow.Instance.ApplyInstancesNavigationVisibility();
                 await MainWindow.Instance.RefreshInstanceContextAsync();
+            }
         }
 
         private void ServerListToggle_Toggled(object sender, RoutedEventArgs e)
         {
             if (isInitializing) return;
             SettingsManager.Current.ServerListEnabled = serverListToggle.IsOn;
+            if (!serverListToggle.IsOn)
+                SettingsManager.Current.SelectedServerAddress = "";
+            SettingsManager.SaveSettings();
+        }
+
+        private void WorldListToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (isInitializing) return;
+            SettingsManager.Current.WorldListEnabled = worldListToggle.IsOn;
+            if (!worldListToggle.IsOn)
+                SettingsManager.Current.SelectedWorldId = "";
+            SettingsManager.SaveSettings();
+        }
+
+        private void LoadExperimentalResourcePackSetting()
+        {
+            experimentalResourcePackToggle.IsOn = SettingsManager.Current.ExperimentalResourcePackAnyVersion;
+        }
+
+        private void HomeReleaseNotesToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (isInitializing) return;
+            SettingsManager.Current.ShowReleaseNotesOnHome = homeReleaseNotesToggle.IsOn;
+            SettingsManager.SaveSettings();
+        }
+
+        private void ExperimentalResourcePackToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (isInitializing) return;
+            SettingsManager.Current.ExperimentalResourcePackAnyVersion = experimentalResourcePackToggle.IsOn;
             SettingsManager.SaveSettings();
         }
 
@@ -443,7 +530,7 @@ namespace Yorii_Launcher
                 try
                 {
                     SettingsManager.ImportSettings(file.Path);
-                    NotificationHelper.Show("Settings imported", "Your settings have been restored. Restarting is recommended.");
+                    NotificationHelper.Show("Settings imported", "Your settings have been restored. Restarting the launcher is recommended.");
                     isInitializing = true;
                     LoadSelectedRamAmount();
                     LoadThemeComboBox();
@@ -454,6 +541,9 @@ namespace Yorii_Launcher
                     LoadSavedFolder();
                     LoadInstancesSetting();
                     LoadServerListSetting();
+                    LoadWorldListSetting();
+                    LoadHomeReleaseNotesSetting();
+                    LoadExperimentalResourcePackSetting();
                     isInitializing = false;
                     MainWindow.Instance?.ApplyBackgroundSettings();
                 }
@@ -464,5 +554,13 @@ namespace Yorii_Launcher
                 }
             }
         }
+
+        //private void accentColorPicker_ColorChanged(ColorPicker sender, ColorChangedEventArgs args)
+        //{
+        //    var color = accentColorPicker.Color.ToString();
+        //    Debug.WriteLine($"[Settings] Current accent color: {color}");
+
+        //    accentColor.Text = color;
+        //}
     }
 }

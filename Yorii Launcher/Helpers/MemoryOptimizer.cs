@@ -14,6 +14,7 @@ namespace Yorii_Launcher.Helpers
         {
             try
             {
+                // tell windows to page out the launcher's unused pages now that the game is running
                 EmptyWorkingSet(Process.GetCurrentProcess().Handle);
             }
             catch (Exception ex)

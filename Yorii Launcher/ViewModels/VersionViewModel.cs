@@ -48,6 +48,7 @@ namespace Yorii_Launcher.ViewModels
             }
         }
 
+        // filter the version list based on user's toggle state in settings
         public void ApplyFilters()
         {
             FilteredVersions.Clear();
@@ -66,6 +67,7 @@ namespace Yorii_Launcher.ViewModels
                 FilteredVersions.Add(version.Name);
             }
 
+            // re-select saved version after filtering so it doesnt jump around
             MainWindow.Instance?.LoadSavedVersion();
         }
 

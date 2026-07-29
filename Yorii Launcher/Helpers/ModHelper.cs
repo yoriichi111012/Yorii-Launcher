@@ -37,7 +37,6 @@ namespace Yorii_Launcher.Helpers
         }
 
         // read mod metadata from jar
-
         public static async Task<ModItem> ReadMod(string file)
         {
             var mod = new ModItem
@@ -55,20 +54,16 @@ namespace Yorii_Launcher.Helpers
 
             try
             {
+                // open the jar as a zip and look for metadata files
                 using var archive = ZipFile.OpenRead(file);
 
                 // fabric
-
                 var fabricEntry = archive.GetEntry("fabric.mod.json");
-
                 if (fabricEntry != null)
                 {
                     using var stream = fabricEntry.Open();
-
                     using var reader = new StreamReader(stream);
-
                     var json = await reader.ReadToEndAsync();
-
                     using JsonDocument doc = JsonDocument.Parse(json);
 
                     var root = doc.RootElement;
@@ -91,7 +86,7 @@ namespace Yorii_Launcher.Helpers
                         mod.ModId = idProp.GetString() ?? "";
                     }
 
-                    // icon
+                    // icon (can be string or object)
                     if (root.TryGetProperty("icon", out var iconProp))
                     {
                         try
@@ -122,19 +117,12 @@ namespace Yorii_Launcher.Helpers
                                 if (iconEntry != null)
                                 {
                                     using var iconStream = iconEntry.Open();
-
                                     using var memory = new MemoryStream();
-
                                     await iconStream.CopyToAsync(memory);
-
                                     memory.Position = 0;
-
                                     var randomAccessStream = memory.AsRandomAccessStream();
-
                                     var bitmap = new BitmapImage();
-
                                     await bitmap.SetSourceAsync(randomAccessStream);
-
                                     mod.Icon = bitmap;
                                 }
                             }
@@ -148,7 +136,6 @@ namespace Yorii_Launcher.Helpers
                 }
 
                 // quilt support
-
                 var quiltEntry = archive.GetEntry("quilt.mod.json");
 
                 if (quiltEntry != null)

@@ -96,7 +96,7 @@ namespace Yorii_Launcher.Helpers
                 throw;
             }
         }
-        // create a fake offline session with a uuid based on the username
+        // create a fake offline session with a uuid based on the username, same format as vanilla minecraft
         private static MSession CreateOfflineSession(string username)
         {
             string input = $"OfflinePlayer:{username}";
@@ -157,12 +157,12 @@ namespace Yorii_Launcher.Helpers
 
             return null;
         }
-        public static async Task<MSession> LoginWithElyBy(string Username, string Password)
+        public static async Task<MSession> LoginWithElyBy(string username, string password)
         {
             var requestData = new ElyAuthRequest
             {
-                username = Username,
-                password = Password,
+                username = username,
+                password = password,
                 clientToken = GetOrCreateClientToken(),
                 requestUser = true
             };
@@ -174,25 +174,14 @@ namespace Yorii_Launcher.Helpers
 
             if (!response.IsSuccessStatusCode)
             {
-                string errorBody =
-                    await response.Content.ReadAsStringAsync();
-
+                string errorBody = await response.Content.ReadAsStringAsync();
                 Debug.WriteLine(errorBody);
 
                 // 401/403 = wrong password
-                if (response.StatusCode ==
-                    System.Net.HttpStatusCode.Forbidden ||
-                    response.StatusCode ==
-                    System.Net.HttpStatusCode.Unauthorized)
-                {
-                    throw new Exception(
-                        "INVALID_CREDENTIALS"
-                    );
-                }
+                if (response.StatusCode is System.Net.HttpStatusCode.Forbidden or System.Net.HttpStatusCode.Unauthorized)
+                    throw new Exception("INVALID_CREDENTIALS");
 
-                throw new HttpRequestException(
-                    $"Auth server error: {response.StatusCode}"
-                );
+                throw new HttpRequestException($"Auth server error: {response.StatusCode}");
             }
 
             string responseBody = await response.Content.ReadAsStringAsync();

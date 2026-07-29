@@ -38,6 +38,74 @@ namespace Yorii_Launcher.Helpers
             SettingsManager.SaveSettings();
         }
 
+        public static void AddServer(string minecraftPath, ServerItem server)
+        {
+            var servers = LoadServersFromMinecraftPath(minecraftPath);
+            servers.Add(server);
+            SaveServersToMinecraftPath(minecraftPath, servers);
+        }
+
+        public static void UpdateServer(string minecraftPath, string oldAddress, ServerItem server)
+        {
+            var servers = LoadServersFromMinecraftPath(minecraftPath);
+            var index = servers.FindIndex(s => s.Address == oldAddress);
+
+            if (index < 0)
+                return;
+
+            if (string.IsNullOrWhiteSpace(server.IconData))
+                server.IconData = servers[index].IconData;
+
+            servers[index] = server;
+            SaveServersToMinecraftPath(minecraftPath, servers);
+
+            if (GetSelectedServerAddress() == oldAddress)
+                SetSelectedServerAddress(server.Address);
+        }
+
+        public static void DeleteServer(string minecraftPath, string address)
+        {
+            var servers = LoadServersFromMinecraftPath(minecraftPath);
+            servers.RemoveAll(s => s.Address == address);
+            SaveServersToMinecraftPath(minecraftPath, servers);
+
+            if (GetSelectedServerAddress() == address)
+                SetSelectedServerAddress(null);
+        }
+
+        public static void SaveServersToMinecraftPath(string minecraftPath, List<ServerItem> servers)
+        {
+            Directory.CreateDirectory(minecraftPath);
+            var serversDat = Path.Combine(minecraftPath, "servers.dat");
+
+            using var ms = new MemoryStream();
+            using var writer = new BinaryWriter(ms, Encoding.UTF8, leaveOpen: true);
+
+            // root compound named ""
+            writer.Write((byte)10);
+            WriteString(writer, "");
+
+            // servers list
+            writer.Write((byte)9);
+            WriteString(writer, "servers");
+            writer.Write((byte)10);
+            WriteInt32BE(writer, servers.Count);
+
+            foreach (var server in servers)
+            {
+                WriteStringTag(writer, "name", server.Name);
+                WriteStringTag(writer, "ip", server.Address);
+
+                if (!string.IsNullOrWhiteSpace(server.IconData))
+                    WriteStringTag(writer, "icon", server.IconData);
+
+                writer.Write((byte)0);
+            }
+
+            writer.Write((byte)0);
+            File.WriteAllBytes(serversDat, ms.ToArray());
+        }
+
         // 0x1F 0x8B = gzip magic bytes
         private static List<ServerItem> ParseServersDat(string path)
         {
@@ -117,6 +185,7 @@ namespace Yorii_Launcher.Helpers
         }
 
         // grab name, ip, port, icon from compound
+        // minecraft stores server data as nbt in a gzipped file
         private static void ReadCompound(BinaryReader reader, List<ServerItem> servers)
         {
             string? name = null;
@@ -187,6 +256,29 @@ namespace Yorii_Launcher.Helpers
             }
         }
 
+        private static void WriteStringTag(BinaryWriter writer, string name, string value)
+        {
+            writer.Write((byte)8);
+            WriteString(writer, name);
+            WriteString(writer, value);
+        }
+
+        private static void WriteInt32BE(BinaryWriter writer, int value)
+        {
+            writer.Write((byte)((value >> 24) & 0xFF));
+            writer.Write((byte)((value >> 16) & 0xFF));
+            writer.Write((byte)((value >> 8) & 0xFF));
+            writer.Write((byte)(value & 0xFF));
+        }
+
+        private static void WriteString(BinaryWriter writer, string value)
+        {
+            var bytes = Encoding.UTF8.GetBytes(value);
+            writer.Write((byte)((bytes.Length >> 8) & 0xFF));
+            writer.Write((byte)(bytes.Length & 0xFF));
+            writer.Write(bytes);
+        }
+
         // skip nested structures we dont need
         private static void SkipCompound(BinaryReader reader)
         {
@@ -253,7 +345,7 @@ namespace Yorii_Launcher.Helpers
             }
         }
 
-        // nbt uses big endian, .net doesnt
+        // nbt uses big endian, .net doesnt. manually swap bytes.
         private static int ReadInt32BE(BinaryReader reader)
         {
             var b0 = reader.ReadByte();
@@ -263,7 +355,7 @@ namespace Yorii_Launcher.Helpers
             return (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
         }
 
-        // 2 byte length prefix then utf-8
+        // 2 byte length prefix then utf-8 string, standard in nbt
         private static string ReadString(BinaryReader reader)
         {
             var b0 = reader.ReadByte();

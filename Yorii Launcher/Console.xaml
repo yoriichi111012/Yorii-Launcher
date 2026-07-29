@@ -25,7 +25,7 @@
             Grid.Row="0"
             VerticalAlignment="Top"
             HorizontalContentAlignment="Center" />
-        <ScrollViewer
+        <ScrollView
             x:Name="logScroller"
             Grid.Row="1"
             HorizontalScrollBarVisibility="Auto"
@@ -38,6 +38,6 @@
                 FontWeight="Light"
                 IsTextSelectionEnabled="True"
                 TextWrapping="Wrap" />
-        </ScrollViewer>
+        </ScrollView>
     </Grid>
 </Window>

@@ -10,6 +10,7 @@ namespace Yorii_Launcher.Helpers
         {
             try
             {
+                // google is always up, good enough for telling if we're offline
                 using var response = await HttpService.Client.GetAsync("https://www.google.com");
 
                 return response.IsSuccessStatusCode;

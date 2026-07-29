@@ -3,7 +3,7 @@
 	<OutputType>WinExe</OutputType>
 	<TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
 	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-	<Version>0.8.0</Version>
+	<Version>0.9.0</Version>
 	<RootNamespace>Yorii_Launcher</RootNamespace>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
 	<Platforms>x64;ARM64</Platforms>
@@ -22,9 +22,15 @@
 
     <None Remove="Console.xaml" />
 	<None Remove="HomePage.xaml" />
-	<None Remove="ModsPage.xaml" />
+	<None Remove="Pages\ModsPage.xaml" />
 	<None Remove="Pages\DownloadModsPage.xaml" />
+	<None Remove="Pages\DownloadModpacksPage.xaml" />
+	<None Remove="Pages\DownloadResourcePacksPage.xaml" />
 	<None Remove="Pages\InstalledModsPage.xaml" />
+	<None Remove="Pages\InstalledModpacksPage.xaml" />
+	<None Remove="Pages\InstalledResourcePacksPage.xaml" />
+	<None Remove="Pages\InstancesPage.xaml" />
+	<None Remove="Pages\ReleaseNotesPage.xaml" />
 	<None Remove="Resources\ComboBox.xaml" />
 	<None Remove="SettingsPage.xaml" />
   </ItemGroup>
@@ -58,8 +64,8 @@
     <PackageReference Include="CmlLib.Core" Version="4.0.6" />
     <PackageReference Include="CmlLib.Core.Auth.Microsoft" Version="3.3.1" />
     <PackageReference Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.251219" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.Segmented" Version="8.2.251219" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3967.48" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1839" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.1.3" />
     <PackageReference Include="XboxAuthNet.Game" Version="1.4.1" />
@@ -98,16 +104,25 @@
 	  <Page Update="Pages\DownloadModsPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </Page>
+	  <Page Update="Pages\DownloadModpacksPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	  <Page Update="Pages\DownloadResourcePacksPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Page Update="ModsPage.xaml">
+	  <Page Update="Pages\ModsPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </Page>
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Page Update="Pages\InstalledModsPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	  <Page Update="Pages\InstalledModpacksPage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </Page>
 	</ItemGroup>
@@ -168,6 +183,15 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <Page Update="Pages\InstalledResourcePacksPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Pages\ReleaseNotesPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Pages\InstancesPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Console.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>

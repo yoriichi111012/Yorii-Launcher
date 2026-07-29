@@ -2,22 +2,29 @@ using CmlLib.Core;
 using CmlLib.Core.ModLoaders.FabricMC;
 using CmlLib.Core.ProcessBuilder;
 using CmlLib.Core.VersionLoader;
+using CommunityToolkit.WinUI;
+using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Yorii_Launcher.Helpers;
+using Yorii_Launcher.Models;
+using Yorii_Launcher.Pages;
+using Yorii_Launcher.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Yorii_Launcher.Helpers;
-using Yorii_Launcher.Models;
-using Yorii_Launcher.ViewModels;
+using Windows.Graphics.Imaging;
+using Windows.Storage;
+using Microsoft.UI;
 
 namespace Yorii_Launcher
 {
@@ -29,36 +36,212 @@ namespace Yorii_Launcher
         public static MainWindow? Instance { get; set; }
         public VersionViewModel VersionVM { get; } = new VersionViewModel();
         private readonly ObservableCollection<AccountComboItem> accountItems = [];
-        private double downloadProgressValue; 
+        private double downloadProgressValue;
         private ContentDialog? managePlayersDialog;
+        private ComboBox? homeAccountComboBox;
+        private ComboBox? homeVersionComboBox;
+        private Button? homePlayButton;
+        private ProgressBar? homeDownloadProgressBar;
+        private bool isCompactMode;
+        private Windows.Graphics.SizeInt32? expandedWindowSize;
+        private Type? compactRestorePageType;
+        private object? launchButtonContent = "Play";
+        private bool launchButtonIsEnabled = true;
+        private double launchProgressOpacity;
+        private double launchProgressValue;
+        private bool launchProgressIsIndeterminate;
+
         // set variables for background image
         private string currentImagePath = "";
 
+        private ComboBox accountComboBox => homeAccountComboBox ?? throw new InvalidOperationException("Home account selector is not ready.");
+        private ComboBox versionComboBox => homeVersionComboBox ?? throw new InvalidOperationException("Home version selector is not ready.");
+        private Button playButton => homePlayButton ?? throw new InvalidOperationException("Home play button is not ready.");
+        private ProgressBar downloadProgressBar => isCompactMode
+            ? compactDownloadProgressBar
+            : (homeDownloadProgressBar ?? throw new InvalidOperationException("Home progress bar is not ready."));
         public MainWindow()
         {
             InitializeComponent();
 
+            Instance = this;
+
             VersionVM.FilteredVersions.CollectionChanged += (_, __) =>
             {
-                versionComboBox.ItemsSource = null;
-                versionComboBox.ItemsSource = VersionVM.FilteredVersions;
+                if (homeVersionComboBox != null)
+                {
+                    versionComboBox.ItemsSource = null;
+                    versionComboBox.ItemsSource = VersionVM.FilteredVersions;
+                }
             };
 
             // set window size icon and title bar
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(1176, 661));
+            // AppWindow.Resize(new Windows.Graphics.SizeInt32(1176, 661));
             SetWindowIcon();
-            this.ExtendsContentIntoTitleBar = true;
-            this.SetTitleBar(titleBar);
+            ExtendsContentIntoTitleBar = true;
+            AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
+
+            SetTitleBar(titleBar);
+
+            ApplyBackgroundSettings();
+            mainFrame.Navigate(typeof(HomePage));
 
             // call functions to load versions and accounts
-            ApplyBackgroundSettings();
             LoadAccounts();
             LoadVersionFilters();
             _ = LoadVersionsAsync();
 
-            Instance = this;
             rootGrid.ActualThemeChanged += (_, __) => ApplyBackgroundSettings();
-            mainFrame.Navigate(typeof(HomePage));
+        }
+
+        public void RegisterHomeControls(ComboBox accountSelector, ComboBox versionSelector, Button launchButton, ProgressBar? progressBar = null)
+        {
+            CaptureLauncherControlState();
+
+            homeAccountComboBox = accountSelector;
+            homeVersionComboBox = versionSelector;
+            homeDownloadProgressBar = progressBar;
+            homePlayButton = launchButton;
+
+            accountComboBox.ItemsSource = accountItems;
+            versionComboBox.ItemsSource = VersionVM.FilteredVersions;
+            ApplyLauncherControlState();
+
+            var selectedAccount = AccountManager.GetSelectedAccount();
+            if (selectedAccount != null)
+                accountComboBox.SelectedItem = accountItems.FirstOrDefault(x => x.Account?.Id == selectedAccount.Id);
+
+            LoadSavedVersion();
+        }
+
+        private void CaptureLauncherControlState()
+        {
+            if (homePlayButton != null)
+            {
+                launchButtonContent = homePlayButton.Content;
+                launchButtonIsEnabled = homePlayButton.IsEnabled;
+            }
+        }
+
+        private void ApplyLauncherControlState()
+        {
+            playButton.Content = launchButtonContent ?? "Play";
+            playButton.IsEnabled = launchButtonIsEnabled;
+        }
+
+        private async void CompactModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!isCompactMode)
+                EnterCompactMode();
+
+            await ReduceMemoryAfterCompactToggleAsync();
+        }
+
+        private async void RestoreOriginalModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (isCompactMode)
+                RestoreExpandedMode();
+
+            await ReduceMemoryAfterCompactToggleAsync();
+        }
+
+        private void EnterCompactMode()
+        {
+            isCompactMode = true;
+            expandedWindowSize = AppWindow.Size;
+            compactRestorePageType = mainFrame.CurrentSourcePageType ?? typeof(HomePage);
+
+            RegisterHomeControls(compactAccountComboBox, compactVersionComboBox, compactPlayButton, downloadProgressBar);
+
+            //searchBox.Visibility = Visibility.Collapsed;
+            compactAccountComboBox.Visibility = Visibility.Visible;
+            compactTitleBarControls.Visibility = Visibility.Visible;
+            normalTitleBarButtons.Visibility = Visibility.Collapsed;
+            compactRightHeaderControls.Visibility = Visibility.Visible;
+
+            mainFrame.Content = null;
+            mainFrame.Visibility = Visibility.Collapsed;
+            contentRow.Height = new GridLength(0);
+
+            var compactHeight = Math.Max(56, (int)Math.Ceiling(titleBar.ActualHeight));
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(AppWindow.Size.Width, compactHeight));
+        }
+
+        private void RestoreExpandedMode()
+        {
+            isCompactMode = false;
+
+            //searchBox.Visibility = Visibility.Visible;
+            compactAccountComboBox.Visibility = Visibility.Collapsed;
+            compactTitleBarControls.Visibility = Visibility.Collapsed;
+            normalTitleBarButtons.Visibility = Visibility.Visible;
+            compactRightHeaderControls.Visibility = Visibility.Collapsed;
+
+            contentRow.Height = new GridLength(1, GridUnitType.Star);
+            mainFrame.Visibility = Visibility.Visible;
+            ApplyBackgroundSettings();
+
+            var restorePage = compactRestorePageType ?? typeof(HomePage);
+            mainFrame.Navigate(restorePage, null, new SuppressNavigationTransitionInfo());
+
+            if (expandedWindowSize is { } size)
+                AppWindow.Resize(size);
+        }
+
+        private static async Task ReduceMemoryAfterCompactToggleAsync()
+        {
+            await Task.Delay(500);
+            MemoryOptimizer.ReduceMemory();
+        }
+
+        public void NavigateToSection(string tag)
+        {
+            switch (tag)
+            {
+                case "home":
+                    mainFrame.Navigate(typeof(HomePage));
+                    break;
+                case "extensions":
+                    mainFrame.Navigate(typeof(ModsPage));
+                    break;
+                case "releasenotes":
+                    mainFrame.Navigate(typeof(ReleaseNotesPage));
+                    break;
+                case "instances":
+                    mainFrame.Navigate(typeof(InstancesPage));
+                    break;
+                case "accounts":
+                    mainFrame.Navigate(typeof(AccountsPage));
+                    break;
+                case "settings":
+                    mainFrame.Navigate(typeof(SettingsPage));
+                    break;
+                    //default:
+                    //    throw new InvalidOperationException($"Unknown navigation item tag: {tag}");
+            }
+        }
+
+        public void NavigateToReleaseNotes(string? version)
+        {
+            mainFrame.Navigate(typeof(ReleaseNotesPage), version);
+        }
+
+        public void NavigateToSettings(string? section)
+        {
+            mainFrame.Navigate(typeof(SettingsPage), section, new SuppressNavigationTransitionInfo());
+        }
+
+        public void ApplyInstancesNavigationVisibility()
+        {
+            var instancesEnabled = SettingsManager.Current.InstancesEnabled;
+
+            if (!instancesEnabled && mainFrame.CurrentSourcePageType == typeof(InstancesPage))
+                SelectSection("home");
+        }
+
+        public void SelectSection(string tag)
+        {
+            NavigateToSection(tag);
         }
 
         private void LoadAccounts()
@@ -74,6 +257,10 @@ namespace Yorii_Launcher
             // add the players accounts and management options
             accountItems.Add(AccountComboItem.ManagePlayers);
             accountItems.Add(AccountComboItem.AddNew);
+
+            if (homeAccountComboBox == null)
+                return;
+
             accountComboBox.ItemsSource = accountItems;
 
             var selectedAccount = AccountManager.GetSelectedAccount();
@@ -174,7 +361,8 @@ namespace Yorii_Launcher
             {
                 VersionVM.AllVersions.Clear();
                 VersionVM.FilteredVersions.Clear();
-                versionComboBox.SelectedItem = null;
+                if (homeVersionComboBox != null)
+                    versionComboBox.SelectedItem = null;
 
                 var instancesEnabled = SettingsManager.Current.InstancesEnabled;
                 var selectedInstance = InstanceManager.GetSelectedInstance();
@@ -182,9 +370,13 @@ namespace Yorii_Launcher
                 if (instancesEnabled && selectedInstance == null)
                 {
                     VersionVM.ApplyFilters();
-                    versionComboBox.ItemsSource = VersionVM.FilteredVersions;
+                    if (homeVersionComboBox != null)
+                        versionComboBox.ItemsSource = VersionVM.FilteredVersions;
                     return;
                 }
+                // refresh the active path so it reflects the currently selected instance instead of the one captured at startup
+                minecraftPath = SettingsManager.Current.GetActiveMinecraftPath();
+
                 // prevents crash when minecraftpath is null
                 if (string.IsNullOrEmpty(minecraftPath))
                     return;
@@ -272,7 +464,8 @@ namespace Yorii_Launcher
 
                 // apply filters and fill version list
                 VersionVM.ApplyFilters();
-                versionComboBox.ItemsSource = VersionVM.FilteredVersions;
+                if (homeVersionComboBox != null)
+                    versionComboBox.ItemsSource = VersionVM.FilteredVersions;
                 LoadSavedVersion();
             }
             catch (Exception ex)
@@ -283,6 +476,9 @@ namespace Yorii_Launcher
 
         public void LoadSavedVersion()
         {
+            if (homeVersionComboBox == null)
+                return;
+
             var savedVersion = SettingsManager.Current.InstancesEnabled // if entances are enabled then current instance's version else null
                 ? InstanceManager.GetSelectedInstanceVersion()
                 : null;
@@ -318,7 +514,7 @@ namespace Yorii_Launcher
         {
             // ensure authlib-injector.jar file exists in game folder if not then copy it from the launcher directory
             // ProgramData is used cause no spaces are there in address because trying to load from an address with spaces doesn't work
-            string launcherDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "YoriiLauncher");
+            string launcherDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Yorii Launcher");
             Directory.CreateDirectory(launcherDir);
             // current authlib version is 1.2.7
             string injectorPath = Path.Combine(launcherDir, "authlib-injector.jar"); // in launcher directory
@@ -335,7 +531,7 @@ namespace Yorii_Launcher
             return injectorPath;
         }
 
-        private async void PlayButton_Click(object sender, RoutedEventArgs e)
+        public async void PlayButton_Click(object sender, RoutedEventArgs e)
         {
             // prevent double click from launching two processes
             playButton.IsEnabled = false;
@@ -356,6 +552,8 @@ namespace Yorii_Launcher
 
                 bool hasInternet = await NetworkHelper.InternetAvailable();
 
+                // refresh the active path so launching uses the currently selected instance folder
+                minecraftPath = SettingsManager.Current.GetActiveMinecraftPath();
                 if (string.IsNullOrEmpty(minecraftPath))
                     minecraftPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".minecraft");
 
@@ -378,7 +576,7 @@ namespace Yorii_Launcher
                 downloadProgressBar.Value = 0;
                 downloadProgressBar.IsIndeterminate = true;
                 downloadProgressValue = 0;
-                
+
                 // update the progress
                 launcher.FileProgressChanged += (s, args) =>
                 {
@@ -461,7 +659,7 @@ namespace Yorii_Launcher
                 downloadProgressBar.Value = 100;
                 downloadProgressValue = 100;
 
-                // set default ram amount to 2 GB
+                // set default ram amount to 4 GB
                 double ramGb = SettingsManager.Current.RamAmount;
 
                 // convert GB to MB for the launch arguments
@@ -511,8 +709,13 @@ namespace Yorii_Launcher
                     Debug.WriteLine("using offline cached mode");
                 }
 
-                // W server list
-                var selectedServerAddress = ServerManager.GetSelectedServerAddress();
+                // W server list and world list
+                var selectedServerAddress = SettingsManager.Current.ServerListEnabled
+                    ? ServerManager.GetSelectedServerAddress()
+                    : null;
+                var selectedWorldId = SettingsManager.Current.WorldListEnabled
+                    ? WorldManager.GetSelectedWorldId()
+                    : null;
 
                 // begin building the launch options
                 var launchOption = new MLaunchOption
@@ -522,16 +725,20 @@ namespace Yorii_Launcher
                     ExtraJvmArguments = jvmArgs.ToArray()
                 };
 
-                if (!string.IsNullOrWhiteSpace(selectedServerAddress))
+                if (!string.IsNullOrWhiteSpace(selectedWorldId))
+                {
+                    launchOption.QuickPlaySingleplayer = selectedWorldId;
+                }
+                else if (!string.IsNullOrWhiteSpace(selectedServerAddress))
                 {
                     var serverHost = selectedServerAddress;
                     var serverPort = 25565;
 
                     // split ip and port from servers.dat, port only included if non-default
                     var colonIdx = selectedServerAddress.LastIndexOf(':');
-                    if (colonIdx > 0 && 
-                        int.TryParse(selectedServerAddress[(colonIdx + 1)..], out var parsedPort) && 
-                        parsedPort > 0 && 
+                    if (colonIdx > 0 &&
+                        int.TryParse(selectedServerAddress[(colonIdx + 1)..], out var parsedPort) &&
+                        parsedPort > 0 &&
                         parsedPort <= 65535)
                     {
                         serverHost = selectedServerAddress[..colonIdx];
@@ -552,6 +759,10 @@ namespace Yorii_Launcher
                 // empty working set before starting the game since the launcher is no longer needed
                 MemoryOptimizer.ReduceMemory();
                 process.Start();
+
+                // hide progress bar now that the game has launched
+                downloadProgressBar.Opacity = 0;
+                downloadProgressBar.IsIndeterminate = false;
 
                 // set up console
                 bool showConsole = SettingsManager.Current.ShowConsole;
@@ -652,13 +863,13 @@ namespace Yorii_Launcher
                     or System.Net.Sockets.SocketException
                     or TaskCanceledException;
 
-                ShowNotification("Launch failed",isNetwork
+                ShowNotification("Launch failed", isNetwork
                         ? "Could not connect to the internet. Check your connection and try again."
                         : $"An error occurred: {ex.Message}");
             }
         }
 
-        private void AccountComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        public void AccountComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // ensure selected item is a valid account
             if (accountComboBox.SelectedItem is not AccountComboItem item)
@@ -719,6 +930,7 @@ namespace Yorii_Launcher
             accountTypeBox.Items.Add(new ComboBoxItem { Content = "Mojang (Microsoft)", Tag = PlayerAccountType.Mojang });
 
             var panel = new StackPanel { Spacing = 10 };
+
             panel.Children.Add(accountTypeBox);
             panel.Children.Add(usernameBox);
             panel.Children.Add(passwordBox);
@@ -743,6 +955,7 @@ namespace Yorii_Launcher
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = rootGrid.XamlRoot,
+                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
                 RequestedTheme = theme
             };
 
@@ -847,9 +1060,10 @@ namespace Yorii_Launcher
             var accounts = AccountManager.LoadAccounts();
             var theme = ThemeHelper.GetCurrentTheme();
 
-            var scrollViewer = new ScrollViewer
+            var scrollViewer = new ScrollView
             {
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                VerticalScrollBarVisibility = ScrollingScrollBarVisibility.Auto,
+                Width = 260,
                 MaxHeight = 420
             };
 
@@ -890,6 +1104,8 @@ namespace Yorii_Launcher
                     Tag = account,
                 };
                 ToolTipService.SetToolTip(editButton, "Edit player");
+                editButton.BorderThickness = new Thickness(0);
+                editButton.Background = new SolidColorBrush(Colors.Transparent);
                 editButton.Content = new FontIcon { Glyph = "\uE70F", FontSize = 14 };
                 editButton.Click += ManagePlayer_Edit_Click;
 
@@ -901,6 +1117,8 @@ namespace Yorii_Launcher
                     Tag = account
                 };
                 ToolTipService.SetToolTip(deleteButton, "Delete player");
+                deleteButton.BorderThickness = new Thickness(0);
+                deleteButton.Background = new SolidColorBrush(Colors.Transparent);
                 deleteButton.Content = new FontIcon { Glyph = "\uE74D", FontSize = 14 };
                 deleteButton.Click += ManagePlayer_Delete_Click;
 
@@ -927,7 +1145,7 @@ namespace Yorii_Launcher
 
                 var rowBorder = new Border
                 {
-                    Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorDefaultBrush"],
+                    Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["CardBackgroundFillColorSecondaryBrush"],
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(0),
                     Margin = new Thickness(0, 0, 0, 4),
@@ -960,7 +1178,8 @@ namespace Yorii_Launcher
                 Content = scrollViewer,
                 CloseButtonText = "Close",
                 XamlRoot = rootGrid.XamlRoot,
-                RequestedTheme = theme
+                RequestedTheme = theme,
+                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"]
             };
 
             // show dialog
@@ -999,6 +1218,7 @@ namespace Yorii_Launcher
                     PrimaryButtonText = "Delete",
                     CloseButtonText = "Cancel",
                     DefaultButton = ContentDialogButton.Primary,
+                    Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
                     XamlRoot = rootGrid.XamlRoot,
                     RequestedTheme = ThemeHelper.GetCurrentTheme()
                 };
@@ -1100,6 +1320,7 @@ namespace Yorii_Launcher
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = rootGrid.XamlRoot,
+                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
                 RequestedTheme = ThemeHelper.GetCurrentTheme()
             };
 
@@ -1215,7 +1436,7 @@ namespace Yorii_Launcher
                 mainFrame.Navigate(typeof(SettingsPage), null, new SuppressNavigationTransitionInfo());
         }
 
-        private void TitleBar_BackRequested(TitleBar sender, object args)
+        private void titleBar_BackRequested(TitleBar sender, object args)
         {
             if (mainFrame.CanGoBack)
             {
@@ -1264,17 +1485,6 @@ namespace Yorii_Launcher
             SettingsManager.SaveSettings();
         }
 
-        private void OpenFolderButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button)
-            {
-                button.IsEnabled = false;
-                // open current installation location
-                Process.Start("explorer.exe", SettingsManager.Current.GetActiveMinecraftPath());
-                button.IsEnabled = true;
-            }
-        }
-
         private void ModsButton_Click(object sender, RoutedEventArgs e)
         {
             // check if no instances are selected
@@ -1308,7 +1518,7 @@ namespace Yorii_Launcher
             }
         }
 
-        private void VersionList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        public void VersionList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (versionComboBox.SelectedItem != null)
             {
@@ -1329,13 +1539,13 @@ namespace Yorii_Launcher
             }
         }
 
-        private void VersionList_DropDownClosed(object sender, object e)
+        public void VersionList_DropDownClosed(object sender, object e)
         {
             // version list can be really long so reduce memory won't hurt when it is closed
             MemoryOptimizer.ReduceMemory();
         }
 
-        private sealed class AccountComboItem
+        public sealed class AccountComboItem
         {
             public PlayerAccount? Account { get; init; }
             public bool IsAddNew { get; init; }
@@ -1355,5 +1565,61 @@ namespace Yorii_Launcher
                 return DisplayName;
             }
         }
+
+        /*
+
+        private List<string> searchCommands = new List<string>()
+        {
+            "Run",
+        };
+
+        private void searchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            {
+                var suitableItems = new List<string>();
+                var splitText = sender.Text.ToLower().Split(" ");
+                foreach (var option in searchCommands)
+                {
+                    var found = splitText.All((key) =>
+                    {
+                        return option.ToLower().Contains(key);
+                    });
+                    if (found)
+                    {
+                        suitableItems.Add(option);
+                    }
+                }
+                if (suitableItems.Count == 0)
+                {
+                    suitableItems.Add("No results found");
+                }
+                sender.ItemsSource = suitableItems;
+            }
+
+        }
+
+        private void searchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        {
+            if (args.ChosenSuggestion != null)
+            {
+                ExecuteSearch(args.ChosenSuggestion.ToString());
+            }
+            else
+            {
+                ExecuteSearch(args.QueryText);
+            }
+        }
+
+        private void ExecuteSearch(string query)
+        {
+            // implementation for executing search
+            if (query == "No results found") return;
+
+            if (query == "Run")
+            {
+                
+            }
+        } */
     }
 }

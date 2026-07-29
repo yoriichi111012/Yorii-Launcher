@@ -8,7 +8,7 @@ namespace Yorii_Launcher.Helpers
     // uses windows DPAPI to encrypt/decrypt passwords tied to the current user
     public static class PasswordProtector
     {
-        private const string Entropy = "YoriiLauncher";
+        private const string Entropy = "Yorii_Launcher";
 
         public static string Protect(string plaintext)
         {

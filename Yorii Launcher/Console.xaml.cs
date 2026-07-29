@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using System;
 using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Yorii_Launcher
@@ -9,6 +10,7 @@ namespace Yorii_Launcher
     {
         public static Console? Instance { get; private set; }
         private readonly DispatcherTimer scrollTimer;
+        private readonly StringBuilder logBuffer = new();
         private bool insideLog4jEvent;
         private bool insideThrowable;
 
@@ -24,7 +26,16 @@ namespace Yorii_Launcher
             scrollTimer.Tick += (_, _) =>
             {
                 scrollTimer.Stop();
-                logScroller.ScrollToVerticalOffset(logScroller.ScrollableHeight);
+                if (logBuffer.Length > 0)
+                {
+                    consoleOutput.Text += logBuffer.ToString();
+                    logBuffer.Clear();
+
+                    // keep the tail so it doesnt eat all memory on long sessions
+                    if (consoleOutput.Text.Length > 500_000)
+                        consoleOutput.Text = consoleOutput.Text[^250_000..];
+                }
+                logScroller.ScrollTo(logScroller.HorizontalOffset, logScroller.ScrollableHeight);
             };
 
             Instance = this;
@@ -32,11 +43,14 @@ namespace Yorii_Launcher
 
         public void AppendLine(string text)
         {
+            var formatted = FormatLogLine(text);
+            if (formatted == null)
+                return;
+
             DispatcherQueue.TryEnqueue(() =>
             {
-                var formatted = FormatLogLine(text);
-                if (formatted != null)
-                    consoleOutput.Text += formatted + "\n";
+                logBuffer.AppendLine(formatted);
+                // scroll timer flushes the buffer on next tick (50ms of silence)
                 scrollTimer.Stop();
                 scrollTimer.Start();
             });
@@ -47,6 +61,7 @@ namespace Yorii_Launcher
             DispatcherQueue.TryEnqueue(() =>
             {
                 consoleOutput.Text = string.Empty;
+                logBuffer.Clear();
                 insideLog4jEvent = false;
                 insideThrowable = false;
             });

@@ -40,6 +40,7 @@ namespace Yorii_Launcher.Helpers
                     }
                     else
                     {
+                        // plaintext password from older version, will be re-encrypted on save
                         needsResave = true;
                     }
                 }
@@ -110,7 +111,7 @@ namespace Yorii_Launcher.Helpers
         {
             Directory.CreateDirectory(ApplicationData.Current.LocalFolder.Path);
 
-            // encrypt passwords before writing
+            // encrypt passwords before writing so the json file isnt storing plaintext
             var toSave = accounts.Select(a => new PlayerAccount
             {
                 Id = a.Id,

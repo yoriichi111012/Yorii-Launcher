@@ -1,14 +1,10 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
-using Windows.System;
 
 namespace Yorii_Launcher.Helpers
 {
@@ -16,23 +12,7 @@ namespace Yorii_Launcher.Helpers
     {
         private const string RepoOwner = "yoriichi111012";
         private const string RepoName = "Yorii-Launcher";
-        private const string ReleasesApiUrl = $"https://api.github.com/repos/{RepoOwner}/{RepoName}/releases/latest";
-
-        private static readonly HttpClient ApiClient = new()
-        {
-            Timeout = TimeSpan.FromSeconds(10),
-            DefaultRequestHeaders =
-            {
-                { "User-Agent", "YoriiLauncher" },
-                { "Accept", "application/vnd.github+json" }
-            }
-        };
-
-        // separate client for downloads with a long timeout
-        private static readonly HttpClient DownloadClient = new()
-        {
-            Timeout = TimeSpan.FromMinutes(10)
-        };
+        private const string DownloadBaseUrl = $"https://github.com/{RepoOwner}/{RepoName}/releases/latest/download";
 
         public static UpdateInfo? LastCheckedUpdate { get; private set; }
 
@@ -41,7 +21,6 @@ namespace Yorii_Launcher.Helpers
             public Version Version { get; init; } = new();
             public string? DownloadUrl { get; init; }
             public string? AssetName { get; init; }
-            public string? ReleaseNotes { get; init; }
         }
 
         public static Version GetCurrentVersion()
@@ -60,34 +39,57 @@ namespace Yorii_Launcher.Helpers
             }
         }
 
+        // switched from github API to a direct HEAD request — no rate limits,
+        // no json parsing, same pattern as the installer script
         public static async Task<UpdateInfo?> CheckForUpdateAsync()
         {
             try
-            {
-                Debug.WriteLine($"[UpdateService] Checking for updates from {ReleasesApiUrl}");
-                var response = await ApiClient.GetAsync(ReleasesApiUrl);
-                Debug.WriteLine($"[UpdateService] API response: {response.StatusCode}");
+        {
+                var arch = GetCurrentArchitecture();
+                var packageUrl = $"{DownloadBaseUrl}/Yorii.Launcher_{arch}.msix";
 
-                if (!response.IsSuccessStatusCode)
+                Debug.WriteLine($"[UpdateService] HEAD {packageUrl}");
+
+                using var handler = new SocketsHttpHandler { AllowAutoRedirect = false };
+                using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
+                client.DefaultRequestHeaders.Add("User-Agent", "Yorii_Launcher");
+
+                using var request = new HttpRequestMessage(HttpMethod.Head, packageUrl);
+                using var response = await client.SendAsync(request);
+
+                if ((int)response.StatusCode < 300 || (int)response.StatusCode >= 400)
                 {
-                    Debug.WriteLine($"[UpdateService] API returned {response.StatusCode}");
+                    Debug.WriteLine($"[UpdateService] Expected redirect, got {response.StatusCode}");
                     return null;
                 }
 
-                var json = await response.Content.ReadAsStringAsync();
-                Debug.WriteLine($"[UpdateService] Release JSON (first 200 chars): {json[..Math.Min(200, json.Length)]}");
-                var release = JsonSerializer.Deserialize<GitHubRelease>(json);
-                if (release == null || string.IsNullOrEmpty(release.TagName))
+                var location = response.Headers.Location;
+                if (location == null)
                 {
-                    Debug.WriteLine("[UpdateService] Failed to parse release or tag_name is empty");
+                    Debug.WriteLine("[UpdateService] No Location header in redirect");
                     return null;
                 }
 
-                Debug.WriteLine($"[UpdateService] Latest tag: {release.TagName}");
-                var latestVersion = ParseVersion(release.TagName);
+        // location may be relative or absolute, either way resolve against github.com
+                var redirectUri = location.IsAbsoluteUri ? location : new Uri(new Uri("https://github.com"), location);
+
+                Debug.WriteLine($"[UpdateService] Redirect → {redirectUri}");
+
+                // path segments: /, user/, repo/, releases/, download/, v0.7/, file.msix
+                var segments = redirectUri.Segments;
+                if (segments.Length < 7)
+                {
+                    Debug.WriteLine("[UpdateService] Unexpected redirect path structure");
+                    return null;
+                }
+
+                var tagName = segments[^2].TrimEnd('/');
+                var assetName = segments[^1];
+
+                var latestVersion = ParseVersion(tagName);
                 if (latestVersion == null)
                 {
-                    Debug.WriteLine($"[UpdateService] Failed to parse version from tag: {release.TagName}");
+                    Debug.WriteLine($"[UpdateService] Failed to parse version from tag: {tagName}");
                     return null;
                 }
 
@@ -101,25 +103,11 @@ namespace Yorii_Launcher.Helpers
                 }
 
                 Debug.WriteLine("[UpdateService] Update available!");
-                var arch = GetCurrentArchitecture();
-                Debug.WriteLine($"[UpdateService] Architecture: {arch}");
-                var msixAsset = release.Assets?
-                    .FirstOrDefault(a => a.Name != null
-                        && a.Name.StartsWith("Yorii.Launcher_", StringComparison.OrdinalIgnoreCase)
-                        && a.Name.Contains(arch, StringComparison.OrdinalIgnoreCase)
-                        && a.Name.EndsWith(".msix", StringComparison.OrdinalIgnoreCase));
-
-                Debug.WriteLine($"[UpdateService] MSIX asset: {msixAsset?.Name ?? "NOT FOUND"}");
-                if (msixAsset?.BrowserDownloadUrl == null)
-                    return null;
-
-                Debug.WriteLine($"[UpdateService] Download URL: {msixAsset.BrowserDownloadUrl}");
                 var info = new UpdateInfo
                 {
                     Version = latestVersion,
-                    DownloadUrl = msixAsset.BrowserDownloadUrl,
-                    AssetName = msixAsset.Name,
-                    ReleaseNotes = release.Body
+                    DownloadUrl = redirectUri.ToString(),
+                    AssetName = assetName
                 };
                 LastCheckedUpdate = info;
                 return info;
@@ -135,12 +123,12 @@ namespace Yorii_Launcher.Helpers
         {
             try
             {
-                var tempDir = Path.Combine(Path.GetTempPath(), "YoriiLauncher_Update");
+                var tempDir = Path.Combine(Path.GetTempPath(), "Quiescent_Update");
                 Directory.CreateDirectory(tempDir);
 
                 var msixPath = Path.Combine(tempDir, info.AssetName ?? "update.msix");
 
-                using var response = await DownloadClient.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await HttpService.DownloadClient.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
 
                 var totalBytes = response.Content.Headers.ContentLength ?? -1L;
@@ -191,7 +179,7 @@ namespace Yorii_Launcher.Helpers
             };
         }
 
-        // tags use preview-0.7 format, strip prefix to get version
+        // tags use preview-0.7 or v0.7 format
         private static Version? ParseVersion(string tagName)
         {
             var versionString = tagName.TrimStart('v', 'V');
@@ -207,27 +195,6 @@ namespace Yorii_Launcher.Helpers
             int build = version.Build < 0 ? 0 : version.Build;
             int revision = version.Revision < 0 ? 0 : version.Revision;
             return new Version(major, minor, build, revision);
-        }
-
-        private class GitHubRelease
-        {
-            [JsonPropertyName("tag_name")]
-            public string? TagName { get; set; }
-
-            [JsonPropertyName("body")]
-            public string? Body { get; set; }
-
-            [JsonPropertyName("assets")]
-            public GitHubAsset[]? Assets { get; set; }
-        }
-
-        private class GitHubAsset
-        {
-            [JsonPropertyName("name")]
-            public string? Name { get; set; }
-
-            [JsonPropertyName("browser_download_url")]
-            public string? BrowserDownloadUrl { get; set; }
         }
     }
 }
