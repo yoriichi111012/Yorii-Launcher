@@ -224,7 +224,7 @@
                         FontSize="14"
                         FontWeight="SemiBold"
                         Text="Updates" />
-                    <toolkit:SettingsCard Description="Check GitHub for a newer version of Yorii_Launcher" Header="Check for Updates">
+                    <toolkit:SettingsCard Description="Check GitHub for a newer version of Yorii Launcher" Header="Check for Updates">
                         <toolkit:SettingsCard.HeaderIcon>
                             <FontIcon Glyph="&#xE777;" />
                         </toolkit:SettingsCard.HeaderIcon>
