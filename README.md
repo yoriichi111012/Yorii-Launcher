@@ -10,6 +10,7 @@ Run this command in Windows PowerShell (Does not require disabling antivirus)
 ``` 
 irm https://raw.githubusercontent.com/yoriichi111012/Yorii-Launcher/main/Install.ps1 | iex
 ```
+It is recommended for the user to customize and check the launcher settings when the launcher has launched for the first time.
 
 ## Features
 - Mojang (Microsoft) and Ely.by account support with skin support
