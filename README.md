@@ -15,7 +15,7 @@ It is recommended for the user to check and customize the launcher settings when
 ## Features
 - Mojang (Microsoft), Ely.by and offline account support with skins
 - Mods and Resource Packs Downloading and Management through launcher UI
-- Official Release Notes, Instances World List, Server List and Auto-Join World/Server support
+- Official Release Notes, Instances, World List, Server List and Auto-Join World/Server support
 - Background customization and Game Console (Minecraft Logging) support
 - Fabric and Vanilla version support
 - Native Windows UI built using WinUI 3
