@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yorii_Launcher.Pages.ThemesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <NavigationView
+        x:Name="ThemesNavigation"
+        IsBackButtonVisible="Collapsed"
+        IsSettingsVisible="False"
+        OpenPaneLength="240"
+        PaneDisplayMode="Top"
+        SelectionChanged="ThemesNavigation_SelectionChanged">
+        <NavigationView.Resources>
+            <SolidColorBrush x:Key="NavigationViewContentBackground" Color="Transparent" />
+        </NavigationView.Resources>
+
+        <NavigationView.MenuItems>
+
+            <NavigationViewItem Content="Discover Themes" Tag="discoverthemes">
+
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Download" />
+                </NavigationViewItem.Icon>
+
+            </NavigationViewItem>
+
+            <NavigationViewItem Content="My Themes" Tag="mythemes">
+
+                <NavigationViewItem.Icon>
+                    <SymbolIcon Symbol="Contact" />
+                </NavigationViewItem.Icon>
+
+            </NavigationViewItem>
+
+        </NavigationView.MenuItems>
+
+        <Frame x:Name="ThemesFrame" />
+
+    </NavigationView>
+
+</Page>

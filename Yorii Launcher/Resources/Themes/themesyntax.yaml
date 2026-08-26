@@ -1,0 +1,36 @@
+# for dark mode
+theme_mode: dark
+accent_color: "#11EEFF"
+
+background_image: "Resources\\Themes\\cottoncandy.png" # for none: background_image: none
+overlay_enabled: true # when disabled overlay_opacity and overlay_blur are ignored
+overlay_opacity: 0.30
+overlay_blur: true
+
+# all these do not work right now. im currently working making them work later on
+
+# optional settings
+# serverlist_enabled: true
+# worldlist_enabled: true
+# releasenotes_enabled: true
+# card_border_thickness: 1
+# card_border_color: "#A0FFFFFF"
+# card_background_color: "#50000000"
+# settingscard_background_color: "#50000000"
+# settingsexpander_hover_color: "#60000000"
+# settingsexpander_pressed_color: "#70000000"
+# settingscard_disabled_color: "#50000000"
+#
+# systembackdrop is used only when background image is set to none
+# systembackdrop: mica / micaAlt
+
+# for light mode
+# theme_mode: light
+# accent_color: "#086B73"
+
+# background_image: "Resources\\Themes\\cottoncandy.png" # for none: background_image: none
+# overlay_enabled: true # when disabled overlay_opacity and overlay_blur are ignored
+# overlay_opacity: 0.30
+# overlay_blur: true
+
+#settingsexpander_hover_color: "#"

@@ -89,12 +89,25 @@ namespace Yorii_Launcher.Pages
 
             try
             {
-                await ModrinthHelper.InstallLatestProjectAsync(ModrinthProjectKind.Modpack, modpack.Slug);
+                if (ModrinthHelper.IsAlreadyInstalled(ModrinthProjectKind.Modpack, modpack.Slug))
+                {
+                    NotificationHelper.Show("Modpack already installed", $"'{modpack.Title}' is already installed.");
+                    return;
+                }
+
+                await ModrinthHelper.InstallLatestProjectAsync(ModrinthProjectKind.Modpack, modpack.Slug, modpack.Title, modpack.Icon);
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex);
-                NotificationHelper.Show("Modpack download failed", $"Could not download {modpack.Title}. Check your internet connection.");
+                Logger.Error($"Modpack download failed ({modpack.Title}): {ex.Message}");
+
+                if (IsNetworkError(ex))
+                    NotificationHelper.Show("Modpack download failed", $"Could not reach Modrinth. Check your internet connection.");
+                else
+                    NotificationHelper.Show("Modpack download failed", $"Could not download {modpack.Title}.");
             }
         }
 
@@ -134,7 +147,28 @@ namespace Yorii_Launcher.Pages
 
                 item.Click += async (_, __) =>
                 {
-                    await ModrinthHelper.InstallVersionAsync(ModrinthProjectKind.Modpack, version.VersionId);
+                    try
+                    {
+                        if (ModrinthHelper.IsAlreadyInstalled(ModrinthProjectKind.Modpack, modpack.Slug))
+                        {
+                            NotificationHelper.Show("Modpack already installed", $"'{modpack.Title}' is already installed.");
+                            return;
+                        }
+
+                        await ModrinthHelper.InstallVersionAsync(ModrinthProjectKind.Modpack, version.VersionId, modpack.Title, modpack.Icon);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Modpack download failed ({modpack.Title}): {ex.Message}");
+
+                        if (IsNetworkError(ex))
+                            NotificationHelper.Show("Modpack download failed", $"Could not reach Modrinth. Check your internet connection.");
+                        else
+                            NotificationHelper.Show("Modpack download failed", $"Could not download {modpack.Title}.");
+                    }
                 };
 
                 flyout.Items.Add(item);
@@ -212,5 +246,10 @@ namespace Yorii_Launcher.Pages
                     OnlineModpacks.Add(modpack);
             }
         }
+
+        private static bool IsNetworkError(Exception ex) => ex is
+            System.Net.Http.HttpRequestException
+            or System.Net.Sockets.SocketException
+            or System.IO.IOException;
     }
 }

@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.WinUI;
+using CommunityToolkit.WinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -33,7 +33,6 @@ namespace Yorii_Launcher.Pages
         private FileSystemWatcher? modsWatcher;
         private bool isLoadingMods;
         private bool ignoreWatcherChanges;
-        private static readonly HttpClient Http = new();
 
         public InstalledModsPage()
         {
@@ -63,50 +62,45 @@ namespace Yorii_Launcher.Pages
         private void StartModsWatcher()
         {
             var minecraftPath = SettingsManager.Current.GetActiveMinecraftPath();
-
-            if (string.IsNullOrWhiteSpace(minecraftPath))
-                return;
+            if (string.IsNullOrWhiteSpace(minecraftPath)) return;
 
             var modsFolder = Path.Combine(minecraftPath, "mods");
             Directory.CreateDirectory(modsFolder);
 
-            modsWatcher = new FileSystemWatcher(modsFolder);
+            modsWatcher?.Dispose();
+            watcherCts?.Cancel();
+            watcherCts?.Dispose();
+
+            modsWatcher = new FileSystemWatcher(modsFolder)
+            {
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
+                Filter = "*.jar*",
+                IncludeSubdirectories = false,
+                InternalBufferSize = 32768,
+                EnableRaisingEvents = true
+            };
             modsWatcher.Created += ModsChanged;
+            modsWatcher.Changed += ModsChanged;
             modsWatcher.Deleted += ModsChanged;
             modsWatcher.Renamed += ModsChanged;
-            modsWatcher.EnableRaisingEvents = true;
+            modsWatcher.Error += (_, _) => StartModsWatcher();
         }
 
-        // debounce, cancel previous reload then wait 250ms
         private CancellationTokenSource? watcherCts;
         private void ModsChanged(object sender, FileSystemEventArgs e)
         {
-            if (ignoreWatcherChanges)
-                return;
-
-            Debug.WriteLine($"WATCHER: {e.ChangeType} -> {e.FullPath}");
+            if (ignoreWatcherChanges) return;
 
             watcherCts?.Cancel();
+            watcherCts?.Dispose();
             watcherCts = new CancellationTokenSource();
+            var token = watcherCts.Token;
 
-            _ = Task.Run(async () =>
+            _ = Task.Delay(350, token).ContinueWith(async _ =>
             {
-                try
-                {
-                    await Task.Delay(250, watcherCts.Token);
-
-                    await DispatcherQueue.EnqueueAsync(async () =>
-                    {
-                        Debug.WriteLine("WATCHER: calling LoadMods()");
-                        await LoadMods();
-                        Debug.WriteLine("WATCHER: LoadMods finished");
-                    });
-                }
-                catch (TaskCanceledException)
-                {
-                    // ignored
-                }
-            });
+                if (token.IsCancellationRequested) return;
+                DispatcherQueue.TryEnqueue(async () => await LoadMods());
+            }, token, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
         }
 
         // rename .jar to .jar.disabled to enable/disable
@@ -186,15 +180,18 @@ namespace Yorii_Launcher.Pages
             }
             catch (Exception ex)
             {
-                    await new ContentDialog
+                var errorDialog = new ContentDialog
                 {
                     Title = "Error",
                     Content = ex.Message,
                     CloseButtonText = "OK",
-                    Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                    Background = DialogHelper.GetAcrylicBrush(),
                     RequestedTheme = ThemeHelper.GetCurrentTheme(),
                     XamlRoot = XamlRoot
-                }.ShowAsync();
+                };
+                errorDialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
+                await errorDialog.ShowAsync();
+                MemoryOptimizer.ReduceMemory();
             }
 
             await Task.Delay(500);
@@ -213,24 +210,6 @@ namespace Yorii_Launcher.Pages
             Process.Start(
                 "explorer.exe",
                 $"/select,\"{mod.FilePath}\"");
-        }
-
-        private void OpenFolder_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not MenuFlyoutItem item)
-                return;
-
-            if (item.DataContext is not ModItem mod)
-                return;
-
-            var folder =
-                Path.GetDirectoryName(mod.FilePath);
-
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = folder,
-                UseShellExecute = true
-            });
         }
 
         // find slug on modrinth then open in browser
@@ -259,7 +238,7 @@ namespace Yorii_Launcher.Pages
             {
                 var query = Uri.EscapeDataString($"{mod.Name} {mod.ModId}");
                 var apiUrl = $"https://api.modrinth.com/v2/search?query={query}&facets=[[\"categories:fabric\"]]";
-                var json = await Http.GetStringAsync(apiUrl);
+                var json = await HttpService.Client.GetStringAsync(apiUrl);
 
                 using JsonDocument doc = JsonDocument.Parse(json);
                 var hits = doc.RootElement.GetProperty("hits");
@@ -344,72 +323,45 @@ namespace Yorii_Launcher.Pages
         }
 
 
-        // search filter, matches by name or version prefix
-        private void ModsSearchBox_TextChanged(
-    object sender,
-    TextChangedEventArgs e)
+        private void ModsSearchBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (sender is not TextBox textBox)
                 return;
 
-            var query =
-                textBox.Text.Trim();
+            var query = textBox.Text.Trim();
+            ApplyFilter(query);
+        }
 
+        private void ApplyFilter(string query)
+        {
             List<ModItem> filteredMods;
 
-            // EMPTY SEARCH -> ALL A-Z
             if (string.IsNullOrWhiteSpace(query))
             {
-                filteredMods = mods
-                    .OrderBy(m => m.Name)
-                    .ToList();
+                filteredMods = mods.OrderBy(m => m.Name).ToList();
             }
             else
             {
                 filteredMods = mods
                     .Where(mod =>
-
-                        mod.Name.StartsWith(
-                            query,
-                            StringComparison.OrdinalIgnoreCase)
-
-                        ||
-
-                        mod.Version.StartsWith(
-                            query,
-                            StringComparison.OrdinalIgnoreCase))
+                        mod.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase)
+                        || mod.Version.StartsWith(query, StringComparison.OrdinalIgnoreCase))
                     .OrderBy(m => m.Name)
                     .ToList();
             }
 
-            // REMOVE items not in filtered list
             for (int i = Mods.Count - 1; i >= 0; i--)
             {
                 var existing = Mods[i];
-
-                bool shouldExist =
-                    filteredMods.Any(m =>
-                        m.FilePath == existing.FilePath);
-
-                if (!shouldExist)
-                {
+                if (!filteredMods.Any(m => m.FilePath == existing.FilePath))
                     Mods.RemoveAt(i);
-                }
             }
 
-            // ADD missing items in correct order
             for (int i = 0; i < filteredMods.Count; i++)
             {
                 var mod = filteredMods[i];
-
-                bool alreadyExists =
-                    Mods.Any(m =>
-                        m.FilePath == mod.FilePath);
-
-                if (!alreadyExists)
-                {
+                if (!Mods.Any(m => m.FilePath == mod.FilePath))
                     Mods.Insert(i, mod);
-                }
             }
         }
 
@@ -432,7 +384,7 @@ namespace Yorii_Launcher.Pages
 
                 mods = loadedMods;
 
-                // REMOVE missing
+                // remove missing
                 for (int i = Mods.Count - 1; i >= 0; i--)
                 {
                     var existing = Mods[i];
@@ -447,7 +399,7 @@ namespace Yorii_Launcher.Pages
                     }
                 }
 
-                // ADD new
+                // add new
                 for (int i = 0; i < loadedMods.Count; i++)
                 {
                     var mod = loadedMods[i];
@@ -471,6 +423,9 @@ namespace Yorii_Launcher.Pages
         {
             base.OnNavigatedTo(e);
 
+            // re-point the watcher at the active instance (the page is cached, so
+            // the folder can change between visits) then always refresh the list
+            StartModsWatcher();
             await LoadMods(); // always refresh when page is shown
         }
     }

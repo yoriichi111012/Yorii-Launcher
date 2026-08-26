@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yorii_Launcher.Pages.SkinsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Yorii_Launcher.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid
+        MaxWidth="880"
+        Padding="32,28,32,24"
+        RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  header  -->
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <!--<FontIcon
+                    VerticalAlignment="Center"
+                    FontSize="26"
+                    Glyph="&#xE77B;" />-->
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="28"
+                    FontWeight="SemiBold"
+                    Text="Yorii Skins" />
+            </StackPanel>
+            <TextBlock
+                Margin="0,4,0,0"
+                Opacity="0.72"
+                Text="Upload 64x64 PNG skins for your profiles. Public profiles (1 max) need no GitHub; private ones (5 max) are tied to your account."
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!--  profiles card  -->
+        <Border
+            Grid.Row="1"
+            Padding="20"
+            VerticalAlignment="Top"
+            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="8">
+            <Grid RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <FontIcon
+                        Grid.Column="0"
+                        VerticalAlignment="Center"
+                        FontSize="18"
+                        Glyph="&#xE716;" />
+                    <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Text="Profiles" />
+                    <StackPanel
+                        Grid.Column="2"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Horizontal"
+                        Spacing="14">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock
+                                x:Name="statsCountText"
+                                FontSize="14"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                FontSize="14"
+                                Opacity="0.6"
+                                Text="profiles" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <!--<Ellipse
+                                Width="8"
+                                Height="8"
+                                Margin="0,1,0,0"
+                                VerticalAlignment="Center"
+                                Fill="#6CCB5F" />-->
+                            <TextBlock
+                                x:Name="statsSyncedText"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Foreground="#6CCB5F" />
+                            <TextBlock
+                                FontSize="14"
+                                Opacity="0.6"
+                                Text="synced" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <!--<Ellipse
+                                Width="8"
+                                Height="8"
+                                Margin="0,1,0,0"
+                                VerticalAlignment="Center"
+                                Fill="#FF7878" />-->
+                            <TextBlock
+                                x:Name="statsDirtyText"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Foreground="#FF7878" />
+                            <TextBlock
+                                FontSize="14"
+                                Opacity="0.6"
+                                Text="unsynced" />
+                        </StackPanel>
+                    </StackPanel>
+                    <Button
+                        x:Name="addProfileButton"
+                        Grid.Column="3"
+                        Click="AddProfileButton_Click"
+                        IsEnabled="False">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontSize="13" Glyph="&#xE710;" />
+                            <TextBlock Text="Add Profile" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <TextBlock
+                    x:Name="profilesInfoText"
+                    Grid.Row="1"
+                    Opacity="0.7"
+                    TextWrapping="Wrap" />
+
+                <!--  loading skeleton  -->
+                <StackPanel
+                    x:Name="skeletonPanel"
+                    Grid.Row="2"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <Border
+                        Height="88"
+                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                        CornerRadius="8"
+                        Opacity="0.55" />
+                    <Border
+                        Height="88"
+                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                        CornerRadius="8"
+                        Opacity="0.35" />
+                    <Border
+                        Height="88"
+                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                        CornerRadius="8"
+                        Opacity="0.2" />
+                </StackPanel>
+
+                <!--  empty state  -->
+                <StackPanel
+                    x:Name="emptyPanel"
+                    Grid.Row="2"
+                    Padding="0,28"
+                    HorizontalAlignment="Center"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <FontIcon
+                        HorizontalAlignment="Center"
+                        FontSize="40"
+                        Glyph="&#xE77B;"
+                        Opacity="0.4" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Text="No profiles yet" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Opacity="0.7"
+                        Text="Publish your first skin with Add Profile above."
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!--  error state  -->
+                <StackPanel
+                    x:Name="errorPanel"
+                    Grid.Row="2"
+                    Padding="0,28"
+                    HorizontalAlignment="Center"
+                    Spacing="10"
+                    Visibility="Collapsed">
+                    <FontIcon
+                        HorizontalAlignment="Center"
+                        FontSize="40"
+                        Glyph="&#xEA39;"
+                        Opacity="0.4" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Text="Couldn't load your skins" />
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        Opacity="0.7"
+                        Text="Check your connection and try again." />
+                    <Button
+                        Padding="16,6"
+                        Click="RetryButton_Click"
+                        Style="{ThemeResource AccentButtonStyle}">
+                        <TextBlock Text="Retry" />
+                    </Button>
+                </StackPanel>
+
+                <!--  profile list  -->
+                <ListView
+                    x:Name="profilesList"
+                    Grid.Row="3"
+                    Visibility="Collapsed">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:ProfileListItem">
+                            <Grid Padding="4,10" ColumnSpacing="14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border
+                                    Width="32"
+                                    Height="32"
+                                    VerticalAlignment="Center"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8">
+                                    <Image
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Source="{x:Bind PreviewImage, Mode=OneWay}"
+                                        Stretch="None" />
+                                </Border>
+
+                                <StackPanel
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            Text="{x:Bind Username}" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Opacity="0.6"
+                                            Text="{x:Bind KindLabel}" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Opacity="0.6"
+                                            Text="{x:Bind ClaimLabel}" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
+                                            Opacity="0.5"
+                                            Text="{x:Bind CustomUUID}"
+                                            TextTrimming="CharacterEllipsis"
+                                            Visibility="Collapsed" />
+
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Ellipse
+                                            Width="8"
+                                            Height="8"
+                                            VerticalAlignment="Center"
+                                            Fill="{x:Bind SyncBrush, Mode=OneWay}" />
+                                        <TextBlock
+                                            Margin="0,-1,0,0"
+                                            FontSize="12"
+                                            Foreground="{x:Bind SyncBrush, Mode=OneWay}"
+                                            Text="{x:Bind SyncStatus, Mode=OneWay}" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <StackPanel
+                                    Grid.Column="2"
+                                    VerticalAlignment="Center"
+                                    Orientation="Horizontal"
+                                    Spacing="6">
+                                    <Button
+                                        Height="26"
+                                        MinWidth="88"
+                                        Padding="10,0"
+                                        Click="UpdateProfile_Click"
+                                        Style="{ThemeResource AccentButtonStyle}"
+                                        Tag="{x:Bind Username}">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <FontIcon FontSize="11" Glyph="&#xE895;" />
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                Text="Update Skin" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button
+                                        Width="26"
+                                        Height="26"
+                                        Padding="0"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="DeleteProfile_Click"
+                                        Tag="{x:Bind Username}"
+                                        ToolTipService.ToolTip="Delete profile">
+                                        <FontIcon
+                                            FontSize="13"
+                                            Foreground="#FF7878"
+                                            Glyph="&#xE74D;" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
+        </Border>
+
+        <InfoBar
+            x:Name="infoBar"
+            Grid.Row="2"
+            IsClosable="True"
+            Visibility="Collapsed" />
+    </Grid>
+</Page>

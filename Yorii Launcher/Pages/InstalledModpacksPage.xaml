@@ -6,6 +6,7 @@
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Yorii_Launcher.Models"
     xmlns:ui="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
 
@@ -78,7 +79,7 @@
                     BorderThickness="0"
                     SelectionMode="None">
                     <ListView.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="models:ManagedFileItem">
                             <Border
                                 MaxWidth="1200"
                                 Margin="0,0,0,6"
@@ -112,17 +113,17 @@
                                             Width="40"
                                             Height="40"
                                             FontSize="24"
-                                            Foreground="{ThemeResource SystemAccentColor}"
+                                            Foreground="{ThemeResource AccentColorBrush}"
                                             Glyph="&#xE8FD;" />
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock
                                                 FontSize="14"
                                                 FontWeight="SemiBold"
-                                                Text="{Binding Name}" />
+                                                Text="{x:Bind Name}" />
                                             <TextBlock
                                                 FontSize="12"
                                                 Opacity="0.7"
-                                                Text="{Binding Version}" />
+                                                Text="{x:Bind Version}" />
                                         </StackPanel>
                                     </StackPanel>
 
@@ -132,7 +133,7 @@
                                         MinWidth="0"
                                         HorizontalAlignment="Right"
                                         VerticalAlignment="Center"
-                                        IsOn="{Binding IsEnabled}"
+                                        IsOn="{x:Bind IsEnabled, Mode=TwoWay}"
                                         OffContent=""
                                         OnContent=""
                                         Toggled="ToggleSwitch_Toggled" />

@@ -13,6 +13,7 @@ using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Yorii_Launcher.Helpers;
 using Yorii_Launcher.Pages;
 
 namespace Yorii_Launcher;
@@ -26,12 +27,26 @@ public sealed partial class ModsPage : Page
 
         ModsFrame.Navigate(typeof(Pages.InstalledModsPage), null, new SuppressNavigationTransitionInfo());
         ModsNavigation.SelectedItem = ModsNavigation.MenuItems[0];
+        MemoryOptimizer.ReduceMemory();
+    }
+
+    // the child pages are cached, so re-navigating the inner frame on every
+    // visit forces their onnavigatedto to fire - this reloads the installed
+    // lists immediately after the active instance changes instead of waiting
+    // for a filesystem event on the old instance folder
+    protected override void OnNavigatedTo(NavigationEventArgs e)
+    {
+        base.OnNavigatedTo(e);
+
+        if (ModsFrame.CurrentSourcePageType != null)
+            ModsFrame.Navigate(ModsFrame.CurrentSourcePageType, null, new SuppressNavigationTransitionInfo());
     }
 
     private void ModsNavigation_SelectionChanged(
             NavigationView sender,
             NavigationViewSelectionChangedEventArgs args)
     {
+        MemoryOptimizer.ReduceMemory();
         if (args.SelectedItemContainer == null)
             return;
 

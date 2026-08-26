@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Dark">
+            <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#50000000" />
+            <SolidColorBrush x:Key="SettingsCardBackground" Color="#50000000" />
+            <SolidColorBrush x:Key="SettingsCardBackgroundPointerOver" Color="#60000000" />
+            <SolidColorBrush x:Key="SettingsCardBackgroundPressed" Color="#70000000" />
+            <SolidColorBrush x:Key="SettingsCardBackgroundDisabled" Color="#50000000" />
+            <SolidColorBrush x:Key="SettingsCardBackgroundExpanded" Color="#60000000" />
+            <SolidColorBrush x:Key="SettingsCardBorderBrush" Color="#00000000" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#50FFFFFF" />
+            <SolidColorBrush x:Key="SettingsCardBackground" Color="#50FFFFFF" />
+            <SolidColorBrush x:Key="SettingsCardBackgroundPointerOver" Color="#60FFFFFF" />
+            <SolidColorBrush x:Key="SettingsCardBackgroundPressed" Color="#70FFFFFF" />
+            <SolidColorBrush x:Key="SettingsCardBackgroundDisabled" Color="#50FFFFFF" />
+            <SolidColorBrush x:Key="SettingsCardBackgroundExpanded" Color="#60FFFFFF" />
+            <SolidColorBrush x:Key="SettingsCardBorderBrush" Color="#00000000" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+</ResourceDictionary>

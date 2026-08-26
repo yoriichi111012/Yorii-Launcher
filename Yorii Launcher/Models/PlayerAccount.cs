@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using YamlDotNet.Serialization;
 
 namespace Yorii_Launcher.Models
 {
@@ -7,25 +8,27 @@ namespace Yorii_Launcher.Models
         public string Id { get; set; } = "";
         public string Username { get; set; } = "";
         public string? Password { get; set; }
-        public PlayerAccountType AccountType { get; set; } = PlayerAccountType.ElyBy;
+        public PlayerAccountType AccountType { get; set; } = PlayerAccountType.YoriiSkins;
         public string? MojangIdentifier { get; set; }
+        public string? CustomUUID { get; set; }
+        public string? SkinUrl { get; set; }
+        public string? GitHubOwner { get; set; }
 
         [JsonIgnore]
-        public bool IsOffline => AccountType != PlayerAccountType.Mojang && string.IsNullOrWhiteSpace(Password);
+        [YamlIgnore]
+        public bool IsOffline => AccountType == PlayerAccountType.Offline;
 
         [JsonIgnore]
-        public string DisplayName => AccountType == PlayerAccountType.Mojang
-            ? $"{Username} (Microsoft)"
-            : IsOffline
-                ? $"{Username} (Offline)"
-                : $"{Username} ({GetAccountTypeLabel(AccountType)})";
+        [YamlIgnore]
+        public string DisplayName => $"{Username} ({GetAccountTypeLabel(AccountType)})";
 
         public static string GetAccountTypeLabel(PlayerAccountType accountType)
         {
             return accountType switch
             {
-                PlayerAccountType.ElyBy => "Ely.by",
                 PlayerAccountType.Mojang => "Mojang",
+                PlayerAccountType.Offline => "Offline",
+                PlayerAccountType.YoriiSkins => "YoriiSkins",
                 _ => accountType.ToString()
             };
         }
@@ -34,7 +37,8 @@ namespace Yorii_Launcher.Models
     [JsonConverter(typeof(JsonStringEnumConverter<PlayerAccountType>))]
     public enum PlayerAccountType
     {
-        ElyBy,
-        Mojang
+        Mojang,
+        Offline,
+        YoriiSkins
     }
 }

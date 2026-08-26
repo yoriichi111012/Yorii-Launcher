@@ -185,15 +185,6 @@ namespace Yorii_Launcher.Pages
             Process.Start("explorer.exe", $"/select,\"{resourcePack.FilePath}\"");
         }
 
-        private void OpenFolder_Click(object sender, RoutedEventArgs e)
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = ResourcePacksFolder,
-                UseShellExecute = true
-            });
-        }
-
         private async void OpenModrinth_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not MenuFlyoutItem item)
@@ -259,14 +250,19 @@ namespace Yorii_Launcher.Pages
                 return;
 
             var query = textBox.Text.Trim();
-            var filteredResourcePacks = string.IsNullOrWhiteSpace(query)
+            ApplyFilter(query);
+        }
+
+        private void ApplyFilter(string query)
+        {
+            var filtered = string.IsNullOrWhiteSpace(query)
                 ? resourcePacks.OrderBy(r => r.Name).ToList()
                 : resourcePacks
-                    .Where(resourcePack => resourcePack.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(resourcePack => resourcePack.Name)
+                    .Where(rp => rp.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(rp => rp.Name)
                     .ToList();
 
-            SyncResourcePacks(filteredResourcePacks);
+            SyncResourcePacks(filtered);
         }
 
         private async Task LoadResourcePacks()
@@ -321,6 +317,9 @@ namespace Yorii_Launcher.Pages
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+
+            // re-point the watcher at the active instance, then refresh the list
+            StartResourcePacksWatcher();
             await LoadResourcePacks();
         }
     }

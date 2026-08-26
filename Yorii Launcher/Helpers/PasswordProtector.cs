@@ -1,11 +1,10 @@
 using System;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace Yorii_Launcher.Helpers
 {
-    // uses windows DPAPI to encrypt/decrypt passwords tied to the current user
+    // uses windows dpapi to encrypt/decrypt passwords tied to the current user
     public static class PasswordProtector
     {
         private const string Entropy = "Yorii_Launcher";
@@ -25,7 +24,7 @@ namespace Yorii_Launcher.Helpers
             }
             catch (CryptographicException ex)
             {
-                Debug.WriteLine($"Password protection failed: {ex.Message}");
+                Logger.Error($"Password protection failed: {ex.Message}");
                 return plaintext;
             }
         }

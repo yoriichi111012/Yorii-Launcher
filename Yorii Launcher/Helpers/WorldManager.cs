@@ -28,7 +28,7 @@ namespace Yorii_Launcher.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[WorldManager] Failed to load worlds: {ex.Message}");
+                Logger.Warn($"Failed to load worlds: {ex.Message}");
                 return [];
             }
         }

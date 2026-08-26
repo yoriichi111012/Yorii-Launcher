@@ -82,11 +82,10 @@
                                 Margin="0,0,0,6"
                                 Padding="10"
                                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                CornerRadius="4">
+                                CornerRadius="8">
                                 <Border.ContextFlyout>
                                     <MenuFlyout>
                                         <MenuFlyoutItem Click="OpenFile_Click" Text="Reveal in Explorer" />
-                                        <MenuFlyoutItem Click="OpenFolder_Click" Text="Open Resource Packs Folder" />
                                         <MenuFlyoutItem Click="OpenModrinth_Click" Text="Open Modrinth Page" />
                                         <MenuFlyoutSeparator />
                                         <MenuFlyoutItem
@@ -110,7 +109,7 @@
                                             <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
                                             <FontIcon
                                                 FontSize="24"
-                                                Foreground="{ThemeResource SystemAccentColor}"
+                                                Foreground="{ThemeResource AccentColorBrush}"
                                                 Glyph="&#xE8B1;"
                                                 Visibility="{x:Bind local:InstalledResourcePacksPage.IconVisibility(Icon)}" />
                                         </Grid>

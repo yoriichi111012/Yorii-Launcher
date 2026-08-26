@@ -1,7 +1,11 @@
-using CmlLib.Core;
-using CmlLib.Core.ModLoaders.FabricMC;
-using CmlLib.Core.ProcessBuilder;
-using CmlLib.Core.VersionLoader;
+using Quiescent.Core;
+using Quiescent.Core.Auth;
+using Quiescent.Core.Installer.Forge;
+using Quiescent.Core.Installer.NeoForge;
+using Quiescent.Core.Installer.NeoForge.Installers;
+using Quiescent.Core.ModLoaders.FabricMC;
+using Quiescent.Core.ProcessBuilder;
+using Quiescent.Core.VersionLoader;
 using CommunityToolkit.WinUI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
@@ -21,7 +25,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Threading;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Microsoft.UI;
@@ -30,26 +36,26 @@ namespace Yorii_Launcher
 {
     public sealed partial class MainWindow : Window
     {
-        // set global minecraftPath to better code structure
+        // set global minecraftpath to better code structure
         private string minecraftPath = SettingsManager.Current.GetActiveMinecraftPath();
-        // make MainWindow accesible from other pages
+        // names of the folders in the versions directory, used to pin installed
+        // versions to the top of the list (exact name match)
+        private HashSet<string> installedVersionNames = [];
+        // make mainwindow accesible from other pages
         public static MainWindow? Instance { get; set; }
         public VersionViewModel VersionVM { get; } = new VersionViewModel();
         private readonly ObservableCollection<AccountComboItem> accountItems = [];
-        private double downloadProgressValue;
+        // private double downloadprogressvalue;
         private ContentDialog? managePlayersDialog;
         private ComboBox? homeAccountComboBox;
         private ComboBox? homeVersionComboBox;
         private Button? homePlayButton;
-        private ProgressBar? homeDownloadProgressBar;
-        private bool isCompactMode;
-        private Windows.Graphics.SizeInt32? expandedWindowSize;
-        private Type? compactRestorePageType;
+        // private progressbar? homedownloadprogressbar;
         private object? launchButtonContent = "Play";
         private bool launchButtonIsEnabled = true;
-        private double launchProgressOpacity;
-        private double launchProgressValue;
-        private bool launchProgressIsIndeterminate;
+        /* private double launchProgressOpacity;
+         private double launchProgressValue;
+         private bool launchProgressIsIndeterminate;*/
 
         // set variables for background image
         private string currentImagePath = "";
@@ -57,14 +63,19 @@ namespace Yorii_Launcher
         private ComboBox accountComboBox => homeAccountComboBox ?? throw new InvalidOperationException("Home account selector is not ready.");
         private ComboBox versionComboBox => homeVersionComboBox ?? throw new InvalidOperationException("Home version selector is not ready.");
         private Button playButton => homePlayButton ?? throw new InvalidOperationException("Home play button is not ready.");
-        private ProgressBar downloadProgressBar => isCompactMode
-            ? compactDownloadProgressBar
-            : (homeDownloadProgressBar ?? throw new InvalidOperationException("Home progress bar is not ready."));
+        // private progressbar downloadprogressbar => homedownloadprogressbar ?? throw new invalidoperationexception("home progress bar is not ready.");
         public MainWindow()
         {
             InitializeComponent();
 
+
             Instance = this;
+
+            // set up the downloads flyout backing store and keep the
+            // title-bar indicator in sync with download activity
+            DownloadManager.Initialize(DispatcherQueue);
+            downloadsListView.ItemsSource = DownloadManager.Items;
+            DownloadManager.ActivityChanged += UpdateDownloadsIndicator;
 
             VersionVM.FilteredVersions.CollectionChanged += (_, __) =>
             {
@@ -76,7 +87,7 @@ namespace Yorii_Launcher
             };
 
             // set window size icon and title bar
-            // AppWindow.Resize(new Windows.Graphics.SizeInt32(1176, 661));
+            // appwindow.resize(new windows.graphics.sizeint32(1176, 661));
             SetWindowIcon();
             ExtendsContentIntoTitleBar = true;
             AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
@@ -85,13 +96,51 @@ namespace Yorii_Launcher
 
             ApplyBackgroundSettings();
             mainFrame.Navigate(typeof(HomePage));
+            mainFrame.Navigated += (_, __) => MemoryOptimizer.ReduceMemory();
+
+
+            // just for now
+            // mainframe.navigate(typeof(onboarding));
+            // titlebar non visible
+            // titlebar.visibility = visibility.collapsed;
 
             // call functions to load versions and accounts
             LoadAccounts();
             LoadVersionFilters();
             _ = LoadVersionsAsync();
 
+            // keep the account list in sync with the skin index: a saved login
+            // token means the user's private profiles should be there even on
+            // cold starts, and public profiles appear without any login at all
+            _ = SyncProfilesIntoAccountsAsync();
+
+            UpdateGitHubAccountButton();
+
             rootGrid.ActualThemeChanged += (_, __) => ApplyBackgroundSettings();
+        }
+
+        private async Task SyncProfilesIntoAccountsAsync()
+        {
+            try
+            {
+                await SkinManager.LoadProfilesIntoAccounts();
+                if (App.IsShuttingDown) return;
+                // re-read accounts.json so the picker reflects the synced set
+                LoadAccounts();
+
+                // sync the selected players latest skin into all instances so
+                // none of them keep showing an old skin
+                if (AccountManager.GetSelectedAccount() is { } acct &&
+                    acct.AccountType == PlayerAccountType.YoriiSkins)
+                {
+                    await SkinManager.SyncSkinToAllInstancesAsync(acct.Username);
+                    if (App.IsShuttingDown) return;
+                    RefreshAccounts();
+                }
+            }
+            catch
+            {
+            }
         }
 
         public void RegisterHomeControls(ComboBox accountSelector, ComboBox versionSelector, Button launchButton, ProgressBar? progressBar = null)
@@ -100,7 +149,7 @@ namespace Yorii_Launcher
 
             homeAccountComboBox = accountSelector;
             homeVersionComboBox = versionSelector;
-            homeDownloadProgressBar = progressBar;
+            // homedownloadprogressbar = progressbar;
             homePlayButton = launchButton;
 
             accountComboBox.ItemsSource = accountItems;
@@ -129,71 +178,6 @@ namespace Yorii_Launcher
             playButton.IsEnabled = launchButtonIsEnabled;
         }
 
-        private async void CompactModeButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!isCompactMode)
-                EnterCompactMode();
-
-            await ReduceMemoryAfterCompactToggleAsync();
-        }
-
-        private async void RestoreOriginalModeButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (isCompactMode)
-                RestoreExpandedMode();
-
-            await ReduceMemoryAfterCompactToggleAsync();
-        }
-
-        private void EnterCompactMode()
-        {
-            isCompactMode = true;
-            expandedWindowSize = AppWindow.Size;
-            compactRestorePageType = mainFrame.CurrentSourcePageType ?? typeof(HomePage);
-
-            RegisterHomeControls(compactAccountComboBox, compactVersionComboBox, compactPlayButton, downloadProgressBar);
-
-            //searchBox.Visibility = Visibility.Collapsed;
-            compactAccountComboBox.Visibility = Visibility.Visible;
-            compactTitleBarControls.Visibility = Visibility.Visible;
-            normalTitleBarButtons.Visibility = Visibility.Collapsed;
-            compactRightHeaderControls.Visibility = Visibility.Visible;
-
-            mainFrame.Content = null;
-            mainFrame.Visibility = Visibility.Collapsed;
-            contentRow.Height = new GridLength(0);
-
-            var compactHeight = Math.Max(56, (int)Math.Ceiling(titleBar.ActualHeight));
-            AppWindow.Resize(new Windows.Graphics.SizeInt32(AppWindow.Size.Width, compactHeight));
-        }
-
-        private void RestoreExpandedMode()
-        {
-            isCompactMode = false;
-
-            //searchBox.Visibility = Visibility.Visible;
-            compactAccountComboBox.Visibility = Visibility.Collapsed;
-            compactTitleBarControls.Visibility = Visibility.Collapsed;
-            normalTitleBarButtons.Visibility = Visibility.Visible;
-            compactRightHeaderControls.Visibility = Visibility.Collapsed;
-
-            contentRow.Height = new GridLength(1, GridUnitType.Star);
-            mainFrame.Visibility = Visibility.Visible;
-            ApplyBackgroundSettings();
-
-            var restorePage = compactRestorePageType ?? typeof(HomePage);
-            mainFrame.Navigate(restorePage, null, new SuppressNavigationTransitionInfo());
-
-            if (expandedWindowSize is { } size)
-                AppWindow.Resize(size);
-        }
-
-        private static async Task ReduceMemoryAfterCompactToggleAsync()
-        {
-            await Task.Delay(500);
-            MemoryOptimizer.ReduceMemory();
-        }
-
         public void NavigateToSection(string tag)
         {
             switch (tag)
@@ -211,13 +195,16 @@ namespace Yorii_Launcher
                     mainFrame.Navigate(typeof(InstancesPage));
                     break;
                 case "accounts":
-                    mainFrame.Navigate(typeof(AccountsPage));
+                    mainFrame.Navigate(typeof(SkinsPage));
                     break;
                 case "settings":
                     mainFrame.Navigate(typeof(SettingsPage));
                     break;
-                    //default:
-                    //    throw new InvalidOperationException($"Unknown navigation item tag: {tag}");
+                case "themes":
+                    mainFrame.Navigate(typeof(Pages.ThemesPage));
+                    break;
+                    // default:
+                    // throw new invalidoperationexception($"unknown navigation item tag: {tag}");
             }
         }
 
@@ -229,6 +216,11 @@ namespace Yorii_Launcher
         public void NavigateToSettings(string? section)
         {
             mainFrame.Navigate(typeof(SettingsPage), section, new SuppressNavigationTransitionInfo());
+        }
+
+        public void NavigateToSkins()
+        {
+            mainFrame.Navigate(typeof(SkinsPage));
         }
 
         public void ApplyInstancesNavigationVisibility()
@@ -258,6 +250,8 @@ namespace Yorii_Launcher
             accountItems.Add(AccountComboItem.ManagePlayers);
             accountItems.Add(AccountComboItem.AddNew);
 
+            _ = LoadAccountPreviewsAsync();
+
             if (homeAccountComboBox == null)
                 return;
 
@@ -272,21 +266,67 @@ namespace Yorii_Launcher
             }
         }
 
+        // renders the 16x16 player head for each account in the picker. prefers
+        // the locally cached csl skin (instant, no network); falls back to the
+        // published skin on the worker
+        private int accountPreviewGeneration;
+        private async Task LoadAccountPreviewsAsync()
+        {
+            var generation = ++accountPreviewGeneration;
+
+            foreach (var item in accountItems)
+            {
+                if (item.Account is null) continue;
+                if (App.IsShuttingDown) return;
+                try
+                {
+                    // mojang accounts get their skin from mojangs api, yoriiskins and
+                    // offline ones use the local/worker skin
+                    byte[]? bytes = item.Account.AccountType == PlayerAccountType.Mojang
+                        ? await SkinManager.GetMojangSkinBytesAsync(item.Account.Username)
+                        : await SkinManager.GetSkinBytesLocalFirstAsync(item.Account.Username, item.Account.SkinUrl);
+                    if (bytes is null || App.IsShuttingDown) continue;
+                    var head = await SkinHeadRenderer.RenderHeadAsync(bytes);
+                    if (head is null || App.IsShuttingDown) continue;
+                    if (generation != accountPreviewGeneration) return;
+                    item.PreviewImage = head;
+                }
+                catch { }
+            }
+
+            // winui's closed combobox presenter binds the selected item once and
+            // doesn't observe inpc, so a head loaded after selection only shows
+            // after the dropdown reopens. nudge the selection to re-render it
+            if (!App.IsShuttingDown &&
+                generation == accountPreviewGeneration &&
+                accountComboBox.SelectedItem is AccountComboItem { Account: not null } selected)
+            {
+                accountComboBox.SelectedItem = null;
+                accountComboBox.SelectedItem = selected;
+            }
+        }
+
+        public void RefreshAccounts() => LoadAccounts();
+
         private void LoadVersionFilters()
         {
             // load filter settings
             VersionVM.ShowSnapshots = SettingsManager.Current.ShowSnapshots;
             VersionVM.ShowFabric = SettingsManager.Current.ShowFabric;
+            VersionVM.ShowForge = SettingsManager.Current.ShowForge;
+            VersionVM.ShowNeoForge = SettingsManager.Current.ShowNeoForge;
+            // versionvm.showoptifine = settingsmanager.current.showoptifine;
             VersionVM.ShowOld = SettingsManager.Current.ShowOld;
         }
 
         public void ApplyBackgroundSettings()
         {
             // get current background image path
-            string imagePath = SettingsManager.Current.BackgroundImagePath ?? "";
+            string imagePath = ThemeManager.Current.BackgroundImagePath ?? "";
             // check if current background image path is null and whether the file exists
             bool hasImage = !string.IsNullOrEmpty(imagePath) && File.Exists(imagePath);
 
+            // swap image first sync so overlay never beats bitmap - that order made old code flawless, async was flashing old image while blur already changed
             if (imagePath != currentImagePath)
             {
                 currentImagePath = imagePath;
@@ -295,9 +335,13 @@ namespace Yorii_Launcher
                 {
                     try
                     {
-                        // apply background image (using a filestream to prevent locking the file so the user can change or delete it without restarting the launcher)
+                        // using a filestream to prevent locking the file so the
+                        // user can change or delete it without restarting the
+                        // launcher - decodepixelwidth caps 4k wallpapers to 2560
+                        // so the sync decode doesn't block the window
                         using var fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.Read);
                         var bmp = new BitmapImage();
+                        bmp.DecodePixelWidth = 2560;
                         bmp.SetSource(fs.AsRandomAccessStream());
                         backgroundImage.Source = bmp;
                     }
@@ -323,16 +367,12 @@ namespace Yorii_Launcher
                 return;
             }
 
-            double opacity = SettingsManager.Current.OverlayOpacity;
-            bool blurEnabled = SettingsManager.Current.OverlayBlurEnabled;
+            double opacity = ThemeManager.Current.OverlayOpacity;
+            bool blurEnabled = ThemeManager.Current.OverlayBlurEnabled;
 
             // overlay is white in light mode so checking here for that
             bool isLight = ThemeHelper.GetCurrentTheme() == ElementTheme.Light;
             byte alpha = (byte)(opacity * 255);
-
-            var tint = isLight
-                ? Windows.UI.Color.FromArgb(255, 255, 255, 255)
-                : Windows.UI.Color.FromArgb(255, 0, 0, 0);
 
             var fallback = isLight
                 ? Windows.UI.Color.FromArgb(alpha, 255, 255, 255)
@@ -340,13 +380,14 @@ namespace Yorii_Launcher
 
             if (blurEnabled)
             {
+                // reference the xaml-defined overlay acrylic rather than constructing one in
+                // code - see the brush definitions in app.xaml
+                var brush = (AcrylicBrush)Application.Current.Resources[
+                    isLight ? "OverlayAcrylicLight" : "OverlayAcrylicDark"];
+                brush.TintOpacity = opacity;
+                brush.FallbackColor = fallback;
                 overlayGrid.Opacity = 1;
-                overlayGrid.Background = new AcrylicBrush
-                {
-                    TintOpacity = opacity,
-                    TintColor = tint,
-                    FallbackColor = fallback
-                };
+                overlayGrid.Background = brush;
             }
             else
             {
@@ -384,10 +425,10 @@ namespace Yorii_Launcher
                 Directory.CreateDirectory(minecraftPath);
                 Directory.CreateDirectory(Path.Combine(minecraftPath, "versions"));
 
-                var path = new MinecraftPath(minecraftPath);
-                var launcher = new MinecraftLauncher(path);
-
-                // load local versions from versions folder
+                // load local installed versions so they pin to the top of the list
+                // their folder names are the "installed" set: an index entry is
+                // pinned only when its exact name matches one of these folders
+                installedVersionNames = new HashSet<string>(StringComparer.Ordinal);
                 string versionsPath = Path.Combine(minecraftPath, "versions");
                 foreach (var dir in Directory.GetDirectories(versionsPath))
                 {
@@ -396,81 +437,48 @@ namespace Yorii_Launcher
 
                     if (File.Exists(jsonPath))
                     {
+                        installedVersionNames.Add(versionName);
+
+                        if (versionName.Contains("OptiFine", StringComparison.OrdinalIgnoreCase)) //
+                            continue;
+
                         VersionVM.AllVersions.Add(new VersionItem
                         {
                             Name = versionName,
+                            IsInstalled = true,
                             IsFabric = versionName.StartsWith("Fabric ", StringComparison.OrdinalIgnoreCase) || versionName.Contains("fabric-loader", StringComparison.OrdinalIgnoreCase),
+                            IsForge = versionName.Contains("-forge-", StringComparison.OrdinalIgnoreCase) || versionName.Contains("-Forge", StringComparison.OrdinalIgnoreCase),
+                            IsNeoForge = versionName.Contains("-neoforge-", StringComparison.OrdinalIgnoreCase),
                             IsSnapshot = versionName.Contains("snapshot"),
                             IsOld = Version.TryParse(versionName, out var v) && v < new Version(1, 16)
                         });
                     }
                 }
 
-                try
-                {
-                    // load fabric versions from server
-                    var fabricInstaller = new FabricInstaller(HttpService.Client);
-                    var fabricVersions = await fabricInstaller.GetSupportedVersionNames();
+                // instant baseline: the bundled seed (shipped with the launcher)
+                // merged with the local cache, so the list is never empty even on
+                // a first run with no network. no api calls happen here. the cache
+                // is passed last so it wins on name conflicts with the seed
+                var bundledSeed = LoaderVersionCacheService.LoadBundled();
+                var cachedIndex = await LoaderVersionCacheService.LoadAsync();
+                var baseline = LoaderVersionCacheService.Merge(bundledSeed, cachedIndex);
+                AddIndexEntries(baseline);
 
-                    foreach (var v in fabricVersions)
-                    {
-                        string fabricName = $"Fabric {v}";
-
-                        if (!VersionVM.AllVersions.Any(x => x.Name == fabricName))
-                        {
-                            VersionVM.AllVersions.Add(new VersionItem
-                            {
-                                Name = fabricName,
-                                IsFabric = true,
-                                IsSnapshot = false,
-                                IsOld = false
-                            });
-                        }
-                    }
-                }
-                catch
-                {
-                    Debug.WriteLine("Failed to load fabric versions from server");
-                }
-
-                try
-                {
-                    // load vanilla versions from server
-                    var vanillaVersions = await launcher.GetAllVersionsAsync();
-                    foreach (var v in vanillaVersions)
-                    {
-                        if (v.Type != "release" && v.Type != "snapshot")
-                            continue;
-
-                        string vanillaName = v.Name;
-                        bool canParse = Version.TryParse(v.Name, out var version);
-
-                        if (!VersionVM.AllVersions.Any(x => x.Name == vanillaName))
-                        {
-                            VersionVM.AllVersions.Add(new VersionItem
-                            {
-                                Name = vanillaName,
-                                IsSnapshot = v.Type == "snapshot",
-                                IsFabric = false,
-                                IsOld = canParse && version < new Version(1, 16)
-                            });
-                        }
-                    }
-                }
-                catch
-                {
-                    Debug.WriteLine("Failed to load vanilla versions from server");
-                }
-
-                // apply filters and fill version list
+                // apply filters right after the baseline load so the list shows
+                // immediately instead of waiting on the network below
                 VersionVM.ApplyFilters();
                 if (homeVersionComboBox != null)
                     versionComboBox.ItemsSource = VersionVM.FilteredVersions;
                 LoadSavedVersion();
+
+                // refresh the index in the background: fetch the shared github
+                // index first, then live-probe when that is stale, and push any
+                // newly discovered versions back so all launchers benefit
+                _ = RefreshVersionIndexAsync();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.ToString());
+                Logger.Error($"Failed to load versions: {ex.Message}");
             }
         }
 
@@ -510,10 +518,277 @@ namespace Yorii_Launcher
             MemoryOptimizer.ReduceMemory();
         }
 
+        // refresh the mc-version-index in the background:
+        // 1. fetch the shared github index (one request, fast)
+        // 2. when it is stale, live-probe all loaders + vanilla (authoritative)
+        // 3. persist the merged result locally and push it back to github so
+        // other launchers pick up versions we discovered
+        private async Task RefreshVersionIndexAsync()
+        {
+            try
+            {
+                if (App.IsShuttingDown) return;
+
+                var bundledSeed = LoaderVersionCacheService.LoadBundled();
+                var cachedIndex = await LoaderVersionCacheService.LoadAsync();
+
+                // fast path: the shared index reflects what other launchers found
+                // the bundled seed is the baseline so its entries survive into the
+                // persisted cache even before any network data arrives
+                var remoteIndex = await LoaderVersionCacheService.FetchRemoteAsync();
+                var merged = LoaderVersionCacheService.Merge(bundledSeed, cachedIndex, remoteIndex);
+
+                // slow path: when even the remote index is stale, probe the
+                // loaders directly to catch brand-new versions
+                bool probedFresh = false;
+                if (!LoaderVersionCacheService.IsFresh(merged))
+                {
+                    var probed = await ProbeAllLoaderVersionsAsync();
+                    merged = LoaderVersionCacheService.Merge(merged, probed);
+                    // only a probe that actually found entries is worth sharing
+                    probedFresh = probed.Entries.Count > 0;
+                }
+
+                if (App.IsShuttingDown) return;
+
+                merged.Entries.RemoveAll(e => e.Type == "optifine");
+                foreach (var stale in VersionVM.AllVersions.Where(v => v.Name.StartsWith("OptiFine ", StringComparison.Ordinal)).ToList())
+                    VersionVM.AllVersions.Remove(stale);
+
+                // persist the merged index and add anything we did not have yet
+                // never persist an empty result - that would look "fresh" and
+                // suppress re-probing for the whole freshness window
+                if (merged.Entries.Count > 0)
+                    await LoaderVersionCacheService.SaveAsync(merged);
+                AddIndexEntries(merged);
+
+                VersionVM.ApplyFilters();
+                if (homeVersionComboBox != null)
+                    versionComboBox.ItemsSource = VersionVM.FilteredVersions;
+                LoadSavedVersion();
+
+                // share freshly probed data with the shared index on github
+                if (probedFresh)
+                    _ = LoaderVersionCacheService.PushRemoteAsync(merged);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to refresh version index: {ex.Message}");
+            }
+        }
+
+        // probe the vanilla manifest, fabric, forge and neoforge apis directly
+        // probing is slow (per-version http requests to files.minecraftforge.net
+        // and the neoforge maven manifest) so it only runs when the index is stale
+        private async Task<LoaderVersionCache> ProbeAllLoaderVersionsAsync()
+        {
+            var entries = new List<VersionIndexEntry>();
+            var path = new MinecraftPath(minecraftPath);
+            var launcher = new MinecraftLauncher(path);
+
+            // vanilla releases + snapshots from the mojang manifest
+            try
+            {
+                var vanillaVersions = await launcher.GetAllVersionsAsync();
+                if (App.IsShuttingDown) return new LoaderVersionCache { Entries = entries, CachedAt = DateTimeOffset.UtcNow };
+
+                foreach (var v in vanillaVersions)
+                {
+                    if (v.Type != "release" && v.Type != "snapshot")
+                        continue;
+
+                    entries.Add(new VersionIndexEntry
+                    {
+                        Name = v.Name,
+                        Type = v.Type == "snapshot" ? "snapshot" : "vanilla"
+                    });
+                }
+
+                // fabric supported versions (single request)
+                try
+                {
+                    var fabricInstaller = new FabricInstaller(HttpService.Client);
+                    var fabricVersions = await fabricInstaller.GetSupportedVersionNames();
+
+                    if (!App.IsShuttingDown)
+                    {
+                        foreach (var v in fabricVersions)
+                        {
+                            entries.Add(new VersionIndexEntry
+                            {
+                                Name = $"Fabric {v}",
+                                Type = "fabric"
+                            });
+                        }
+                    }
+                }
+                catch
+                {
+                    Logger.Warn("Failed to probe fabric versions");
+                }
+
+                // try
+                // {
+                // var optifineinstaller = new optifineinstaller(httpservice.downloadclient);
+                // var optifineversions = await optifineinstaller.getoptifineversionsasync();
+                // if (!app.isshuttingdown)
+                // {
+                // foreach (var v in optifineversions.where(x => !x.ispreviewversion))
+                // {
+                // entries.add(new versionindexentry
+                // {
+                // name = $"optifine {v.minecraftversion}",
+                // type = "optifine"
+                // });
+                // }
+                // }
+                // }
+                // catch
+                // {
+                // logger.warn("failed to probe optifine versions");
+                // }
+
+                // forge / neoforge availability (parallel probes per release)
+                var forgeInstaller = new ForgeInstaller(launcher);
+                var neoForgeInstaller = new NeoForgeInstaller(launcher);
+
+                var probeReleases = vanillaVersions
+                    .Where(x => x.Type == "release")
+                    .Where(x => Version.TryParse(x.Name, out var rv) && rv >= new Version(1, 16))
+                    .ToList();
+
+                var gate = new SemaphoreSlim(4);
+                var entriesLock = new object();
+
+                var probeTasks = probeReleases.Select(async v =>
+                {
+                    await gate.WaitAsync();
+                    try
+                    {
+                        if (App.IsShuttingDown) return;
+
+                        var results = await Task.WhenAll(
+                            ProbeForgeAsync(forgeInstaller, v.Name),
+                            ProbeNeoForgeAsync(neoForgeInstaller, v.Name));
+
+                        if (results[0] || results[1])
+                        {
+                            lock (entriesLock)
+                            {
+                                if (results[0])
+                                    entries.Add(new VersionIndexEntry { Name = $"Forge {v.Name}", Type = "forge" });
+                                if (results[1])
+                                    entries.Add(new VersionIndexEntry { Name = $"NeoForge {v.Name}", Type = "neoforge" });
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // version not supported by loader - skip
+                    }
+                    finally
+                    {
+                        gate.Release();
+                    }
+                });
+
+                await Task.WhenAll(probeTasks);
+                gate.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to probe versions: {ex.Message}");
+            }
+
+            return new LoaderVersionCache
+            {
+                Entries = entries,
+                CachedAt = DateTimeOffset.UtcNow
+            };
+        }
+
+        // add every entry of an index to the version list if it is not already present
+        private void AddIndexEntries(LoaderVersionCache? index)
+        {
+            if (index == null) return;
+            foreach (var entry in index.Entries)
+                AddIndexEntry(entry);
+        }
+
+        // add a single index entry to the version list if it is not already present
+        private void AddIndexEntry(VersionIndexEntry entry)
+        {
+            if (string.IsNullOrEmpty(entry.Name))
+                return;
+
+            if (entry.Type == "optifine") return; //
+
+            if (VersionVM.AllVersions.Any(x => x.Name == entry.Name))
+                return;
+
+            VersionVM.AllVersions.Add(new VersionItem
+            {
+                Name = entry.Name,
+                IsInstalled = installedVersionNames.Contains(entry.Name),
+                IsFabric = entry.Type == "fabric",
+                IsForge = entry.Type == "forge",
+                IsNeoForge = entry.Type == "neoforge",
+                // isoptifine = entry.type == "optifine",
+                IsSnapshot = entry.Type == "snapshot",
+                IsOld = IsOldVersion(entry)
+            });
+        }
+
+        // old = the loader's base minecraft version is below 1.16
+        private static bool IsOldVersion(VersionIndexEntry entry)
+        {
+            string mcVersion = entry.Name;
+
+            if (mcVersion.StartsWith("Fabric ", StringComparison.Ordinal))
+                mcVersion = mcVersion[7..];
+            else if (mcVersion.StartsWith("NeoForge ", StringComparison.Ordinal))
+                mcVersion = mcVersion[9..];
+            else if (mcVersion.StartsWith("Forge ", StringComparison.Ordinal))
+                mcVersion = mcVersion[6..];
+            // else if (mcversion.startswith("optifine ", stringcomparison.ordinal))
+            // mcversion = mcversion[9..];
+
+            return Version.TryParse(mcVersion, out var version) &&
+                   version < new Version(1, 16);
+        }
+
+        private static async Task<bool> ProbeForgeAsync(ForgeInstaller installer, string mcVersion)
+        {
+            try
+            {
+                var versions = await installer.GetForgeVersions(mcVersion);
+                return versions.Any();
+            }
+            catch
+            {
+                // version not supported by forge
+                return false;
+            }
+        }
+
+        private static async Task<bool> ProbeNeoForgeAsync(NeoForgeInstaller installer, string mcVersion)
+        {
+            try
+            {
+                var versions = await installer.GetForgeVersions(mcVersion);
+                return versions.Any();
+            }
+            catch
+            {
+                // version not supported by neoforge
+                return false;
+            }
+        }
+
         private static string EnsureAuthlibInjector()
         {
             // ensure authlib-injector.jar file exists in game folder if not then copy it from the launcher directory
-            // ProgramData is used cause no spaces are there in address because trying to load from an address with spaces doesn't work
+            // programdata is used cause no spaces are there in address because trying to load from an address with spaces doesn't work
             string launcherDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Yorii Launcher");
             Directory.CreateDirectory(launcherDir);
             // current authlib version is 1.2.7
@@ -529,6 +804,30 @@ namespace Yorii_Launcher
 
             File.Copy(jarPath, injectorPath, true);
             return injectorPath;
+        }
+
+        // assets/skins is where minecraft and yoriiskinsloader cache skins, wipe it every launch so fresh skin always loads
+        // yoriiskinsloader is a fork of customskinloader optimized for faster skin loading and other improvements
+        // it still caches to assets/skins for speed but that cache can hold an old skin if the url stays same, so clearing it forces a refetch from the worker
+        // it also keeps its own cache under CustomSkinLoader/caches which does the same thing
+        private void ClearAssetsSkinsCache(string minecraftPath)
+        {
+            try
+            {
+                var skinsCache = Path.Combine(minecraftPath, "assets", "skins");
+                if (Directory.Exists(skinsCache))
+                    Directory.Delete(skinsCache, true);
+
+                // yoriiskinsloader keeps a second cache here, wipe it too so every launch hits the worker for the latest skin
+                var cslCache = Path.Combine(minecraftPath, "CustomSkinLoader", "caches");
+                if (Directory.Exists(cslCache))
+                    Directory.Delete(cslCache, true);
+            }
+            catch (Exception ex)
+            {
+                // dont fail launch if cache wipe fails, just log it
+                Logger.Warn($"failed to clear skins cache: {ex.Message}");
+            }
         }
 
         public async void PlayButton_Click(object sender, RoutedEventArgs e)
@@ -548,7 +847,8 @@ namespace Yorii_Launcher
                 }
 
                 string username = account.Username;
-                string password = account.Password ?? "";
+
+                DownloadItem? installItem = null;
 
                 bool hasInternet = await NetworkHelper.InternetAvailable();
 
@@ -572,38 +872,10 @@ namespace Yorii_Launcher
                 }
 
                 // setting states for the progress bar
-                downloadProgressBar.Opacity = 1;
-                downloadProgressBar.Value = 0;
-                downloadProgressBar.IsIndeterminate = true;
-                downloadProgressValue = 0;
-
-                // update the progress
-                launcher.FileProgressChanged += (s, args) =>
-                {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        if (args.TotalTasks > 0)
-                            SetDownloadProgress((double)args.ProgressedTasks / args.TotalTasks * 100);
-                    });
-                };
-
-                launcher.ByteProgressChanged += (s, args) =>
-                {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        if (args.TotalBytes > 0)
-                            SetDownloadProgress((double)args.ProgressedBytes / args.TotalBytes * 100);
-                    });
-                };
-
-                string? selectedVersion = versionComboBox.SelectedItem?.ToString();
-
-                if (string.IsNullOrWhiteSpace(selectedVersion))
-                {
-                    NotificationHelper.Show("No version selected", "Select or install a Minecraft version before launching.");
-                    playButton.IsEnabled = true;
-                    return;
-                }
+                // downloadprogressbar.opacity = 1;
+                // downloadprogressbar.value = 0;
+                // downloadprogressbar.isindeterminate = true;
+                // downloadprogressvalue = 0;
 
                 var instancesEnabled = SettingsManager.Current.InstancesEnabled;
                 var selectedInstance = InstanceManager.GetSelectedInstance();
@@ -619,54 +891,156 @@ namespace Yorii_Launcher
                     return;
                 }
 
+                // update the progress
+                launcher.FileProgressChanged += (s, args) =>
+                {
+                    if (App.IsShuttingDown) return;
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        // if (args.totaltasks > 0)
+                        // setdownloadprogress((double)args.progressedtasks / args.totaltasks * 100);
+                    });
+                };
+
+                string? selectedVersion = versionComboBox.SelectedItem?.ToString();
+
+                if (string.IsNullOrWhiteSpace(selectedVersion))
+                {
+                    NotificationHelper.Show("No version selected", "Select or install a Minecraft version before launching.");
+
+                    playButton.IsEnabled = true;
+                    return;
+                }
+
+                // vanilla installs create their download item only once real
+                // bytes start moving (see byteprogresschanged below)
+                bool lazyInstall = false;
+                CancellationTokenSource? vanillaCts = null;
+
+                launcher.ByteProgressChanged += (s, args) =>
+                {
+                    if (App.IsShuttingDown) return;
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        // vanilla: the flyout item is created only here, when
+                        // bytes actually move, so verification-only launches
+                        // never show up as a download
+                        if (lazyInstall && installItem == null)
+                        {
+                            installItem = DownloadManager.Add(selectedVersion, DownloadKind.Minecraft);
+                            installItem.Token.Register(() => vanillaCts?.Cancel());
+                            playButton.Content = "Downloading...";
+                        }
+                        installItem?.SetByteProgress(args.ProgressedBytes, args.TotalBytes);
+                    });
+                };
+
                 bool isFabric = selectedVersion.StartsWith("Fabric ");
-                string baseVersionFabric = isFabric
+                bool isForge = selectedVersion.StartsWith("Forge ");
+                bool isNeoForge = selectedVersion.StartsWith("NeoForge ");
+                // bool isoptifine = selectedversion.startswith("optifine ");
+                string baseVersion = isFabric
                     ? selectedVersion["Fabric ".Length..].Trim()
-                    : selectedVersion;
+                    : isForge
+                        ? selectedVersion["Forge ".Length..].Trim()
+                        : isNeoForge
+                            ? selectedVersion["NeoForge ".Length..].Trim()
+                            : selectedVersion;
 
                 string versionToLaunch;
 
                 playButton.IsEnabled = false;
-                playButton.Content = "Downloading...";
+                playButton.Content = "Checking files...";
 
                 // check if current version is fabric
                 if (isFabric)
                 {
                     if (hasInternet)
                     {
+                        // download item is created lazily when bytes actually move
                         var fabricInstaller = new FabricInstaller(HttpService.Client);
-                        versionToLaunch = await fabricInstaller.Install(baseVersionFabric, path);
-                        await launcher.InstallAsync(versionToLaunch);
+                        lazyInstall = true;
+                        vanillaCts = new CancellationTokenSource();
+                        versionToLaunch = await fabricInstaller.Install(baseVersion, path);
+                        await launcher.InstallAsync(versionToLaunch, vanillaCts.Token);
                     }
                     else
                     {
-                        Debug.WriteLine("Offline: skipping Fabric install");
-                        versionToLaunch = $"Fabric {baseVersionFabric}";
+                        Logger.Info("Offline: skipping Fabric install");
+                        versionToLaunch = $"Fabric {baseVersion}";
+                    }
+                }
+                else if (isForge)
+                {
+                    if (hasInternet)
+                    {
+                        var forgeInstaller = new ForgeInstaller(launcher);
+                        lazyInstall = true;
+                        vanillaCts = new CancellationTokenSource();
+                        versionToLaunch = await forgeInstaller.Install(baseVersion, new ForgeInstallOptions());
+                        await launcher.InstallAsync(versionToLaunch, vanillaCts.Token);
+                    }
+                    else
+                    {
+                        Logger.Info("Offline: skipping Forge install");
+                        versionToLaunch = $"Forge {baseVersion}";
+                    }
+                }
+                else if (isNeoForge)
+                {
+                    if (hasInternet)
+                    {
+                        var neoForgeInstaller = new NeoForgeInstaller(launcher);
+                        lazyInstall = true;
+                        vanillaCts = new CancellationTokenSource();
+                        versionToLaunch = await neoForgeInstaller.Install(baseVersion, new NeoForgeInstallOptions());
+                        await launcher.InstallAsync(versionToLaunch, vanillaCts.Token);
+                    }
+                    else
+                    {
+                        Logger.Info("Offline: skipping NeoForge install");
+                        versionToLaunch = $"NeoForge {baseVersion}";
                     }
                 }
                 else
                 {
                     if (hasInternet)
-                        await launcher.InstallAsync(selectedVersion);
+                    {
+                        // the download item is created lazily in the progress
+                        // handler, so file verification on every launch doesnt
+                        // show up as a download in the flyout
+                        lazyInstall = true;
+                        vanillaCts = new CancellationTokenSource();
+                        await launcher.InstallAsync(selectedVersion, vanillaCts.Token);
+                    }
                     else
-                        Debug.WriteLine("Offline: skipping vanilla install");
+                    {
+                        Logger.Info("Offline: skipping vanilla install");
+                    }
 
                     versionToLaunch = selectedVersion;
                 }
 
-                playButton.Content = "Launching...";
-                downloadProgressBar.IsIndeterminate = false;
-                downloadProgressBar.Value = 100;
-                downloadProgressValue = 100;
+                installItem?.Complete();
 
-                // set default ram amount to 4 GB
+                playButton.Content = "Launching...";
+                // downloadprogressbar.isindeterminate = false;
+                // downloadprogressbar.value = 100;
+                // downloadprogressvalue = 100;
+
+                // set default ram amount to 4 gb
                 double ramGb = SettingsManager.Current.RamAmount;
 
-                // convert GB to MB for the launch arguments
+                // convert gb to mb for the launch arguments
                 int ramMb = (int)(ramGb * 1024);
 
                 LoginHelper.LoginResult loginResult;
                 bool isMojangAccount = account.AccountType == PlayerAccountType.Mojang && !string.IsNullOrEmpty(account.MojangIdentifier);
+                bool isOfflineAccount = account.AccountType == PlayerAccountType.Offline;
+                bool isYoriiSkins = account.AccountType == PlayerAccountType.YoriiSkins;
+                string yoriiUuid = isYoriiSkins
+                    ? (!string.IsNullOrEmpty(account.CustomUUID) ? account.CustomUUID : Guid.NewGuid().ToString("N"))
+                    : "";
 
                 // microsoft account
                 if (isMojangAccount)
@@ -678,38 +1052,70 @@ namespace Yorii_Launcher
                         IsOffline = false
                     };
                 }
+                else if (isOfflineAccount)
+                {
+                    loginResult = new LoginHelper.LoginResult
+                    {
+                        Session = LoginHelper.CreateOfflineSession(username),
+                        IsOffline = true
+                    };
+                }
+                else if (isYoriiSkins)
+                {
+                    loginResult = new LoginHelper.LoginResult
+                    {
+                        Session = new MSession
+                        {
+                            Username = username,
+                            UUID = yoriiUuid,
+                            AccessToken = Guid.NewGuid().ToString("N"),
+                            UserType = "legacy"
+                        },
+                        IsOffline = true
+                    };
+                }
                 else
                 {
-                    // ely.by or offline
-                    loginResult = await LoginHelper.LoginOrUseCachedSession(username, password);
+                    // defensive: unknown/legacy types launch as an offline player
+                    loginResult = new LoginHelper.LoginResult
+                    {
+                        Session = LoginHelper.CreateOfflineSession(username),
+                        IsOffline = true
+                    };
                 }
 
                 List<MArgument> jvmArgs = [];
 
+                // cloudflare's bot protection on the workers.dev domain returns 403
+                // for the jvm's default "java/1.8.x" user-agent, which blocks
+                // authlib-injector's metadata fetch and the game's skin downloads
+                // from the yorii worker. override the ua so all requests pass
+                jvmArgs.Add(new MArgument("-Dhttp.agent=YoriiLauncher/1.0"));
+
                 if (isMojangAccount)
                 {
-                    // we don't want authlib-injector in official logins because we're using official mojang auth
-                    Debug.WriteLine("Mojang account: launching without authlib-injector");
+                    Logger.Info("Mojang account: launching without authlib-injector");
                 }
-                else if (!loginResult.IsOffline)
+                else if (isOfflineAccount)
                 {
-                    // for ely.by accounts and cached sessions
-                    string injectorPath = EnsureAuthlibInjector();
-                    Debug.WriteLine("we are online!!");
-                    jvmArgs.Add(new MArgument($"-javaagent:{injectorPath}=ely.by"));
+                    Logger.Info("Offline account: launching without authlib-injector");
                 }
-                else
+                else if (isYoriiSkins)
                 {
-                    // cached session but still has internet otherwise no authlib-injector and completely offline mode
-                    if (hasInternet)
+                    // yoriiskinsloader is a fork of customskinloader optimized for faster skin loading and other improvements
+                    if (!InstanceManager.IsYoriiSkinsLoaderSupported(selectedVersion))
                     {
                         string injectorPath = EnsureAuthlibInjector();
-                        jvmArgs.Add(new MArgument($"-javaagent:{injectorPath}=ely.by"));
+                        Logger.Info($"Yorii Skins: launching with worker for {username}");
+                        jvmArgs.Add(new MArgument($"-javaagent:{injectorPath}=https://yorii-worker.yoriiskin.workers.dev/"));
                     }
-                    Debug.WriteLine("using offline cached mode");
+                    else
+                    {
+                        Logger.Info("Yorii Skins: mod instance, mod handles skins; skipping authlib-injector");
+                    }
                 }
 
-                // W server list and world list
+                // w server list and world list
                 var selectedServerAddress = SettingsManager.Current.ServerListEnabled
                     ? ServerManager.GetSelectedServerAddress()
                     : null;
@@ -750,22 +1156,44 @@ namespace Yorii_Launcher
                     launchOption.ServerPort = serverPort;
                 }
 
+                // yorii skins is our cloudflare auth server worker which fetches skins from github repo
+                // wipe caches first so preload writes fresh files that survive — this gives latest skins for everyone else on next join
+                ClearAssetsSkinsCache(minecraftPath);
+
+                if (isYoriiSkins)
+                {
+                    await SkinManager.PreloadSkinForLaunchAsync(username, yoriiUuid);
+                    // sync the other instances in the background so they dont
+                    // launch with an old skin
+                    _ = SkinManager.SyncSkinToAllInstancesAsync(username);
+                }
+
+                // yoriiskinsloader is a fork of customskinloader optimized for faster skin loading and other improvements
+                InstanceManager.EnsureYoriiSkinsLoaderInstalled();
+
                 var process = await launcher.BuildProcessAsync(versionToLaunch, launchOption);
 
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-                process.StartInfo.UseShellExecute = false;
+                // read behavior first so we can configure the process accordingly
+                string behavior = SettingsManager.Current.WindowBehavior;
+
+                bool closeAfterLaunch = behavior == "Close";
+
+                // when closing after launch, start the game as an independent process
+                // so it survives the launcher exiting
+                process.StartInfo.UseShellExecute = closeAfterLaunch;
+                process.StartInfo.RedirectStandardOutput = !closeAfterLaunch;
+                process.StartInfo.RedirectStandardError = !closeAfterLaunch;
 
                 // empty working set before starting the game since the launcher is no longer needed
                 MemoryOptimizer.ReduceMemory();
                 process.Start();
 
                 // hide progress bar now that the game has launched
-                downloadProgressBar.Opacity = 0;
-                downloadProgressBar.IsIndeterminate = false;
+                // downloadprogressbar.opacity = 0;
+                // downloadprogressbar.isindeterminate = false;
 
-                // set up console
-                bool showConsole = SettingsManager.Current.ShowConsole;
+                // set up console (not available in close mode since streams aren't redirected)
+                bool showConsole = SettingsManager.Current.ShowConsole && !closeAfterLaunch;
 
                 Console? console = null;
                 if (showConsole)
@@ -778,8 +1206,6 @@ namespace Yorii_Launcher
                 }
 
                 // set up launcher window behavior
-                string behavior = SettingsManager.Current.WindowBehavior;
-
                 switch (behavior)
                 {
                     case "Hide":
@@ -794,69 +1220,87 @@ namespace Yorii_Launcher
                 if (selectedInstance != null)
                     InstanceManager.MarkPlayed(selectedInstance.Id);
 
-                // start the game
-                _ = Task.Run(async () =>
+                // monitor the game process (only when streams are redirected)
+                if (!closeAfterLaunch)
                 {
-                    try
+                    _ = Task.Run(async () =>
                     {
-                        using StreamReader stdout = process.StandardOutput;
-                        using StreamReader stderr = process.StandardError;
-
-                        var stdoutTask = Task.Run(async () =>
+                        try
                         {
-                            string? line;
-                            while ((line = await stdout.ReadLineAsync()) != null)
+                            using StreamReader stdout = process.StandardOutput;
+                            using StreamReader stderr = process.StandardError;
+
+                            var stdoutTask = Task.Run(async () =>
                             {
-                                Debug.WriteLine($"{line}");
-                                console?.AppendLine(line);
-                            }
-                        });
+                                string? line;
+                                while ((line = await stdout.ReadLineAsync()) != null)
+                                {
+                                    Debug.WriteLine($"{line}");
+                                    console?.AppendLine(line);
+                                }
+                            });
 
-                        var stderrTask = Task.Run(async () =>
-                        {
-                            string? line;
-                            while ((line = await stderr.ReadLineAsync()) != null)
+                            var stderrTask = Task.Run(async () =>
                             {
-                                Debug.WriteLine($"{line}");
-                                console?.AppendLine($"{line}");
-                            }
-                        });
+                                string? line;
+                                while ((line = await stderr.ReadLineAsync()) != null)
+                                {
+                                    Debug.WriteLine($"{line}");
+                                    console?.AppendLine($"{line}");
+                                }
+                            });
 
-                        // wait for both output tasks to complete which will happen when the game exits
-                        await Task.WhenAll(stdoutTask, stderrTask);
-                    }
-                    catch (IOException ex) when (ex.HResult == unchecked((int)0x800703E3) || ex.Message.Contains("aborted", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Debug.WriteLine("Game Died.");
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Launcher Error - {ex} - {ex.Message}");
-                    }
-                    finally
-                    {
-                        await process.WaitForExitAsync();
-
-                        DispatcherQueue.TryEnqueue(() =>
+                            // wait for both output tasks to complete which will happen when the game exits
+                            await Task.WhenAll(stdoutTask, stderrTask);
+                        }
+                        catch (IOException ex) when (ex.HResult == unchecked((int)0x800703E3) || ex.Message.Contains("aborted", StringComparison.OrdinalIgnoreCase))
                         {
-                            playButton.Content = "Play";
-                            playButton.IsEnabled = true;
-                            // show window if hidden
-                            AppWindow.Show();
-                            downloadProgressBar.Opacity = 0;
-                            downloadProgressBar.IsIndeterminate = false;
-                            MemoryOptimizer.ReduceMemory();
-                        });
-                    }
-                });
+                            Logger.Warn("Game process ended (piped output aborted)");
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Launcher error in game process handler: {ex.Message}");
+                        }
+                        finally
+                        {
+                            await process.WaitForExitAsync();
+
+                            if (!App.IsShuttingDown)
+                                DispatcherQueue.TryEnqueue(() =>
+                                {
+                                    if (App.IsShuttingDown) return;
+                                    playButton.Content = "Play";
+                                    playButton.IsEnabled = true;
+                                    // show window if hidden
+                                    AppWindow.Show();
+                                    // downloadprogressbar.opacity = 0;
+                                    // downloadprogressbar.isindeterminate = false;
+                                    MemoryOptimizer.ReduceMemory();
+                                });
+                        }
+                    });
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // user pressed cancel on the install download mid-flight
+                playButton.Content = "Play";
+                playButton.IsEnabled = true;
+                // downloadprogressbar.opacity = 0;
+                // downloadprogressbar.isindeterminate = false;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Launch failed: {ex}");
+                // the real error is inside the inner exception so walk the chain to get it
+                var root = ex;
+                while (root.InnerException != null) root = root.InnerException;
+                Logger.Error($"Launch failed: {ex.GetType().Name}: {ex.Message} | root: {root.GetType().Name}: {root.Message}");
+                if (ex is Quiescent.Core.Version.VersionParseException)
+                    Logger.Error($"  (version being launched: {InstanceManager.GetSelectedInstanceVersion()})");
                 playButton.Content = "Play";
                 playButton.IsEnabled = true;
-                downloadProgressBar.Opacity = 0;
-                downloadProgressBar.IsIndeterminate = false;
+                // downloadprogressbar.opacity = 0;
+                // downloadprogressbar.isindeterminate = false;
 
                 // check if it was network issue
                 var isNetwork = ex is System.Net.Http.HttpRequestException
@@ -914,33 +1358,45 @@ namespace Yorii_Launcher
                 PlaceholderText = "Player name"
             };
 
-            var passwordBox = new PasswordBox
-            {
-                Header = "Password",
-                PlaceholderText = "Leave empty for offline"
-            };
-
             var accountTypeBox = new ComboBox
             {
                 Header = "Account type",
                 SelectedIndex = 0
             };
 
-            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Ely.by", Tag = PlayerAccountType.ElyBy });
+            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Yorii Skins", Tag = PlayerAccountType.YoriiSkins });
             accountTypeBox.Items.Add(new ComboBoxItem { Content = "Mojang (Microsoft)", Tag = PlayerAccountType.Mojang });
+            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Offline", Tag = PlayerAccountType.Offline });
+            if (Application.Current.Resources.TryGetValue("AcrylicComboBoxStyle", out object resource) && resource is Style acrylicStyle)
+            {
+                accountTypeBox.Style = acrylicStyle;
+            }
+
+            var hintText = new TextBlock
+            {
+                Text = "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page.",
+                FontSize = 12,
+                Opacity = 0.6,
+                TextWrapping = TextWrapping.Wrap
+            };
 
             var panel = new StackPanel { Spacing = 10 };
 
             panel.Children.Add(accountTypeBox);
             panel.Children.Add(usernameBox);
-            panel.Children.Add(passwordBox);
+            panel.Children.Add(hintText);
 
-            // changed username and password visibility based on whether mojang account is selected or not
+            // update field visibility based on selected account type
             accountTypeBox.SelectionChanged += (_, _) =>
             {
                 bool isMojang = accountTypeBox.SelectedItem is ComboBoxItem item && item.Tag is PlayerAccountType.Mojang;
+                bool isYoriiSkins = accountTypeBox.SelectedItem is ComboBoxItem ysItem && ysItem.Tag is PlayerAccountType.YoriiSkins;
                 usernameBox.Visibility = isMojang ? Visibility.Collapsed : Visibility.Visible;
-                passwordBox.Visibility = isMojang ? Visibility.Collapsed : Visibility.Visible;
+                hintText.Text = isMojang
+                    ? "You'll be signed in via Microsoft OAuth."
+                    : isYoriiSkins
+                        ? "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page."
+                        : "Offline players can join any server, but skins only work when the Yorii Skins skin mod is installed.";
             };
 
             // get theme to apply to the dialog
@@ -955,12 +1411,14 @@ namespace Yorii_Launcher
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = rootGrid.XamlRoot,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 RequestedTheme = theme
             };
 
             // show the dialog and wait for the result
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (result != ContentDialogResult.Primary)
                 return;
@@ -969,7 +1427,7 @@ namespace Yorii_Launcher
             if (accountTypeBox.SelectedItem is not ComboBoxItem selectedTypeItem ||
                 selectedTypeItem.Tag is not PlayerAccountType accountType)
             {
-                accountType = PlayerAccountType.ElyBy;
+                accountType = PlayerAccountType.YoriiSkins;
             }
 
             if (accountType == PlayerAccountType.Mojang)
@@ -999,7 +1457,7 @@ namespace Yorii_Launcher
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Mojang login failed: {ex}");
+                    Logger.Error($"Mojang login failed: {ex.Message}");
                     ShowNotification("Login failed", ex.Message);
                 }
                 finally
@@ -1018,40 +1476,37 @@ namespace Yorii_Launcher
                 return;
             }
 
-            var password = passwordBox.Password;
-
-            bool hasInternet = await NetworkHelper.InternetAvailable();
-
-            // when internet is available, password not empty and account ely.by
-            if (!string.IsNullOrWhiteSpace(password) && hasInternet && accountType == PlayerAccountType.ElyBy)
+            PlayerAccount newAccount;
+            if (accountType == PlayerAccountType.Offline)
             {
-                try
+                newAccount = new PlayerAccount
                 {
-                    await LoginHelper.LoginWithElyBy(username, password);
-                }
-                catch (Exception ex) when (ex.Message == "INVALID_CREDENTIALS")
+                    Id = Guid.NewGuid().ToString("N"),
+                    Username = username,
+                    Password = null,
+                    AccountType = PlayerAccountType.Offline
+                };
+            }
+            else
+            {
+                // yorii skins is our cloudflare auth server worker which fetches skins from github repo
+                newAccount = new PlayerAccount
                 {
-                    ShowNotification("Login failed", "Please verify your Ely.by account credentials.");
-                    return;
-                }
-                catch
-                {
-                    ShowNotification("Login failed", "Something went wrong.");
-                    return;
-                }
+                    Id = Guid.NewGuid().ToString("N"),
+                    Username = username,
+                    Password = null,
+                    AccountType = PlayerAccountType.YoriiSkins,
+                    CustomUUID = Guid.NewGuid().ToString("N")
+                };
             }
 
-            var elyAccount = new PlayerAccount
-            {
-                Id = Guid.NewGuid().ToString("N"),
-                Username = username,
-                Password = string.IsNullOrWhiteSpace(password) ? null : password,
-                AccountType = accountType
-            };
-
-            AccountManager.SaveAccount(elyAccount);
+            AccountManager.SaveAccount(newAccount);
             LoadAccounts();
-            accountComboBox.SelectedItem = accountItems.FirstOrDefault(x => x.Account?.Id == elyAccount.Id);
+            accountComboBox.SelectedItem = accountItems.FirstOrDefault(x => x.Account?.Id == newAccount.Id);
+
+            ShowNotification("Account added", newAccount.AccountType == PlayerAccountType.Offline
+                ? $"{username} added as offline player."
+                : $"{username} added as Yorii Skins player.");
         }
 
         private async Task ShowManagePlayersDialogAsync()
@@ -1082,7 +1537,7 @@ namespace Yorii_Launcher
 
                 var typeBlock = new TextBlock
                 {
-                    Text = account.IsOffline ? "Offline" : PlayerAccount.GetAccountTypeLabel(account.AccountType),
+                    Text = PlayerAccount.GetAccountTypeLabel(account.AccountType),
                     FontSize = 12,
                     Opacity = 0.7,
                     VerticalAlignment = VerticalAlignment.Center
@@ -1136,6 +1591,7 @@ namespace Yorii_Launcher
                 {
                     Padding = new Thickness(12, 10, 12, 10)
                 };
+
                 rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 Grid.SetColumn(textStack, 0);
@@ -1179,11 +1635,13 @@ namespace Yorii_Launcher
                 CloseButtonText = "Close",
                 XamlRoot = rootGrid.XamlRoot,
                 RequestedTheme = theme,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"]
+                Background = DialogHelper.GetAcrylicBrush()
             };
 
             // show dialog
+            managePlayersDialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             await managePlayersDialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             managePlayersDialog = null;
             LoadAccounts();
@@ -1217,13 +1675,16 @@ namespace Yorii_Launcher
                     Content = $"Delete {account.Username}?",
                     PrimaryButtonText = "Delete",
                     CloseButtonText = "Cancel",
-                    DefaultButton = ContentDialogButton.Primary,
-                    Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                    // destructive dialogs default to cancel so enter doesnt delete
+                    DefaultButton = ContentDialogButton.Close,
+                    Background = DialogHelper.GetAcrylicBrush(),
                     XamlRoot = rootGrid.XamlRoot,
                     RequestedTheme = ThemeHelper.GetCurrentTheme()
                 };
 
+                confirmDialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
                 var result = await confirmDialog.ShowAsync();
+                MemoryOptimizer.ReduceMemory();
 
                 if (result != ContentDialogResult.Primary)
                 {
@@ -1246,7 +1707,7 @@ namespace Yorii_Launcher
 
         private async Task ShowEditPlayerDialogAsync(PlayerAccount account)
         {
-            bool isMojang = account.AccountType == PlayerAccountType.Mojang; /// check if mojang account
+            bool isMojang = account.AccountType == PlayerAccountType.Mojang; // / check if mojang account
 
             var usernameBox = new TextBox
             {
@@ -1255,23 +1716,18 @@ namespace Yorii_Launcher
                 IsReadOnly = isMojang
             };
 
-            var passwordBox = new PasswordBox
-            {
-                Header = "Password",
-                PlaceholderText = "Leave empty for offline",
-                Visibility = isMojang ? Visibility.Collapsed : Visibility.Visible
-            };
-
-            if (!string.IsNullOrWhiteSpace(account.Password))
-                passwordBox.Password = account.Password;
-
             var accountTypeBox = new ComboBox
             {
                 Header = "Account type"
             };
 
-            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Ely.by", Tag = PlayerAccountType.ElyBy });
+            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Yorii Skins", Tag = PlayerAccountType.YoriiSkins });
             accountTypeBox.Items.Add(new ComboBoxItem { Content = "Mojang (Microsoft)", Tag = PlayerAccountType.Mojang });
+            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Offline", Tag = PlayerAccountType.Offline });
+            if (Application.Current.Resources.TryGetValue("AcrylicComboBoxStyle", out object resource) && resource is Style acrylicStyle)
+            {
+                accountTypeBox.Style = acrylicStyle;
+            }
 
             for (int i = 0; i < accountTypeBox.Items.Count; i++)
             {
@@ -1285,31 +1741,33 @@ namespace Yorii_Launcher
             if (accountTypeBox.SelectedIndex < 0)
                 accountTypeBox.SelectedIndex = 0;
 
-            // will implement changing mojang username is next major release, for now only reauth
+            var hintText = new TextBlock
+            {
+                Text = isMojang
+                    ? "Microsoft accounts are authenticated via OAuth. Click Save to re-authenticate."
+                    : "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page.",
+                FontSize = 12,
+                Opacity = 0.6,
+                TextWrapping = TextWrapping.Wrap
+            };
+
+            // update field visibility based on selected account type
             accountTypeBox.SelectionChanged += (_, _) =>
             {
                 bool nowMojang = accountTypeBox.SelectedItem is ComboBoxItem selItem && selItem.Tag is PlayerAccountType.Mojang;
+                bool nowYoriiSkins = accountTypeBox.SelectedItem is ComboBoxItem ysItem && ysItem.Tag is PlayerAccountType.YoriiSkins;
                 usernameBox.IsReadOnly = nowMojang;
-                passwordBox.Visibility = nowMojang ? Visibility.Collapsed : Visibility.Visible;
+                hintText.Text = nowMojang
+                    ? "Microsoft accounts are authenticated via OAuth. Click Save to re-authenticate."
+                    : nowYoriiSkins
+                        ? "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page."
+                        : "Offline players can join any server, but skins only work when the Yorii Skins skin mod is installed.";
             };
 
             var panel = new StackPanel { Spacing = 10 };
             panel.Children.Add(accountTypeBox);
             panel.Children.Add(usernameBox);
-            panel.Children.Add(passwordBox);
-
-            // if mojang account
-            if (isMojang)
-            {
-                var infoText = new TextBlock
-                {
-                    Text = "Microsoft accounts are authenticated via OAuth. Click Save to re-authenticate.",
-                    FontSize = 12,
-                    Opacity = 0.6,
-                    TextWrapping = TextWrapping.Wrap
-                };
-                panel.Children.Add(infoText);
-            }
+            panel.Children.Add(hintText);
 
             // create dialog
             var dialog = new ContentDialog
@@ -1320,12 +1778,14 @@ namespace Yorii_Launcher
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = rootGrid.XamlRoot,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 RequestedTheme = ThemeHelper.GetCurrentTheme()
             };
 
             // show dialog
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var dialogResult = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (dialogResult != ContentDialogResult.Primary)
                 return;
@@ -1351,7 +1811,7 @@ namespace Yorii_Launcher
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Mojang login failed: {ex}");
+                            Logger.Error($"Mojang login failed: {ex.Message}");
                             ShowNotification("Login failed", ex.Message);
                             return;
                         }
@@ -1375,7 +1835,7 @@ namespace Yorii_Launcher
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"Mojang re-auth failed: {ex}");
+                            Logger.Error($"Mojang re-auth failed: {ex.Message}");
                             ShowNotification("Re-authentication failed", ex.Message);
                             return;
                         }
@@ -1386,34 +1846,28 @@ namespace Yorii_Launcher
                         }
                     }
                 }
+                else if (newAccountType == PlayerAccountType.Offline)
+                {
+                    account.Username = usernameBox.Text.Trim();
+                    account.Password = null;
+                    account.AccountType = PlayerAccountType.Offline;
+                    account.MojangIdentifier = null;
+                    account.CustomUUID = null;
+                }
+                else if (newAccountType == PlayerAccountType.YoriiSkins)
+                {
+                    account.Username = usernameBox.Text.Trim();
+                    account.Password = null;
+                    account.AccountType = PlayerAccountType.YoriiSkins;
+                    account.MojangIdentifier = null;
+                    account.CustomUUID ??= Guid.NewGuid().ToString("N");
+                }
                 else
                 {
-                    var password = passwordBox.Password;
-
-                    // try ely.by when password not empty and internet available
-                    if (!string.IsNullOrWhiteSpace(password))
-                    {
-                        bool hasInternet = await NetworkHelper.InternetAvailable();
-
-                        if (hasInternet)
-                        {
-                            try
-                            {
-                                await LoginHelper.LoginWithElyBy(account.Username, password);
-                            }
-                            catch (Exception ex) when (ex.Message == "INVALID_CREDENTIALS")
-                            {
-                                ShowNotification("Login failed", "Please verify your Ely.by account credentials.");
-                                return;
-                            }
-                            catch
-                            {
-                            }
-                        }
-                    }
-
-                    account.Password = string.IsNullOrWhiteSpace(password) ? null : password;
-                    account.AccountType = PlayerAccountType.ElyBy;
+                    // unknown/removed types are treated as offline players
+                    account.Username = usernameBox.Text.Trim();
+                    account.Password = null;
+                    account.AccountType = PlayerAccountType.Offline;
                     account.MojangIdentifier = null;
                 }
             }
@@ -1445,16 +1899,35 @@ namespace Yorii_Launcher
             }
         }
 
-        private void SetDownloadProgress(double progress)
+        // private void setdownloadprogress(double progress)
+        // {
+        // // set indeterminate when progress is 0 to indicate something is happening
+        // downloadprogressbar.isindeterminate = false;
+
+        // if (progress < downloadprogressvalue)
+        // return;
+
+        // downloadprogressvalue = math.min(progress, 100);
+        // downloadprogressbar.value = downloadprogressvalue;
+        // }
+
+        // keeps the title-bar downloads flyout in sync with any active downloads
+        private void UpdateDownloadsIndicator()
         {
-            // set indeterminate when progress is 0 to indicate something is happening
-            downloadProgressBar.IsIndeterminate = false;
+            bool active = DownloadManager.HasActiveDownloads;
+            downloadsProgressRing.IsActive = active;
+            downloadsProgressRing.Opacity = active ? 1 : 0;
 
-            if (progress < downloadProgressValue)
-                return;
+            bool any = DownloadManager.Items.Count > 0;
+            downloadsHeaderText.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+            downloadsEmptyText.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
+            downloadsListView.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+        }
 
-            downloadProgressValue = Math.Min(progress, 100);
-            downloadProgressBar.Value = downloadProgressValue;
+        private void CancelDownload_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is DownloadItem item)
+                item.Cancel();
         }
 
         private void SetWindowIcon()
@@ -1468,19 +1941,18 @@ namespace Yorii_Launcher
             }
             catch
             {
-                Debug.WriteLine("Failed to set window icon.");
+                Logger.Warn("Failed to set window icon.");
             }
         }
 
         private void Window_Closed(object sender, WindowEventArgs args)
         {
-            backgroundImage.Source = null;
-            overlayGrid.Background = null;
-
             var vm = VersionVM;
-            // save settings
             SettingsManager.Current.ShowSnapshots = vm.ShowSnapshots;
             SettingsManager.Current.ShowFabric = vm.ShowFabric;
+            SettingsManager.Current.ShowForge = vm.ShowForge;
+            SettingsManager.Current.ShowNeoForge = vm.ShowNeoForge;
+            // settingsmanager.current.showoptifine = vm.showoptifine;
             SettingsManager.Current.ShowOld = vm.ShowOld;
             SettingsManager.SaveSettings();
         }
@@ -1506,6 +1978,134 @@ namespace Yorii_Launcher
             // open github issues page to create a new issue
             var uri = new Uri("https://github.com/yoriichi111012/Yorii-Launcher/issues/new");
             await Windows.System.Launcher.LaunchUriAsync(uri);
+        }
+
+        // keeps the titlebar account button in sync with the github login
+        // state: avatar + username when connected, generic icon when not
+        public void UpdateGitHubAccountButton()
+        {
+            string? username = SettingsManager.Current.GitHubUsername;
+            bool loggedIn = SkinManager.IsLoggedIn && !string.IsNullOrEmpty(username);
+
+            if (loggedIn)
+            {
+                // keep the button at its xaml size of 32x32 - shrinking it to
+                // 24x24 leaves less content space than the 24x24 avatar needs
+                // once the button's 1px border is subtracted, clipping the
+                // bottom edge of the image
+                // also kill the hover/pressed plate so the avatar sits on
+                // transparent like the rest of the titlebar
+                AccountsButton.Resources["ButtonBackgroundPointerOver"] = new SolidColorBrush(Colors.Transparent);
+                AccountsButton.Resources["ButtonBackgroundPressed"] = new SolidColorBrush(Colors.Transparent);
+                var avatar = new BitmapImage(new Uri($"https://avatars.githubusercontent.com/{username}?size=64"));
+                githubAvatarButtonImage.Fill = new ImageBrush { ImageSource = avatar, Stretch = Stretch.UniformToFill };
+                githubAvatarImage.Fill = new ImageBrush { ImageSource = avatar, Stretch = Stretch.UniformToFill };
+                githubAvatarButtonImage.Visibility = Visibility.Visible;
+                genericAccountButtonIcon.Visibility = Visibility.Collapsed;
+                githubAvatarImage.Visibility = Visibility.Visible;
+                genericAccountIcon.Visibility = Visibility.Collapsed;
+                accountNameText.Text = username;
+                accountStatusText.Text = "Connected with GitHub";
+                viewGitHubProfileItem.Visibility = Visibility.Visible;
+                disconnectItemText.Text = "Sign Out";
+                ToolTipService.SetToolTip(AccountsButton, username);
+            }
+            else
+            {
+                // restore the default hover/pressed plate for the icon state
+                AccountsButton.Resources.Remove("ButtonBackgroundPointerOver");
+                AccountsButton.Resources.Remove("ButtonBackgroundPressed");
+                githubAvatarButtonImage.Fill = null;
+                githubAvatarImage.Fill = null;
+                githubAvatarButtonImage.Visibility = Visibility.Collapsed;
+                genericAccountButtonIcon.Visibility = Visibility.Visible;
+                githubAvatarImage.Visibility = Visibility.Collapsed;
+                genericAccountIcon.Visibility = Visibility.Visible;
+                accountNameText.Text = "Not signed in";
+                accountStatusText.Text = "Sign in to link private profiles";
+                viewGitHubProfileItem.Visibility = Visibility.Collapsed;
+                disconnectItemText.Text = "Sign In";
+                ToolTipService.SetToolTip(AccountsButton, "Account");
+            }
+        }
+
+        private void AccountFlyout_Skins_Click(object sender, RoutedEventArgs e)
+        {
+            accountsFlyout.Hide();
+            NavigateToSkins();
+        }
+
+        private void AccountFlyout_Themes_Click(object sender, RoutedEventArgs e)
+        {
+            accountsFlyout.Hide();
+            mainFrame.Navigate(typeof(Pages.ThemesPage));
+        }
+
+        private async void AccountFlyout_Profile_Click(object sender, RoutedEventArgs e)
+        {
+            accountsFlyout.Hide();
+
+            // logged-in users land on their own private profiles repo; without a
+            // github login there is no private repo, so fall back to the public index
+            string owner = SkinManager.IsLoggedIn
+                ? SettingsManager.Current.GitHubUsername ?? SkinManager.IndexRepoOwner
+                : SkinManager.IndexRepoOwner;
+            string repo = SkinManager.IsLoggedIn ? "yorii-profiles" : SkinManager.IndexRepo;
+
+            await Windows.System.Launcher.LaunchUriAsync(new Uri($"https://github.com/{owner}/{repo}"));
+        }
+
+        private async void AccountFlyout_Disconnect_Click(object sender, RoutedEventArgs e)
+        {
+            accountsFlyout.Hide();
+
+            if (SkinManager.IsLoggedIn)
+            {
+                // remove the logged-in user's yoriiskins accounts, then clear
+                // the saved token so private profiles disappear everywhere
+                var accounts = AccountManager.LoadAccounts();
+                accounts.RemoveAll(a => a.AccountType == PlayerAccountType.YoriiSkins && a.GitHubOwner == SettingsManager.Current.GitHubUsername);
+                AccountManager.SaveAll(accounts);
+                SkinManager.Logout();
+            }
+            else
+            {
+                // sign in: same flow as the skins page login button
+                try
+                {
+                    await SkinManager.AuthenticateWithGitHub();
+                    try
+                    {
+                        await SkinManager.LoadProfilesIntoAccounts();
+                    }
+                    catch
+                    {
+                    }
+
+                    // bring the launcher window back to the foreground now that
+                    // the browser callback finished
+                    var handle = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                    NativeMethods.ShowWindow(handle, 9); // sw_restore
+                    NativeMethods.SetForegroundWindow(handle);
+
+                    NotificationHelper.Show(
+                        "Signed in",
+                        $"Signed in as {SettingsManager.Current.GitHubUsername}. You can close the browser tab.",
+                        silent: true);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Titlebar login failed: {ex.Message}");
+                }
+            }
+
+            LoadAccounts();
+            UpdateGitHubAccountButton();
+
+            // if the skins page is open, refresh its profile list so private
+            // profiles appear/disappear with the login state change
+            if (mainFrame.Content is Pages.SkinsPage skinsPage)
+                skinsPage.RefreshAfterAuthChange();
         }
 
         private void NotesButton_Click(object sender, RoutedEventArgs e)
@@ -1543,27 +2143,6 @@ namespace Yorii_Launcher
         {
             // version list can be really long so reduce memory won't hurt when it is closed
             MemoryOptimizer.ReduceMemory();
-        }
-
-        public sealed class AccountComboItem
-        {
-            public PlayerAccount? Account { get; init; }
-            public bool IsAddNew { get; init; }
-            public bool IsManagePlayers { get; init; }
-            public string DisplayName => IsAddNew ? "Add player" : IsManagePlayers ? "Manage players" : Account?.Username ?? "";
-
-            public static AccountComboItem AddNew { get; } = new() { IsAddNew = true };
-            public static AccountComboItem ManagePlayers { get; } = new() { IsManagePlayers = true };
-
-            public static AccountComboItem ForAccount(PlayerAccount account)
-            {
-                return new AccountComboItem { Account = account };
-            }
-
-            public override string ToString()
-            {
-                return DisplayName;
-            }
         }
 
         /*

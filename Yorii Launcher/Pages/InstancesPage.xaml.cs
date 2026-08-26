@@ -30,6 +30,7 @@ namespace Yorii_Launcher.Pages
 
             LoadInstances();
             StartInstancesWatcher();
+            MemoryOptimizer.ReduceMemory();
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -92,6 +93,9 @@ namespace Yorii_Launcher.Pages
             }
 
             emptyInstancesText.Visibility = instances.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            // yoriiskinsloader is a fork of customskinloader optimized for faster skin loading and other improvements
+            InstanceManager.EnsureYoriiSkinsLoaderInstalled();
         }
 
         // setup filesystem watcher so the instance list updates when folders are added/deleted externally
@@ -127,7 +131,7 @@ namespace Yorii_Launcher.Pages
                     DispatcherQueue.TryEnqueue(async () =>
                     {
                         LoadInstances();
-                        //LoadServers();
+                        // loadservers();
                         await (MainWindow.Instance?.RefreshInstanceContextAsync() ?? Task.CompletedTask);
                     });
                 }
@@ -194,17 +198,19 @@ namespace Yorii_Launcher.Pages
 
             var dialog = new ContentDialog
             {
-                Title = "Create Instance",
+                Title = "Create instance",
                 Content = panel,
                 PrimaryButtonText = "Create",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 XamlRoot = XamlRoot,
                 RequestedTheme = theme,
             };
 
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (result != ContentDialogResult.Primary)
                 return;
@@ -216,11 +222,24 @@ namespace Yorii_Launcher.Pages
 
             var scale = XamlRoot?.RasterizationScale ?? 1.0;
             var instance = InstanceManager.CreateInstance(name, pendingIconPath, scale);
+
+            // copy the selected player's local skin into the new instance so the
+            // account-box head and in-game skin load instantly, then refresh the
+            // account box (it now resolves local skins from the new active path)
+            if (AccountManager.GetSelectedAccount() is { } selectedAccount)
+            {
+                SkinManager.CopyLocalSkinToPath(selectedAccount.Username, instance.MinecraftPath);
+                // also pull the latest published skin so a brand-new instance
+                // never shows a missing/stale head in the ui or in-game
+                _ = SkinManager.SyncSkinToAllInstancesAsync(selectedAccount.Username);
+            }
+
             InstanceManager.SetSelectedInstance(instance.Id);
 
             LoadInstances();
-            //LoadServers();
+            // loadservers();
             await (MainWindow.Instance?.RefreshInstanceContextAsync() ?? Task.CompletedTask);
+            MainWindow.Instance?.RefreshAccounts();
         }
 
         private async void InstancesGrid_ItemClick(object sender, ItemClickEventArgs e)
@@ -231,7 +250,7 @@ namespace Yorii_Launcher.Pages
             InstanceManager.SetSelectedInstance(instance.Id);
             instancesGrid.SelectedItem = instance;
 
-            //LoadServers();
+            // loadservers();
 
             await (MainWindow.Instance?.RefreshInstanceContextAsync() ?? Task.CompletedTask);
         }
@@ -250,19 +269,21 @@ namespace Yorii_Launcher.Pages
                 PrimaryButtonText = "Delete",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Close,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 XamlRoot = XamlRoot,
                 RequestedTheme = theme
             };
 
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (result != ContentDialogResult.Primary)
                 return;
 
             InstanceManager.DeleteInstance(instance);
             LoadInstances();
-            //LoadServers();
+            // loadservers();
             await (MainWindow.Instance?.RefreshInstanceContextAsync() ?? Task.CompletedTask);
         }
 
@@ -325,17 +346,19 @@ namespace Yorii_Launcher.Pages
 
             var dialog = new ContentDialog
             {
-                Title = "Edit Instance",
+                Title = "Edit instance",
                 Content = panel,
                 PrimaryButtonText = "Save",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 XamlRoot = XamlRoot,
                 RequestedTheme = theme
             };
 
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (result != ContentDialogResult.Primary)
                 return;
@@ -359,16 +382,15 @@ namespace Yorii_Launcher.Pages
                 File.Copy(editPendingIconPath, destPath, true);
 
                 // update metadata with new icon path
-                var metadataPath = Path.Combine(instance.InstancePath, "instance.json");
-                if (File.Exists(metadataPath))
+                var instancePath = Path.Combine(instance.InstancePath, "instance.yaml");
+                if (File.Exists(instancePath))
                 {
-                    var json = File.ReadAllText(metadataPath);
-                    var metadata = System.Text.Json.JsonSerializer.Deserialize(json, Helpers.LauncherJsonContext.Default.InstanceMetadata);
+                    var yaml = File.ReadAllText(instancePath);
+                    var metadata = Helpers.LauncherYaml.Deserialize<InstanceMetadata>(yaml);
                     if (metadata != null)
                     {
                         metadata.IconPath = iconFileName;
-                        var newJson = System.Text.Json.JsonSerializer.Serialize(metadata, Helpers.LauncherJsonContext.Default.InstanceMetadata);
-                        File.WriteAllText(metadataPath, newJson);
+                        File.WriteAllText(instancePath, Helpers.LauncherYaml.Serialize(metadata));
                     }
                 }
             }

@@ -1,15 +1,20 @@
+using CommunityToolkit.WinUI.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Windows.Storage.Pickers;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Yorii_Launcher.Helpers;
+using Yorii_Launcher.Models;
+using Yorii_Launcher.Pages;
 
 namespace Yorii_Launcher
 {
@@ -17,10 +22,12 @@ namespace Yorii_Launcher
     {
         // to prevent settings handlers from firing while the page is loading
         private bool isInitializing = true;
-        // set false when navigating away so delayed callbacks skip UI access
+        // set false when navigating away so delayed callbacks skip ui access
         private bool isActive = true;
         // reference to mainwindow
         public MainWindow MainApp => MainWindow.Instance!;
+        // debounce accent color changes from the picker so rapid changes don't lag the app
+        private CancellationTokenSource? accentDebounceCts;
 
         public SettingsPage()
         {
@@ -30,8 +37,10 @@ namespace Yorii_Launcher
             // load current states
             LoadSelectedRamAmount();
             LoadThemeComboBox();
+            LoadSystemBackdropComboBox();
             LoadBackgroundImageComboBox();
             LoadOverlaySettings();
+            UpdateOverlayControlsEnabled();
             LoadWindowBehaviorComboBox();
             LoadShowConsoleSetting();
             LoadSavedFolder();
@@ -41,18 +50,99 @@ namespace Yorii_Launcher
             LoadHomeReleaseNotesSetting();
             LoadUpdateVersion();
             ShowCachedUpdateIfAvailable();
-            //LoadAccentColor();
+            LoadAccentColor();
 
             isInitializing = false;
+            MemoryOptimizer.ReduceMemory();
+
+            ThemeManager.ThemeSettingsChanged += OnThemeSettingsChanged;
         }
 
-        //private async void LoadAccentColor()
-        //{
-        //    var color = accentColorPicker.Color.ToString();
-        //    Debug.WriteLine($"[Settings] Current accent color: {color}");
+        private void LoadAccentColor()
+        {
+            var settings = ThemeManager.Current;
 
-        //    accentColor.Text = color;
-        //}
+            if (settings.UseCustomAccentColor && AccentThemeManager.TryParseHexColor(settings.CustomAccentColor, out var custom))
+            {
+                customAccentToggle.IsOn = true;
+                accentColorPicker.Color = custom;
+                AccentThemeManager.ApplyAccent(custom);
+            }
+            else
+            {
+                customAccentToggle.IsOn = false;
+                var systemAccent = AccentThemeManager.GetSystemAccentColor();
+                accentColorPicker.Color = systemAccent;
+                AccentThemeManager.ApplyAccent(systemAccent);
+            }
+
+            accentColorPicker.IsEnabled = customAccentToggle.IsOn;
+            currentAccentCard.IsEnabled = customAccentToggle.IsOn;
+            accentColor.Text = AccentThemeManager.ColorToHex(accentColorPicker.Color);
+            currentAccentColor.Text = AccentThemeManager.ColorToHex(accentColorPicker.Color);
+        }
+
+        private void CustomAccentToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (isInitializing) return;
+
+            if (customAccentToggle.IsOn)
+            {
+                currentAccentCard.IsEnabled = true;
+                accentColorPicker.IsEnabled = true;
+                ApplyAccentFromPicker();
+            }
+            else
+            {
+                currentAccentCard.IsEnabled = false;
+                accentColorPicker.IsEnabled = false;
+                ThemeManager.Current.UseCustomAccentColor = false;
+                ThemeManager.Current.CustomAccentColor = "";
+                ThemeManager.SaveSettings();
+                AccentThemeManager.ApplyAccent(AccentThemeManager.GetSystemAccentColor());
+                accentColorPicker.Color = AccentThemeManager.CurrentAccent;
+                accentColor.Text = AccentThemeManager.ColorToHex(accentColorPicker.Color);
+                currentAccentColor.Text = AccentThemeManager.ColorToHex(accentColorPicker.Color);
+            }
+        }
+
+        private void accentColorPicker_ColorChanged(ColorPicker sender, ColorChangedEventArgs args)
+        {
+            if (isInitializing) return;
+            if (!customAccentToggle.IsOn) return;
+
+            accentDebounceCts?.Cancel();
+            var cts = accentDebounceCts = new CancellationTokenSource();
+            _ = DebouncedApplyAccentAsync(cts.Token);
+        }
+
+        private async Task DebouncedApplyAccentAsync(CancellationToken token)
+        {
+            try
+            {
+                await Task.Delay(200, token);
+            }
+            catch (TaskCanceledException)
+            {
+                return;
+            }
+
+            if (token.IsCancellationRequested || !isActive) return;
+            ApplyAccentFromPicker();
+        }
+
+        private void ApplyAccentFromPicker()
+        {
+            var color = accentColorPicker.Color;
+            accentColor.Text = AccentThemeManager.ColorToHex(color);
+            currentAccentColor.Text = AccentThemeManager.ColorToHex(color);
+
+            ThemeManager.Current.UseCustomAccentColor = true;
+            ThemeManager.Current.CustomAccentColor = AccentThemeManager.ColorToHex(color);
+            ThemeManager.SaveSettings();
+
+            AccentThemeManager.ApplyAccent(color);
+        }
 
 
 
@@ -61,6 +151,15 @@ namespace Yorii_Launcher
             base.OnNavigatedTo(e);
             isActive = true;
 
+            isInitializing = true;
+            LoadThemeComboBox();
+            LoadSystemBackdropComboBox();
+            LoadBackgroundImageComboBox();
+            LoadOverlaySettings();
+            UpdateOverlayControlsEnabled();
+            LoadAccentColor();
+            isInitializing = false;
+
             if (e.Parameter is string section &&
                 section.Equals("memory", StringComparison.OrdinalIgnoreCase))
             {
@@ -68,10 +167,10 @@ namespace Yorii_Launcher
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(100);
-                    if (!isActive) return;
+                    if (!isActive || App.IsShuttingDown) return;
                     DispatcherQueue.TryEnqueue(() =>
                     {
-                        if (!isActive) return;
+                        if (!isActive || App.IsShuttingDown) return;
                         memoryCard.StartBringIntoView();
                         ramAmount.Focus(FocusState.Programmatic);
                     });
@@ -83,6 +182,22 @@ namespace Yorii_Launcher
         {
             base.OnNavigatedFrom(e);
             isActive = false;
+            accentDebounceCts?.Cancel();
+        }
+
+        private void OnThemeSettingsChanged()
+        {
+            if (!isActive || App.IsShuttingDown) return;
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (!isActive || App.IsShuttingDown) return;
+                isInitializing = true;
+                LoadOverlaySettings();
+                UpdateOverlayControlsEnabled();
+                LoadBackgroundImageComboBox();
+                isInitializing = false;
+                MainWindow.Instance?.ApplyBackgroundSettings();
+            });
         }
 
         private async void PickFolderButton_Click(object sender, RoutedEventArgs e)
@@ -98,7 +213,7 @@ namespace Yorii_Launcher
                     SuggestedStartLocation = PickerLocationId.ComputerFolder,
                     ViewMode = PickerViewMode.List
                 };
-                // open picker 
+                // open picker
                 var folder = await picker.PickSingleFolderAsync();
 
                 if (folder != null)
@@ -137,7 +252,7 @@ namespace Yorii_Launcher
         private void LoadBackgroundImageComboBox()
         {
             // check if image path is not empty and custom is selected in the combobox
-            var savedPath = SettingsManager.Current.BackgroundImagePath;
+            var savedPath = ThemeManager.Current.BackgroundImagePath;
 
             if (!string.IsNullOrEmpty(savedPath))
             {
@@ -147,18 +262,29 @@ namespace Yorii_Launcher
                     {
                         backgroundImage.SelectedItem = item;
                         backgroundImageTextBlock.Text = "Current Image: " + savedPath;
+                        UpdateOverlayControlsEnabled();
                         return;
                     }
                 }
             }
             backgroundImage.SelectedIndex = 0;
             backgroundImageTextBlock.Text = "Current Image: None";
+            UpdateOverlayControlsEnabled();
         }
 
         private void LoadOverlaySettings()
         {
-            overlayOpacitySlider.Value = SettingsManager.Current.OverlayOpacity;
-            overlayBlurToggle.IsOn = SettingsManager.Current.OverlayBlurEnabled;
+            overlayOpacitySlider.Value = ThemeManager.Current.OverlayOpacity;
+            overlayBlurToggle.IsOn = ThemeManager.Current.OverlayBlurEnabled;
+        }
+
+        private void UpdateOverlayControlsEnabled()
+        {
+            bool hasBackground = backgroundImage.SelectedItem is ComboBoxItem item
+                                 && item.Tag?.ToString() == "Custom"
+                                 && !string.IsNullOrEmpty(ThemeManager.Current.BackgroundImagePath);
+            overlayOpacityCard.IsEnabled = hasBackground;
+            overlayBlurCard.IsEnabled = hasBackground;
         }
 
         private void SaveVersionFilters()
@@ -166,6 +292,9 @@ namespace Yorii_Launcher
             var vm = MainApp.VersionVM;
             SettingsManager.Current.ShowSnapshots = vm.ShowSnapshots;
             SettingsManager.Current.ShowFabric = vm.ShowFabric;
+            SettingsManager.Current.ShowForge = vm.ShowForge;
+            SettingsManager.Current.ShowNeoForge = vm.ShowNeoForge;
+            // settingsmanager.current.showoptifine = vm.showoptifine;
             SettingsManager.Current.ShowOld = vm.ShowOld;
             SettingsManager.SaveSettings();
         }
@@ -262,7 +391,7 @@ namespace Yorii_Launcher
 
         private void LoadThemeComboBox()
         {
-            var savedTheme = SettingsManager.Current.CurrentTheme;
+            var savedTheme = ThemeManager.Current.CurrentTheme;
             foreach (ComboBoxItem item in themeMode.Items.OfType<ComboBoxItem>())
             {
                 if ((item.Content?.ToString() ?? "") == savedTheme)
@@ -292,8 +421,33 @@ namespace Yorii_Launcher
                         ThemeHelper.ApplyTheme(ElementTheme.Default);
                         break;
                 }
-                SettingsManager.Current.CurrentTheme = theme;
-                SettingsManager.SaveSettings();
+                ThemeManager.Current.CurrentTheme = theme;
+                ThemeManager.SaveSettings();
+            }
+        }
+
+        private void LoadSystemBackdropComboBox()
+        {
+            var saved = ThemeManager.Current.Systembackdrop ?? "mica";
+            foreach (ComboBoxItem item in systemBackdrop.Items.OfType<ComboBoxItem>())
+            {
+                if (string.Equals(item.Tag?.ToString(), saved, StringComparison.OrdinalIgnoreCase))
+                {
+                    systemBackdrop.SelectedItem = item;
+                    return;
+                }
+            }
+            systemBackdrop.SelectedIndex = 0;
+        }
+
+        private void SystemBackdrop_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (isInitializing) return;
+            if (systemBackdrop.SelectedItem is ComboBoxItem item)
+            {
+                ThemeManager.Current.Systembackdrop = item.Tag?.ToString() ?? "mica";
+                ThemeManager.SaveSettings();
+                ThemeHelper.ApplySavedTheme();
             }
         }
 
@@ -331,9 +485,10 @@ namespace Yorii_Launcher
 
             if (item.Tag?.ToString() == "None")
             {
-                SettingsManager.Current.BackgroundImagePath = "";
-                SettingsManager.SaveSettings();
+                ThemeManager.Current.BackgroundImagePath = "";
+                ThemeManager.SaveSettings();
                 backgroundImageTextBlock.Text = "Current Image: None";
+                UpdateOverlayControlsEnabled();
                 MainWindow.Instance?.ApplyBackgroundSettings();
                 return;
             }
@@ -356,18 +511,20 @@ namespace Yorii_Launcher
 
                 if (file != null)
                 {
-                    SettingsManager.Current.BackgroundImagePath = file.Path;
-                    SettingsManager.SaveSettings();
+                    ThemeManager.Current.BackgroundImagePath = file.Path;
+                    ThemeManager.SaveSettings();
                     backgroundImageTextBlock.Text = "Current Image: " + file.Path;
+                    UpdateOverlayControlsEnabled();
                     MainWindow.Instance?.ApplyBackgroundSettings();
                 }
                 else
                 {
-                    if (string.IsNullOrEmpty(SettingsManager.Current.BackgroundImagePath))
+                    if (string.IsNullOrEmpty(ThemeManager.Current.BackgroundImagePath))
                     {
                         isInitializing = true;
                         backgroundImage.SelectedIndex = 0;
                         backgroundImageTextBlock.Text = "Current Image: None";
+                        UpdateOverlayControlsEnabled();
                         // enable all handlers after initialization is done
                         isInitializing = false;
                     }
@@ -378,16 +535,16 @@ namespace Yorii_Launcher
         private void OverlayOpacitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
         {
             if (isInitializing) return;
-            SettingsManager.Current.OverlayOpacity = e.NewValue;
-            SettingsManager.SaveSettings();
+            ThemeManager.Current.OverlayOpacity = e.NewValue;
+            ThemeManager.SaveSettings();
             MainWindow.Instance?.ApplyBackgroundSettings();
         }
 
         private void OverlayBlurToggle_Toggled(object sender, RoutedEventArgs e)
         {
             if (isInitializing) return;
-            SettingsManager.Current.OverlayBlurEnabled = overlayBlurToggle.IsOn;
-            SettingsManager.SaveSettings();
+            ThemeManager.Current.OverlayBlurEnabled = overlayBlurToggle.IsOn;
+            ThemeManager.SaveSettings();
             MainWindow.Instance?.ApplyBackgroundSettings();
         }
 
@@ -474,7 +631,16 @@ namespace Yorii_Launcher
                     });
                 });
 
-                var msixPath = await UpdateService.DownloadUpdateAsync(pendingUpdate, progress);
+                var updateItem = DownloadManager.Add($"Yorii Launcher update {pendingUpdate.Version}", DownloadKind.Update);
+                var msixPath = await UpdateService.DownloadUpdateAsync(pendingUpdate, progress, updateItem);
+
+                if (updateItem.Status == DownloadStatus.Cancelled)
+                {
+                    updateProgressCard.Visibility = Visibility.Collapsed;
+                    updateStatusText.Text = "Download cancelled";
+                    checkUpdateButton.Visibility = Visibility.Visible;
+                    return;
+                }
 
                 if (msixPath == null)
                 {
@@ -490,7 +656,7 @@ namespace Yorii_Launcher
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Update] Download failed: {ex.Message}");
+                Logger.Error($"Update download failed: {ex.Message}");
                 updateProgressCard.Visibility = Visibility.Collapsed;
                 updateStatusText.Text = "Download failed";
                 checkUpdateButton.Visibility = Visibility.Visible;
@@ -505,13 +671,13 @@ namespace Yorii_Launcher
                 SuggestedFileName = "yorii-settings",
                 CommitButtonText = "Export"
             };
-            picker.FileTypeChoices.Add("JSON Files", [".json"]);
+            picker.FileTypeChoices.Add("YAML Files", [".yaml"]);
 
             var file = await picker.PickSaveFileAsync();
             if (file != null)
             {
-                SettingsManager.ExportSettings(file.Path);
-                NotificationHelper.Show("Settings exported", "Your settings have been saved.");
+                ThemeManager.ExportSettings(file.Path);
+                NotificationHelper.Show("Theme exported", "Your theme has been saved.");
             }
         }
 
@@ -522,19 +688,20 @@ namespace Yorii_Launcher
                 SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
                 ViewMode = PickerViewMode.List
             };
-            picker.FileTypeFilter.Add(".json"); // pick json file
+            picker.FileTypeFilter.Add(".yaml");
 
             var file = await picker.PickSingleFileAsync();
             if (file != null)
             {
                 try
                 {
-                    SettingsManager.ImportSettings(file.Path);
-                    NotificationHelper.Show("Settings imported", "Your settings have been restored. Restarting the launcher is recommended.");
+                    ThemeManager.ImportSettings(file.Path);
+                    NotificationHelper.Show("Theme imported", "Your theme has been restored. Restarting the launcher is recommended.");
                     isInitializing = true;
                     LoadSelectedRamAmount();
-                    LoadThemeComboBox();
-                    LoadBackgroundImageComboBox();
+            LoadThemeComboBox();
+            LoadSystemBackdropComboBox();
+            LoadBackgroundImageComboBox();
                     LoadOverlaySettings();
                     LoadWindowBehaviorComboBox();
                     LoadShowConsoleSetting();
@@ -544,23 +711,40 @@ namespace Yorii_Launcher
                     LoadWorldListSetting();
                     LoadHomeReleaseNotesSetting();
                     LoadExperimentalResourcePackSetting();
+                    LoadAccentColor();
                     isInitializing = false;
+                    AccentThemeManager.ApplySavedAccent();
                     MainWindow.Instance?.ApplyBackgroundSettings();
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[Settings] Import failed: {ex.Message}");
+                    Logger.Error($"Settings import failed: {ex.Message}");
                     NotificationHelper.Show("Import failed", "The settings file could not be read.");
                 }
             }
         }
 
-        //private void accentColorPicker_ColorChanged(ColorPicker sender, ColorChangedEventArgs args)
-        //{
-        //    var color = accentColorPicker.Color.ToString();
-        //    Debug.WriteLine($"[Settings] Current accent color: {color}");
+        private void OpenLogsFolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{Logger.LogFilePath}\"",
+                    UseShellExecute = true
+                });
+                Logger.Info("Opened logs folder");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to open logs folder: {ex.Message}");
+            }
+        }
 
-        //    accentColor.Text = color;
-        //}
+        private void browseThemesButton_Click(object sender, RoutedEventArgs e)
+        {
+            MainWindow.Instance?.SelectSection("themes");
+        }
     }
 }

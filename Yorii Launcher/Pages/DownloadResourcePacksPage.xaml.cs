@@ -89,12 +89,25 @@ namespace Yorii_Launcher.Pages
 
             try
             {
-                await ModrinthHelper.InstallLatestProjectAsync(ModrinthProjectKind.ResourcePack, resourcePack.Slug);
+                if (ModrinthHelper.IsAlreadyInstalled(ModrinthProjectKind.ResourcePack, resourcePack.Slug))
+                {
+                    NotificationHelper.Show("Resource pack already installed", $"'{resourcePack.Title}' is already installed.");
+                    return;
+                }
+
+                await ModrinthHelper.InstallLatestProjectAsync(ModrinthProjectKind.ResourcePack, resourcePack.Slug, resourcePack.Title, resourcePack.Icon);
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex);
-                NotificationHelper.Show("Resource pack install failed", $"Could not install {resourcePack.Title}. Check your internet connection.");
+                Logger.Error($"Resource pack install failed ({resourcePack.Title}): {ex.Message}");
+
+                if (IsNetworkError(ex))
+                    NotificationHelper.Show("Resource pack install failed", $"Could not reach Modrinth. Check your internet connection.");
+                else
+                    NotificationHelper.Show("Resource pack install failed", $"Could not install {resourcePack.Title}.");
             }
         }
 
@@ -134,7 +147,28 @@ namespace Yorii_Launcher.Pages
 
                 item.Click += async (_, __) =>
                 {
-                    await ModrinthHelper.InstallVersionAsync(ModrinthProjectKind.ResourcePack, version.VersionId);
+                    try
+                    {
+                        if (ModrinthHelper.IsAlreadyInstalled(ModrinthProjectKind.ResourcePack, resourcePack.Slug))
+                        {
+                            NotificationHelper.Show("Resource pack already installed", $"'{resourcePack.Title}' is already installed.");
+                            return;
+                        }
+
+                        await ModrinthHelper.InstallVersionAsync(ModrinthProjectKind.ResourcePack, version.VersionId, resourcePack.Title, resourcePack.Icon);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Resource pack install failed ({resourcePack.Title}): {ex.Message}");
+
+                        if (IsNetworkError(ex))
+                            NotificationHelper.Show("Resource pack install failed", $"Could not reach Modrinth. Check your internet connection.");
+                        else
+                            NotificationHelper.Show("Resource pack install failed", $"Could not install {resourcePack.Title}.");
+                    }
                 };
 
                 flyout.Items.Add(item);
@@ -212,5 +246,10 @@ namespace Yorii_Launcher.Pages
                     OnlineResourcePacks.Add(resourcePack);
             }
         }
+
+        private static bool IsNetworkError(Exception ex) => ex is
+            System.Net.Http.HttpRequestException
+            or System.Net.Sockets.SocketException
+            or System.IO.IOException;
     }
 }

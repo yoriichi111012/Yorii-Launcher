@@ -317,6 +317,9 @@ namespace Yorii_Launcher.Pages
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+
+            // re-point the watcher at the active instance, then refresh the list
+            StartModpacksWatcher();
             await LoadModpacks();
         }
     }

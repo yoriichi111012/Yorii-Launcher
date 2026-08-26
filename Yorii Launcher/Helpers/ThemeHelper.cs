@@ -2,6 +2,7 @@ using Microsoft.UI;
 using Microsoft.UI.Composition.SystemBackdrops;
 using Microsoft.UI.Xaml;
 using System;
+using System.IO;
 using Windows.UI;
 
 namespace Yorii_Launcher.Helpers
@@ -16,46 +17,71 @@ namespace Yorii_Launcher.Helpers
                 root.RequestedTheme = theme;
             }
             var titleBar = App.MainWindow.AppWindow.TitleBar;
-            // different mica styles and title bar button colors for light vs dark so it doesnt look wrong
+            var accent = AccentThemeManager.CurrentAccent;
+
             switch (theme)
             {
                 case ElementTheme.Light:
-                    App.Mica.Kind = MicaKind.BaseAlt;
                     titleBar.ButtonForegroundColor = Colors.Black;
                     titleBar.ButtonHoverForegroundColor = Colors.Black;
                     titleBar.ButtonPressedForegroundColor = Colors.Black;
 
-                    titleBar.ButtonHoverBackgroundColor = Color.FromArgb(20, 0, 0, 0);
-                    titleBar.ButtonPressedBackgroundColor = Color.FromArgb(40, 0, 0, 0);
+                    titleBar.ButtonHoverBackgroundColor = WithAlpha(accent, 20);
+                    titleBar.ButtonPressedBackgroundColor = WithAlpha(accent, 40);
                     break;
 
                 case ElementTheme.Dark:
-                    App.Mica.Kind = MicaKind.Base;
                     titleBar.ButtonForegroundColor = Colors.White;
                     titleBar.ButtonHoverForegroundColor = Colors.White;
                     titleBar.ButtonPressedForegroundColor = Colors.White;
 
-                    titleBar.ButtonHoverBackgroundColor = Color.FromArgb(20, 255, 255, 255);
-                    titleBar.ButtonPressedBackgroundColor = Color.FromArgb(40, 255, 255, 255);
+                    titleBar.ButtonHoverBackgroundColor = WithAlpha(accent, 20);
+                    titleBar.ButtonPressedBackgroundColor = WithAlpha(accent, 40);
                     break;
 
                 default:
-                    // system theme, resolve to actual light/dark and reapply
                     ApplyTheme(Application.Current.RequestedTheme == ApplicationTheme.Light
                         ? ElementTheme.Light
                         : ElementTheme.Dark);
                     return;
             }
 
-            if (App.MainWindow is MainWindow window)
+            ApplySystemBackdrop();
+        }
+
+        // avoid re-assigning the same backdrop - re-creating the micacontroller
+        // on every theme/image toggle was the source of the 0xc0000005 on close
+        private static string? _lastBackdropState;
+
+        public static void ApplySystemBackdrop()
+        {
+            if (App.MainWindow is not MainWindow window) return;
+
+            string target = ThemeManager.Current.Systembackdrop?.ToLowerInvariant() ?? "mica";
+            if (target == _lastBackdropState) return;
+
+            switch (target)
             {
-                window.SystemBackdrop = App.Mica;
+                case "none":
+                    window.SystemBackdrop = null;
+                    break;
+                case "micaalt":
+                    App.Mica.Kind = MicaKind.BaseAlt;
+                    window.SystemBackdrop = App.Mica;
+                    break;
+                default:
+                    App.Mica.Kind = MicaKind.Base;
+                    window.SystemBackdrop = App.Mica;
+                    break;
             }
+
+            _lastBackdropState = target;
         }
 
         public static void ApplySavedTheme()
         {
-            var theme = SettingsManager.Current.CurrentTheme;
+            ThemeManager.ApplyThemeOverrides(ThemeManager.Current);
+            var theme = ThemeManager.Current.CurrentTheme;
             switch (theme)
             {
                 case "Light":
@@ -72,14 +98,14 @@ namespace Yorii_Launcher.Helpers
 
         public static void SaveTheme(string theme)
         {
-            SettingsManager.Current.CurrentTheme = theme;
-            SettingsManager.SaveSettings();
+            ThemeManager.Current.CurrentTheme = theme;
+            ThemeManager.SaveSettings();
         }
 
         public static ElementTheme GetCurrentTheme()
         {
-            // resolve "System" to whatever the actual OS theme is so dialogs get the right background
-            return SettingsManager.Current.CurrentTheme switch
+            // resolve "system" to whatever the actual os theme is so dialogs get the right background
+            return ThemeManager.Current.CurrentTheme switch
             {
                 "Light" => ElementTheme.Light,
                 "Dark" => ElementTheme.Dark,
@@ -88,5 +114,7 @@ namespace Yorii_Launcher.Helpers
                     : ElementTheme.Dark
             };
         }
+
+        private static Color WithAlpha(Color color, byte alpha) => Color.FromArgb(alpha, color.R, color.G, color.B);
     }
 }

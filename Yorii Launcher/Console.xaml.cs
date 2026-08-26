@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using Yorii_Launcher.Helpers;
 
 namespace Yorii_Launcher
 {
@@ -39,6 +40,7 @@ namespace Yorii_Launcher
             };
 
             Instance = this;
+            MemoryOptimizer.ReduceMemory();
         }
 
         public void AppendLine(string text)
@@ -49,6 +51,7 @@ namespace Yorii_Launcher
 
             DispatcherQueue.TryEnqueue(() =>
             {
+                if (App.IsShuttingDown) return;
                 logBuffer.AppendLine(formatted);
                 // scroll timer flushes the buffer on next tick (50ms of silence)
                 scrollTimer.Stop();

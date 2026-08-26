@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using Windows.Storage;
 using Yorii_Launcher.Models;
 
@@ -10,50 +9,66 @@ namespace Yorii_Launcher.Helpers
 {
     public static class AccountManager
     {
-        private const string AccountsFileName = "accounts.json";
+        private const string AccountsFileName = "accounts.yaml";
 
         private static string AccountsFilePath => Path.Combine(ApplicationData.Current.LocalFolder.Path, AccountsFileName);
+        private static string LegacyAccountsFilePath => Path.ChangeExtension(AccountsFilePath, ".json");
+
+        private static List<PlayerAccount>? _accountsCache;
 
         public static List<PlayerAccount> LoadAccounts()
         {
-            // move old playername to accounts file
+            if (_accountsCache != null)
+                return _accountsCache;
+
+            // move old playername into accounts file
             MigrateLegacyPlayerName();
 
-            if (!File.Exists(AccountsFilePath))
-                return [];
+            if (!File.Exists(AccountsFilePath) && !TryMigrateLegacyAccounts())
+                return _accountsCache = [];
 
             try
             {
-                var json = File.ReadAllText(AccountsFilePath);
-                var accounts = JsonSerializer.Deserialize(json, LauncherJsonContext.Default.ListPlayerAccount) ?? [];
+                string yaml = File.ReadAllText(AccountsFilePath);
                 bool needsResave = false;
+
+                // elyby got removed so old elyby accounts just become offline now
+                if (yaml.Contains("ElyBy", StringComparison.Ordinal))
+                {
+                    yaml = yaml.Replace("account_type: ElyBy", "account_type: Offline", StringComparison.OrdinalIgnoreCase);
+                    needsResave = true;
+                }
+
+                var accounts = LauncherYaml.Deserialize<List<PlayerAccount>>(yaml) ?? [];
 
                 foreach (var account in accounts)
                 {
                     if (string.IsNullOrEmpty(account.Password))
                         continue;
 
-                    // decrypt password if still encrypted from old format
+                    // decrypt if its still encrypted from old format
                     if (PasswordProtector.IsEncrypted(account.Password))
                     {
                         account.Password = PasswordProtector.Unprotect(account.Password);
                     }
                     else
                     {
-                        // plaintext password from older version, will be re-encrypted on save
+                        // plain text from older version, will get encrypted on save
                         needsResave = true;
                     }
                 }
 
-                // resave with encrypted passwords
+                // resave so passwords are encrypted
                 if (needsResave)
                     SaveAccounts(accounts);
 
-                return accounts;
+                Logger.Info($"Loaded {accounts.Count} account(s)");
+                return _accountsCache = accounts;
             }
             catch
             {
-                return [];
+                Logger.Warn("Failed to load accounts");
+                return _accountsCache = [];
             }
         }
 
@@ -62,20 +77,27 @@ namespace Yorii_Launcher.Helpers
             var accounts = LoadAccounts();
             var existing = accounts.FirstOrDefault(x => x.Id == account.Id);
 
-            // update existing or add new
+            // update if exists else add new
             if (existing == null)
             {
                 accounts.Add(account);
+                Logger.Info($"Added account: {account.Username} ({account.AccountType})");
             }
             else
             {
                 existing.Username = account.Username;
                 existing.Password = account.Password;
                 existing.AccountType = account.AccountType;
+                Logger.Info($"Updated account: {account.Username} ({account.AccountType})");
             }
 
             SaveAccounts(accounts);
             SetSelectedAccount(account.Id);
+        }
+
+        public static void SaveAll(List<PlayerAccount> accounts)
+        {
+            SaveAccounts(accounts);
         }
 
         public static PlayerAccount? GetSelectedAccount()
@@ -91,7 +113,7 @@ namespace Yorii_Launcher.Helpers
                     return selected;
             }
 
-            // fallback to first account
+            // no selected one so just use first account
             return accounts.FirstOrDefault();
         }
 
@@ -111,18 +133,52 @@ namespace Yorii_Launcher.Helpers
         {
             Directory.CreateDirectory(ApplicationData.Current.LocalFolder.Path);
 
-            // encrypt passwords before writing so the json file isnt storing plaintext
+            // encrypt passwords before saving so yaml never has plain text
             var toSave = accounts.Select(a => new PlayerAccount
             {
                 Id = a.Id,
                 Username = a.Username,
                 Password = string.IsNullOrEmpty(a.Password) ? a.Password : PasswordProtector.Protect(a.Password),
                 AccountType = a.AccountType,
-                MojangIdentifier = a.MojangIdentifier
+                MojangIdentifier = a.MojangIdentifier,
+                CustomUUID = a.CustomUUID,
+                SkinUrl = a.SkinUrl,
+                GitHubOwner = a.GitHubOwner
             }).ToList();
 
-            var json = JsonSerializer.Serialize(toSave, LauncherJsonContext.Default.ListPlayerAccount);
-            File.WriteAllText(AccountsFilePath, json);
+            File.WriteAllText(AccountsFilePath, LauncherYaml.Serialize(toSave));
+
+            _accountsCache = accounts;
+        }
+
+        private static bool TryMigrateLegacyAccounts()
+        {
+            if (!File.Exists(LegacyAccountsFilePath))
+                return false;
+
+try
+            {
+                string jsonText = File.ReadAllText(LegacyAccountsFilePath);
+
+                // elyby got removed so old elyby accounts just become offline now
+                if (jsonText.Contains("ElyBy", StringComparison.Ordinal))
+                    jsonText = jsonText.Replace("ElyBy", "Offline", StringComparison.Ordinal);
+
+                var accounts = System.Text.Json.JsonSerializer.Deserialize(
+                    jsonText,
+                    LauncherJsonContext.Default.ListPlayerAccount);
+                if (accounts == null)
+                    return false;
+
+                SaveAccounts(accounts);
+                Logger.Info("Migrated accounts.json to accounts.yaml");
+                return true;
+            }
+            catch
+            {
+                Logger.Warn("Failed to migrate accounts.json");
+                return false;
+            }
         }
 
         private static void MigrateLegacyPlayerName()
@@ -131,7 +187,7 @@ namespace Yorii_Launcher.Helpers
             {
                 var settings = ApplicationData.Current.LocalSettings;
 
-                // check if old playername exists
+                // see if old playername is still there
                 if (!settings.Values.TryGetValue("playername", out var value))
                     return;
 
@@ -140,37 +196,41 @@ namespace Yorii_Launcher.Helpers
                 if (string.IsNullOrWhiteSpace(username))
                     return;
 
-                // already migrated
-                if (File.Exists(AccountsFilePath))
+                // already migrated so skip
+                if (File.Exists(AccountsFilePath) || File.Exists(LegacyAccountsFilePath))
                     return;
 
                 var account = new PlayerAccount
                 {
                     Id = Guid.NewGuid().ToString("N"),
                     Username = username.Trim(),
-                    AccountType = PlayerAccountType.ElyBy
+                    AccountType = PlayerAccountType.Offline
                 };
 
                 SaveAccounts([account]);
                 SetSelectedAccount(account.Id);
             }
             catch
-            {
-                // migration failed
+                {
+                // migration failed just ignore
             }
         }
 
         public static void DeleteAccount(string accountId)
         {
             var accounts = LoadAccounts();
+            var deleted = accounts.Find(x => x.Id == accountId);
 
             accounts.RemoveAll(x => x.Id == accountId);
 
             SaveAccounts(accounts);
 
+            if (deleted != null)
+                Logger.Info($"Deleted account: {deleted.Username}");
+
             var selectedId = GetSelectedAccountId();
 
-            // if deleted account was selected, switch to another
+            // if we deleted the selected one pick another
             if (selectedId == accountId)
             {
                 var replacement = accounts.FirstOrDefault();

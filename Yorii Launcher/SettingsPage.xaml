@@ -8,18 +8,22 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     mc:Ignorable="d">
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/SettingsExpander.xaml" />
+                <ResourceDictionary Source="Resources/ThemeOverrides.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary x:Key="Light">
+                <SolidColorBrush x:Key="SettingsCardBackgroundPointerOver" Color="#60FFFFFF" />
+
+            </ResourceDictionary>
+            <ResourceDictionary x:Key="Dark">
+                <SolidColorBrush x:Key="SettingsCardBackgroundPointerOver" Color="#60000000" />
+            </ResourceDictionary>
+        </ResourceDictionary>
+    </Page.Resources>
     <Grid x:Name="rootGrid">
-        <!--<Grid.Resources>
-            <SolidColorBrush x:Key="SliderTrackValueFill" Color="{ThemeResource SystemAccentColor}" />
-            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="{ThemeResource SystemAccentColor}" />
-            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="{ThemeResource SystemAccentColor}" />
-            <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="{ThemeResource SystemAccentColor}" />
-            <SolidColorBrush x:Key="SliderThumbBackground" Color="{ThemeResource SystemAccentColor}" />
-            <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="{ThemeResource SystemAccentColor}" />
-            <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="{ThemeResource SystemAccentColor}" />
-
-
-        </Grid.Resources>-->
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -44,11 +48,15 @@
                         FontSize="14"
                         FontWeight="SemiBold"
                         Text="Appearance &amp; Behavior" />
-                    <toolkit:SettingsCard Description="Select which app theme to display" Header="App Theme">
+                    <toolkit:SettingsCard Description="Select which theme mode to use" Header="Theme Mode">
                         <toolkit:SettingsCard.HeaderIcon>
-                            <FontIcon Glyph="&#xE790;" />
+                            <FontIcon Glyph="&#xE793;" />
                         </toolkit:SettingsCard.HeaderIcon>
-                        <Grid MinWidth="124" HorizontalAlignment="Right">
+                        <StackPanel
+                            MinWidth="124"
+                            HorizontalAlignment="Right"
+                            Orientation="Horizontal"
+                            Spacing="4">
                             <ComboBox
                                 x:Name="themeMode"
                                 MinWidth="124"
@@ -58,26 +66,78 @@
                                 <ComboBoxItem Content="Dark" Tag="Dark" />
                                 <ComboBoxItem Content="System" Tag="Default" />
                             </ComboBox>
-                        </Grid>
+                        </StackPanel>
                     </toolkit:SettingsCard>
-                    <!--<toolkit:SettingsExpander Description="Select accent color" Header="Accent Color">
+                    <toolkit:SettingsCard Description="Choose the window backdrop style" Header="System Backdrop">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE7C4;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ComboBox
+                            x:Name="systemBackdrop"
+                            MinWidth="124"
+                            SelectionChanged="SystemBackdrop_SelectionChanged"
+                            Style="{StaticResource AcrylicComboBoxStyle}">
+                            <ComboBoxItem Content="Mica" Tag="mica" />
+                            <ComboBoxItem Content="Mica Alt" Tag="micaalt" />
+                        </ComboBox>
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsExpander Description="Select accent color" Header="Accent Color">
                         <toolkit:SettingsExpander.HeaderIcon>
                             <FontIcon Glyph="&#xE790;" />
                         </toolkit:SettingsExpander.HeaderIcon>
-                        <TextBlock x:Name="accentColor" />
+                        <TextBlock
+                            x:Name="accentColor"
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Opacity="0.7" />
                         <toolkit:SettingsExpander.Items>
-                            <toolkit:SettingsCard>
-                                <ColorPicker
-                                    x:Name="accentColorPicker"
-                                    HorizontalAlignment="Right"
-                                    ColorChanged="accentColorPicker_ColorChanged"
-                                    IsAlphaEnabled="False"
-                                    IsColorChannelTextInputVisible="True"
-                                    IsColorSliderVisible="True"
-                                    IsColorSpectrumVisible="True" />
+                            <toolkit:SettingsCard Description="Use your chosen accent color in the launcher instead of the Windows accent color" Header="Custom accent color">
+                                <ToggleSwitch
+                                    x:Name="customAccentToggle"
+                                    OffContent=""
+                                    OnContent=""
+                                    Toggled="CustomAccentToggle_Toggled" />
                             </toolkit:SettingsCard>
+                            <toolkit:SettingsCard
+                                x:Name="currentAccentCard"
+                                Description="Choose the Current Accent Color"
+                                Header="Current accent color">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock
+                                        x:Name="currentAccentColor"
+                                        VerticalAlignment="Center"
+                                        FontSize="12"
+                                        Opacity="0.7"
+                                        Text="" />
+                                    <Button
+                                        x:Name="changeAccentColorButton"
+                                        Content="Change Accent Color"
+                                        FontSize="12">
+                                        <Button.Flyout>
+                                            <Flyout ShouldConstrainToRootBounds="True">
+                                                <Flyout.FlyoutPresenterStyle>
+                                                    <Style TargetType="FlyoutPresenter">
+                                                        <Setter Property="CornerRadius" Value="8" />
+                                                        <Setter Property="Background" Value="{ThemeResource AcrylicInAppFillColorDefaultBrush}" />
+                                                    </Style>
+                                                </Flyout.FlyoutPresenterStyle>
+                                                <Grid>
+                                                    <ColorPicker
+                                                        x:Name="accentColorPicker"
+                                                        ColorChanged="accentColorPicker_ColorChanged"
+                                                        IsAlphaEnabled="False"
+                                                        IsColorChannelTextInputVisible="True"
+                                                        IsColorSliderVisible="True"
+                                                        IsColorSpectrumVisible="True" />
+                                                </Grid>
+                                            </Flyout>
+                                        </Button.Flyout>
+                                    </Button>
+                                </StackPanel>
+                            </toolkit:SettingsCard>
+
                         </toolkit:SettingsExpander.Items>
-                    </toolkit:SettingsExpander>-->
+                    </toolkit:SettingsExpander>
                     <toolkit:SettingsExpander Description="Customize the launcher background image" Header="Background">
                         <toolkit:SettingsExpander.HeaderIcon>
                             <FontIcon Glyph="&#xE91B;" />
@@ -114,6 +174,7 @@
                                 </StackPanel>
                             </toolkit:SettingsCard>
                             <toolkit:SettingsCard
+                                x:Name="overlayOpacityCard"
                                 Padding="58,8,16,8"
                                 Description="Adjust the darkness of the overlay behind content"
                                 Header="Overlay Opacity">
@@ -126,6 +187,7 @@
                                     ValueChanged="OverlayOpacitySlider_ValueChanged" />
                             </toolkit:SettingsCard>
                             <toolkit:SettingsCard
+                                x:Name="overlayBlurCard"
                                 Padding="58,8,16,8"
                                 Description="Enable a blur effect on the overlay"
                                 Header="Overlay Blur">
@@ -250,7 +312,7 @@
                         Header="Update Available"
                         Visibility="Collapsed">
                         <toolkit:SettingsCard.HeaderIcon>
-                            <FontIcon Foreground="{ThemeResource SystemAccentColor}" Glyph="&#xE777;" />
+                            <FontIcon Foreground="{ThemeResource AccentColorBrush}" Glyph="&#xE777;" />
                         </toolkit:SettingsCard.HeaderIcon>
                         <StackPanel
                             HorizontalAlignment="Right"
@@ -342,6 +404,9 @@
                                     Orientation="Horizontal">
                                     <CheckBox Content="Snapshots" IsChecked="{x:Bind MainApp.VersionVM.ShowSnapshots, Mode=TwoWay}" />
                                     <CheckBox Content="Fabric" IsChecked="{x:Bind MainApp.VersionVM.ShowFabric, Mode=TwoWay}" />
+                                    <CheckBox Content="Forge" IsChecked="{x:Bind MainApp.VersionVM.ShowForge, Mode=TwoWay}" />
+                                    <CheckBox Content="NeoForge" IsChecked="{x:Bind MainApp.VersionVM.ShowNeoForge, Mode=TwoWay}" />
+                                    <!-- <CheckBox Content="OptiFine" IsChecked="{x:Bind MainApp.VersionVM.ShowOptiFine, Mode=TwoWay}" /> -->
                                     <CheckBox Content="&lt; 1.16" IsChecked="{x:Bind MainApp.VersionVM.ShowOld, Mode=TwoWay}" />
                                 </StackPanel>
                             </toolkit:SettingsCard>
@@ -384,6 +449,21 @@
                                 Click="ImportButton_Click"
                                 Content="Import Settings" />
                         </StackPanel>
+                    </toolkit:SettingsCard>
+
+                    <TextBlock
+                        Margin="0,8,0,6"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Text="Logs" />
+                    <toolkit:SettingsCard Description="Open the logs folder to troubleshoot issues or attach logs to bug reports" Header="Open Logs Folder">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE8D7;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <Button
+                            x:Name="openLogsFolderButton"
+                            Click="OpenLogsFolderButton_Click"
+                            Content="Open Folder" />
                     </toolkit:SettingsCard>
                 </StackPanel>
 

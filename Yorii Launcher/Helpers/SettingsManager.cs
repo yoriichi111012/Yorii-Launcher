@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using Windows.Storage;
@@ -11,13 +10,15 @@ namespace Yorii_Launcher.Helpers
         private static readonly object saveLock = new();
         private static UserSettings? current;
 
-        // set settings file path to %appdata%/Yorii Launcher/settings.json
-        private static string SettingsFilePath => Path.Combine(
+        // store launcher-owned state as yaml. the json path remains read-only migration input
+        internal static string SettingsFilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "Yorii Launcher",
-            "settings.json"
+            "settings.yaml"
         );
-        // main access point for settings, lazy init so RestoreSettings can replace it
+
+        private static string LegacySettingsFilePath => Path.ChangeExtension(SettingsFilePath, ".json");
+        // main access point for settings, lazy init so restoresettings can replace it
         public static UserSettings Current
         {
             get
@@ -27,15 +28,14 @@ namespace Yorii_Launcher.Helpers
             }
         }
 
-        // load settings from json and migrate from older localsettings model if first run (i'll remove migration in the next to next update)
+        // load yaml and migrate the previous json settings file once when present
         public static void RestoreSettings()
         {
             if (File.Exists(SettingsFilePath))
             {
                 try
                 {
-                    var json = File.ReadAllText(SettingsFilePath);
-                    var loaded = JsonSerializer.Deserialize(json, LauncherJsonContext.Default.UserSettings);
+                    var loaded = LauncherYaml.Deserialize<UserSettings>(File.ReadAllText(SettingsFilePath));
                     if (loaded != null)
                     {
                         current = loaded;
@@ -44,8 +44,16 @@ namespace Yorii_Launcher.Helpers
                 }
                 catch
                 {
-                    Debug.WriteLine("Failed to load settings so starting with defaults");
+                    Logger.Warn("Failed to load settings, starting with defaults");
                 }
+            }
+
+            if (TryLoadLegacySettings(out var legacySettings))
+            {
+                current = legacySettings;
+                SaveSettings();
+                Logger.Info("Migrated settings.json to settings.yaml");
+                return;
             }
 
             current = new UserSettings();
@@ -53,7 +61,7 @@ namespace Yorii_Launcher.Helpers
             SaveSettings();
         }
 
-        // save settings to json
+        // save settings as yaml
         public static void SaveSettings()
         {
             lock (saveLock)
@@ -66,18 +74,16 @@ namespace Yorii_Launcher.Helpers
 
                     current ??= new UserSettings();
 
-                    var json = JsonSerializer.Serialize(current, LauncherJsonContext.Default.UserSettings);
-                    // write write write
-                    File.WriteAllText(SettingsFilePath, json);
+                    File.WriteAllText(SettingsFilePath, LauncherYaml.Serialize(current));
                 }
                 catch
                 {
-                    Debug.WriteLine("Failed to save settings");
+                    Logger.Error("Failed to save settings");
                 }
             }
         }
 
-        // copy settings.json to  user chosen location
+        // copy settings.yaml to a user chosen location
         public static void ExportSettings(string destinationPath)
         {
             if (File.Exists(SettingsFilePath))
@@ -91,7 +97,27 @@ namespace Yorii_Launcher.Helpers
             RestoreSettings();
         }
 
-        // migrate old localsettings registry data to the new json file
+        private static bool TryLoadLegacySettings(out UserSettings settings)
+        {
+            settings = new UserSettings();
+            if (!File.Exists(LegacySettingsFilePath))
+                return false;
+
+            try
+            {
+                settings = JsonSerializer.Deserialize(
+                    File.ReadAllText(LegacySettingsFilePath),
+                    LauncherJsonContext.Default.UserSettings) ?? new UserSettings();
+                return true;
+            }
+            catch
+            {
+                Logger.Warn("Failed to migrate settings.json");
+                return false;
+            }
+        }
+
+        // migrate old localsettings registry data to the new yaml file
         private static void MigrateFromLocalSettings()
         {
             try
@@ -105,20 +131,18 @@ namespace Yorii_Launcher.Helpers
                 TryMigrateBool("InstancesEnabled", v => current.InstancesEnabled = v);
                 TryMigrateBool("ServerListEnabled", v => current.ServerListEnabled = v);
                 TryMigrateBool("WorldListEnabled", v => current.WorldListEnabled = v);
-                TryMigrateBool("ShowConsole", v => current.ShowConsole = v); // i mean it should count as misc. i dont really know where to put it in the settings page.
+                TryMigrateBool("ShowConsole", v => current.ShowConsole = v); // i mean it should count as misc. i dont really know where to put it in the settings page
                 TryMigrateString("WindowBehavior", v => current.WindowBehavior = v); // same for this one
                 // performance settings
                 TryMigrateDouble("RamAmount", v => current.RamAmount = v);
-                // theme and stuff
-                TryMigrateString("CurrentTheme", v => current.CurrentTheme = v);
-                TryMigrateString("BackgroundImagePath", v => current.BackgroundImagePath = v);
-                TryMigrateDouble("OverlayOpacity", v => current.OverlayOpacity = v);
-                TryMigrateBool("OverlayBlurEnabled", v => current.OverlayBlurEnabled = v);
                 // version filter settings
                 TryMigrateBool("ShowSnapshots", v => current.ShowSnapshots = v);
                 TryMigrateBool("ShowFabric", v => current.ShowFabric = v);
+                TryMigrateBool("ShowForge", v => current.ShowForge = v);
+                TryMigrateBool("ShowNeoForge", v => current.ShowNeoForge = v);
+                // trymigratebool("showoptifine", v => current.showoptifine = v)
                 TryMigrateBool("ShowOld", v => current.ShowOld = v);
-                // current account, instance and server and other account related cached stuff 
+                // current account, instance and server and other account related cached stuff
                 TryMigrateString("SelectedInstanceId", v => current.SelectedInstanceId = v);
                 TryMigrateString("SelectedAccountId", v => current.SelectedAccountId = v);
                 TryMigrateString("SelectedServerAddress", v => current.SelectedServerAddress = v);
@@ -149,8 +173,8 @@ namespace Yorii_Launcher.Helpers
             }
             catch (InvalidOperationException)
             {
-                // Happens when running unpackaged / no package identity - skip LocalSettings migration
-                Debug.WriteLine("Skipping LocalSettings migration: no package identity.");
+                // happens when running unpackaged / no package identity - skip localsettings migration
+                Logger.Info("Skipping LocalSettings migration: no package identity.");
             }
         }
     }

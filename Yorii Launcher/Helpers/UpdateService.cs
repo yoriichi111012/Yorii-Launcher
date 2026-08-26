@@ -3,8 +3,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
+using Yorii_Launcher.Models;
 
 namespace Yorii_Launcher.Helpers
 {
@@ -39,7 +41,7 @@ namespace Yorii_Launcher.Helpers
             }
         }
 
-        // switched from github API to a direct HEAD request — no rate limits,
+        // switched from github api to a direct head request — no rate limits
         // no json parsing, same pattern as the installer script
         public static async Task<UpdateInfo?> CheckForUpdateAsync()
         {
@@ -48,7 +50,7 @@ namespace Yorii_Launcher.Helpers
                 var arch = GetCurrentArchitecture();
                 var packageUrl = $"{DownloadBaseUrl}/Yorii.Launcher_{arch}.msix";
 
-                Debug.WriteLine($"[UpdateService] HEAD {packageUrl}");
+                Logger.Info($"Checking update: HEAD {packageUrl}");
 
                 using var handler = new SocketsHttpHandler { AllowAutoRedirect = false };
                 using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
@@ -59,27 +61,27 @@ namespace Yorii_Launcher.Helpers
 
                 if ((int)response.StatusCode < 300 || (int)response.StatusCode >= 400)
                 {
-                    Debug.WriteLine($"[UpdateService] Expected redirect, got {response.StatusCode}");
+                    Logger.Warn($"Expected redirect, got {response.StatusCode}");
                     return null;
                 }
 
                 var location = response.Headers.Location;
                 if (location == null)
                 {
-                    Debug.WriteLine("[UpdateService] No Location header in redirect");
+                    Logger.Warn("No Location header in redirect");
                     return null;
                 }
 
         // location may be relative or absolute, either way resolve against github.com
                 var redirectUri = location.IsAbsoluteUri ? location : new Uri(new Uri("https://github.com"), location);
 
-                Debug.WriteLine($"[UpdateService] Redirect → {redirectUri}");
+                Logger.Info($"Redirect → {redirectUri}");
 
                 // path segments: /, user/, repo/, releases/, download/, v0.7/, file.msix
                 var segments = redirectUri.Segments;
                 if (segments.Length < 7)
                 {
-                    Debug.WriteLine("[UpdateService] Unexpected redirect path structure");
+                    Logger.Warn("Unexpected redirect path structure");
                     return null;
                 }
 
@@ -89,20 +91,20 @@ namespace Yorii_Launcher.Helpers
                 var latestVersion = ParseVersion(tagName);
                 if (latestVersion == null)
                 {
-                    Debug.WriteLine($"[UpdateService] Failed to parse version from tag: {tagName}");
+                    Logger.Warn($"Failed to parse version from tag: {tagName}");
                     return null;
                 }
 
                 var currentVersion = GetCurrentVersion();
-                Debug.WriteLine($"[UpdateService] Current: {currentVersion}, Latest: {latestVersion}");
+                Logger.Info($"Current: {currentVersion}, Latest: {latestVersion}");
 
                 if (latestVersion <= currentVersion)
                 {
-                    Debug.WriteLine("[UpdateService] Already up to date");
+                    Logger.Info("Already up to date");
                     return null;
                 }
 
-                Debug.WriteLine("[UpdateService] Update available!");
+                Logger.Info("Update available!");
                 var info = new UpdateInfo
                 {
                     Version = latestVersion,
@@ -114,12 +116,12 @@ namespace Yorii_Launcher.Helpers
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[UpdateService] Check failed: {ex}");
+                Logger.Error($"Update check failed: {ex.Message}");
                 return null;
             }
         }
 
-        public static async Task<string?> DownloadUpdateAsync(UpdateInfo info, IProgress<double>? progress = null)
+        public static async Task<string?> DownloadUpdateAsync(UpdateInfo info, IProgress<double>? progress = null, DownloadItem? item = null)
         {
             try
             {
@@ -128,32 +130,45 @@ namespace Yorii_Launcher.Helpers
 
                 var msixPath = Path.Combine(tempDir, info.AssetName ?? "update.msix");
 
-                using var response = await HttpService.DownloadClient.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                item ??= DownloadManager.Add($"Yorii Launcher update {info.Version}", DownloadKind.Update);
+
+                using var response = await HttpService.DownloadClient.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, item.Token).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
 
                 var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                await using var contentStream = await response.Content.ReadAsStreamAsync();
-                await using var fileStream = File.Create(msixPath);
+                await using var contentStream = await response.Content.ReadAsStreamAsync(item.Token).ConfigureAwait(false);
+                await using var fileStream = File.Create(msixPath, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
 
                 var buffer = new byte[81920];
                 long downloaded = 0;
                 int bytesRead;
 
-                while ((bytesRead = await contentStream.ReadAsync(buffer)) > 0)
+                while ((bytesRead = await contentStream.ReadAsync(buffer, item.Token).ConfigureAwait(false)) > 0)
                 {
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), item.Token).ConfigureAwait(false);
                     downloaded += bytesRead;
 
                     if (totalBytes > 0)
+                    {
                         progress?.Report((double)downloaded / totalBytes * 100);
+                        item.SetByteProgress(downloaded, totalBytes);
+                    }
                 }
 
+                item.Complete();
                 progress?.Report(100);
                 return msixPath;
             }
+            catch (OperationCanceledException)
+            {
+                Logger.Info("Update download cancelled by user");
+                item?.Cancel();
+                return null;
+            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[UpdateService] Download failed: {ex.Message}");
+                Logger.Error($"Download failed: {ex.Message}");
+                item?.Fail(ex.Message);
                 return null;
             }
         }

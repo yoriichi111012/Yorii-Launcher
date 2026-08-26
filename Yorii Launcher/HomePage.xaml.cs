@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Yorii_Launcher.Helpers;
@@ -34,14 +35,15 @@ namespace Yorii_Launcher
             worldsListView.ItemsSource = worlds;
 
             releaseNotesService = new MinecraftReleaseNotesService(HttpService.Client);
-            MainWindow.Instance?.RegisterHomeControls(accountComboBox, versionComboBox, playButton, downloadProgressBar);
+            MainWindow.Instance?.RegisterHomeControls(accountComboBox, versionComboBox, playButton);
             RefreshHomeState();
+            MemoryOptimizer.ReduceMemory();
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-            MainWindow.Instance?.RegisterHomeControls(accountComboBox, versionComboBox, playButton, downloadProgressBar);
+            MainWindow.Instance?.RegisterHomeControls(accountComboBox, versionComboBox, playButton);
             RefreshHomeState();
         }
 
@@ -146,8 +148,9 @@ namespace Yorii_Launcher
 
         private void UpdateSummaryCards()
         {
-            instancesButton.Visibility = SettingsManager.Current.InstancesEnabled ? Visibility.Visible : Visibility.Collapsed;
-
+            // the instance card doubles as the instances entry point: it shows
+            // the active instance (or default-folder text when disabled) and
+            // navigates to the instances page only while instances are enabled
             if (SettingsManager.Current.InstancesEnabled)
             {
                 var selectedInstance = InstanceManager.GetSelectedInstance();
@@ -277,7 +280,10 @@ namespace Yorii_Launcher
                     : entries.FirstOrDefault(e =>
                         string.Equals(e.Version, lastSelectedReleaseNote.Version, StringComparison.OrdinalIgnoreCase));
 
-                match ??= entries.FirstOrDefault();
+                // prefer the newest version that actually has notes so the
+                // heading doesn't open on a placeholder for an unreleased
+                // snapshot mojang hasn't published notes for yet
+                match ??= entries.FirstOrDefault(e => e.HasChangelog) ?? entries.FirstOrDefault();
 
                 if (match != null)
                 {
@@ -420,6 +426,13 @@ namespace Yorii_Launcher
             MainWindow.Instance?.SelectSection("instances");
         }
 
+        // the instance card is a plain border with tapped (not a button) so its
+        // appearance is pixel-identical at rest and on hover — no control chrome
+        private void InstanceCard_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            InstancesButton_Click(sender, e);
+        }
+
         private void ModsButton_Click(object sender, RoutedEventArgs e)
         {
             MainWindow.Instance?.SelectSection("extensions");
@@ -478,12 +491,14 @@ namespace Yorii_Launcher
                 PrimaryButtonText = "Delete",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Close,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 XamlRoot = XamlRoot,
                 RequestedTheme = ThemeHelper.GetCurrentTheme()
             };
 
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (result != ContentDialogResult.Primary)
                 return;
@@ -512,7 +527,7 @@ namespace Yorii_Launcher
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Create world failed: {ex}");
+                Logger.Error($"Create world failed: {ex.Message}");
                 NotificationHelper.Show("World not created", ex.Message);
             }
         }
@@ -541,7 +556,7 @@ namespace Yorii_Launcher
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Edit world failed: {ex}");
+                Logger.Error($"Edit world failed: {ex.Message}");
                 NotificationHelper.Show("World not edited", ex.Message);
             }
         }
@@ -562,11 +577,13 @@ namespace Yorii_Launcher
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = XamlRoot,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 RequestedTheme = ThemeHelper.GetCurrentTheme()
             };
 
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (result != ContentDialogResult.Primary)
                 return;
@@ -578,7 +595,7 @@ namespace Yorii_Launcher
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Delete world failed: {ex}");
+                Logger.Error($"Delete world failed: {ex.Message}");
                 NotificationHelper.Show("World not deleted", ex.Message);
             }
         }
@@ -614,12 +631,14 @@ namespace Yorii_Launcher
                 PrimaryButtonText = "Save",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 XamlRoot = XamlRoot,
                 RequestedTheme = ThemeHelper.GetCurrentTheme()
             };
 
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (result != ContentDialogResult.Primary)
                 return null;
@@ -656,12 +675,14 @@ namespace Yorii_Launcher
                 PrimaryButtonText = "Save",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
-                Background = (Brush)Application.Current.Resources["CustomAcrylicBrush"],
+                Background = DialogHelper.GetAcrylicBrush(),
                 XamlRoot = XamlRoot,
                 RequestedTheme = ThemeHelper.GetCurrentTheme()
             };
 
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
 
             if (result != ContentDialogResult.Primary)
                 return null;

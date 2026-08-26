@@ -72,7 +72,7 @@ namespace Yorii_Launcher.Pages
                 ModsErrorPanel.Visibility = Visibility.Collapsed;
                 var newMods = await ModrinthHelper.SearchProjectsAsync(ModrinthProjectKind.Mod, query);
 
-                // REMOVE OLD ITEMS
+                // remove old items
                 for (int i = OnlineMods.Count - 1; i >= 0; i--)
                 {
                     bool exists =
@@ -85,7 +85,7 @@ namespace Yorii_Launcher.Pages
                     }
                 }
 
-                // ADD NEW ITEMS
+                // add new items
                 foreach (var mod in newMods)
                 {
                     bool exists =
@@ -114,12 +114,25 @@ namespace Yorii_Launcher.Pages
 
             try
             {
-                await ModrinthHelper.InstallLatestProjectAsync(ModrinthProjectKind.Mod, mod.Slug);
+                if (ModrinthHelper.IsAlreadyInstalled(ModrinthProjectKind.Mod, mod.Slug))
+                {
+                    NotificationHelper.Show("Mod already installed", $"'{mod.Title}' is already installed.");
+                    return;
+                }
+
+                await ModrinthHelper.InstallLatestProjectAsync(ModrinthProjectKind.Mod, mod.Slug, mod.Title, mod.Icon);
+            }
+            catch (OperationCanceledException)
+            {
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex);
-                NotificationHelper.Show("Mod install failed", $"Could not install {mod.Title}. Check your internet connection.");
+                Logger.Error($"Mod install failed ({mod.Title}): {ex.Message}");
+
+                if (IsNetworkError(ex))
+                    NotificationHelper.Show("Mod install failed", $"Could not reach Modrinth. Check your internet connection.");
+                else
+                    NotificationHelper.Show("Mod install failed", $"Could not install {mod.Title}.");
             }
         }
 
@@ -162,7 +175,28 @@ namespace Yorii_Launcher.Pages
 
                 item.Click += async (_, __) =>
                 {
-                    await ModrinthHelper.InstallVersionAsync(ModrinthProjectKind.Mod, version.VersionId);
+                    try
+                    {
+                        if (ModrinthHelper.IsAlreadyInstalled(ModrinthProjectKind.Mod, mod.Slug))
+                        {
+                            NotificationHelper.Show("Mod already installed", $"'{mod.Title}' is already installed.");
+                            return;
+                        }
+
+                        await ModrinthHelper.InstallVersionAsync(ModrinthProjectKind.Mod, version.VersionId, mod.Title, mod.Icon);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Mod install failed ({mod.Title}): {ex.Message}");
+
+                        if (IsNetworkError(ex))
+                            NotificationHelper.Show("Mod install failed", $"Could not reach Modrinth. Check your internet connection.");
+                        else
+                            NotificationHelper.Show("Mod install failed", $"Could not install {mod.Title}.");
+                    }
                 };
 
                 flyout.Items.Add(item);
@@ -205,7 +239,7 @@ namespace Yorii_Launcher.Pages
                 try
                 {
                     ModsErrorPanel.Visibility = Visibility.Collapsed;
-                    var featuredMods = new[] { "sodium", "lithium", "ferritecore", "fabric-api", "immediatelyfast", "appleskin", "dark-loading-screen" };
+                    var featuredMods = new[] { "sodium", "lithium", "entity culling", "particle core", "concurrent chunk management engine", "asyncparticles", "ixeris", "gnetum", "scalablelux", "ferritecore", "fabric-api", "immediatelyfast", "appleskin", "dark-loading-screen" };
 
                     var tasks = featuredMods.Select(async modQuery =>
                     {
@@ -233,6 +267,11 @@ namespace Yorii_Launcher.Pages
             }
 
         }
+
+        private static bool IsNetworkError(Exception ex) => ex is
+            System.Net.Http.HttpRequestException
+            or System.Net.Sockets.SocketException
+            or System.IO.IOException;
     }
 
 }

@@ -6,14 +6,16 @@ namespace Yorii_Launcher.Helpers
     public static class NotificationHelper
     {
         // fire-and-forget toast notification, user doesnt have to click anything
-        public static void Show(string title, string message)
+        public static void Show(string title, string message, bool silent = false)
         {
-            var notification = new AppNotificationBuilder()
+            var builder = new AppNotificationBuilder()
                 .AddText(title)
-                .AddText(message)
-                .BuildNotification();
+                .AddText(message);
 
-            AppNotificationManager.Default.Show(notification);
+            if (silent)
+                builder.MuteAudio();
+
+            AppNotificationManager.Default.Show(builder.BuildNotification());
         }
     }
 }

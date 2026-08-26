@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:Yorii_Launcher"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Yorii_Launcher.Models"
     Title="Yorii Launcher"
     Closed="Window_Closed"
     mc:Ignorable="d">
@@ -46,72 +47,6 @@
                 <ImageIconSource ImageSource="/Assets/Tiles/GalleryIcon.ico" />
             </TitleBar.IconSource>
 
-            <TitleBar.Content>
-                <Grid>
-                    <!--<AutoSuggestBox
-                        x:Name="searchBox"
-                        Width="360"
-                        VerticalAlignment="Center"
-                        PlaceholderText="Search.."
-                        QueryIcon="Find" />-->
-                    <Grid
-                        x:Name="compactTitleBarControls"
-                        HorizontalAlignment="Center"
-                        ColumnSpacing="8"
-                        RowSpacing="2"
-                        Visibility="Collapsed">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="36" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="188" />
-                            <ColumnDefinition Width="220" />
-                        </Grid.ColumnDefinitions>
-                        <ComboBox
-                            x:Name="compactAccountComboBox"
-                            Grid.Row="0"
-                            Grid.Column="0"
-                            Width="220"
-                            Height="32"
-                            HorizontalAlignment="Stretch"
-                            VerticalAlignment="Center"
-                            PlaceholderText="Player"
-                            SelectionChanged="AccountComboBox_SelectionChanged"
-                            Style="{StaticResource AcrylicComboBoxStyle}" />
-                        <Button
-                            x:Name="compactPlayButton"
-                            Grid.Row="0"
-                            Grid.Column="1"
-                            Width="188"
-                            Height="32"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Click="PlayButton_Click"
-                            Content="Play"
-                            Style="{ThemeResource AccentButtonStyle}" />
-
-                        <ComboBox
-                            x:Name="compactVersionComboBox"
-                            Grid.Row="0"
-                            Grid.Column="2"
-                            Width="220"
-                            Height="32"
-                            VerticalAlignment="Center"
-                            DropDownClosed="VersionList_DropDownClosed"
-                            PlaceholderText="Version"
-                            SelectionChanged="VersionList_SelectionChanged"
-                            Style="{StaticResource AcrylicComboBoxStyle}" />
-                        <ProgressBar
-                            x:Name="compactDownloadProgressBar"
-                            Grid.Row="1"
-                            Grid.ColumnSpan="3"
-                            Opacity="0"
-                            Value="0" />
-                    </Grid>
-                </Grid>
-            </TitleBar.Content>
             <TitleBar.RightHeader>
                 <Grid>
                     <StackPanel
@@ -126,52 +61,347 @@
                             Background="Transparent"
                             BorderBrush="Transparent"
                             Click="BugReportButton_Click"
+                            CornerRadius="16"
                             ToolTipService.ToolTip="Report Bug">
                             <FontIcon
                                 FontSize="16"
                                 FontWeight="Light"
                                 Glyph="&#xEBE8;" />
                         </Button>
-                        <Button
-                            x:Name="CompactModeButton"
-                            Width="32"
-                            Height="32"
-                            Padding="0,0,0,0"
-                            Background="Transparent"
-                            BorderBrush="Transparent"
-                            Click="CompactModeButton_Click"
-                            ToolTipService.ToolTip="Compact Mode">
-                            <FontIcon
-                                FontSize="16"
-                                FontWeight="Light"
-                                Glyph="&#xE8A7;" />
-                        </Button>
-                    </StackPanel>
-                    <StackPanel
-                        x:Name="compactRightHeaderControls"
-                        Orientation="Horizontal"
-                        Spacing="8"
-                        Visibility="Collapsed">
-                        <Button
-                            x:Name="RestoreOriginalModeButton"
-                            Width="32"
-                            Height="32"
-                            Padding="0,0,0,0"
-                            Background="Transparent"
-                            BorderBrush="Transparent"
-                            Click="RestoreOriginalModeButton_Click"
-                            ToolTipService.ToolTip="Restore Original Mode">
-                            <FontIcon
-                                FontSize="16"
-                                FontWeight="Light"
-                                Glyph="&#xE740;" />
-                        </Button>
+
+                        <Grid>
+                            <ProgressRing
+                                x:Name="downloadsProgressRing"
+                                Width="34"
+                                Height="34"
+                                IsActive="False"
+                                IsIndeterminate="True"
+                                Opacity="0" />
+
+                            <Button
+                                Width="32"
+                                Height="32"
+                                Padding="0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                CornerRadius="16"
+                                ToolTipService.ToolTip="Downloads">
+                                <Button.Flyout>
+                                    <Flyout x:Name="downloadsFlyout" ShouldConstrainToRootBounds="True">
+                                        <Flyout.FlyoutPresenterStyle>
+                                            <Style TargetType="FlyoutPresenter">
+                                                <Setter Property="CornerRadius" Value="8" />
+                                                <Setter Property="Background" Value="{ThemeResource PopupAcrylicBrush}" />
+                                            </Style>
+                                        </Flyout.FlyoutPresenterStyle>
+                                        <Grid
+                                            Width="340"
+                                            Padding="0,2,0,0"
+                                            RowSpacing="6">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock
+                                                x:Name="downloadsHeaderText"
+                                                FontSize="14"
+                                                FontWeight="SemiBold"
+                                                Text="Download Progress" />
+                                            <TextBlock
+                                                x:Name="downloadsEmptyText"
+                                                Grid.Row="1"
+                                                FontSize="12"
+                                                Opacity="0.6"
+                                                Text="Your downloading progress shows up here." />
+                                            <ListView
+                                                x:Name="downloadsListView"
+                                                Grid.Row="2"
+                                                SelectionMode="None">
+                                                <ListView.ItemContainerStyle>
+                                                    <Style TargetType="ListViewItem">
+                                                        <Setter Property="Padding" Value="0" />
+                                                        <Setter Property="Margin" Value="0" />
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ListViewItem">
+                                                                    <ListViewItemPresenter
+                                                                        Padding="0"
+                                                                        CheckBoxBrush="Transparent"
+                                                                        ContentMargin="0"
+                                                                        SelectionIndicatorVisualEnabled="False" />
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </ListView.ItemContainerStyle>
+                                                <ListView.ItemTemplate>
+                                                    <DataTemplate x:DataType="models:DownloadItem">
+                                                        <Grid
+                                                            Padding="12,8"
+                                                            VerticalAlignment="Center"
+                                                            ColumnSpacing="14">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto" />
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid
+                                                                Width="28"
+                                                                Height="28"
+                                                                VerticalAlignment="Center">
+                                                                <Image
+                                                                    Width="28"
+                                                                    Height="28"
+                                                                    Source="{x:Bind Icon}"
+                                                                    Stretch="UniformToFill"
+                                                                    Visibility="{x:Bind IconVisibility, Mode=OneWay}" />
+                                                                <FontIcon
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    FontSize="16"
+                                                                    Foreground="{ThemeResource AccentColorBrush}"
+                                                                    Glyph="{x:Bind IconGlyph}"
+                                                                    Visibility="{x:Bind GlyphVisibility, Mode=OneWay}" />
+                                                            </Grid>
+                                                            <StackPanel
+                                                                Grid.Column="1"
+                                                                VerticalAlignment="Center"
+                                                                Spacing="2">
+                                                                <TextBlock
+                                                                    FontSize="12"
+                                                                    FontWeight="SemiBold"
+                                                                    Text="{x:Bind Name}"
+                                                                    TextTrimming="CharacterEllipsis" />
+                                                                <ProgressBar
+                                                                    Height="4"
+                                                                    IsIndeterminate="{x:Bind IsIndeterminate, Mode=OneWay}"
+                                                                    Maximum="100"
+                                                                    Visibility="{x:Bind ProgressBarVisibility, Mode=OneWay}"
+                                                                    Value="{x:Bind Progress, Mode=OneWay}" />
+                                                                <TextBlock
+                                                                    FontSize="11"
+                                                                    Opacity="0.6"
+                                                                    Text="{x:Bind StatusText, Mode=OneWay}"
+                                                                    TextTrimming="CharacterEllipsis" />
+                                                            </StackPanel>
+                                                            <Button
+                                                                Grid.Column="2"
+                                                                Width="28"
+                                                                Height="28"
+                                                                Padding="0"
+                                                                VerticalAlignment="Center"
+                                                                Background="Transparent"
+                                                                BorderThickness="0"
+                                                                Click="CancelDownload_Click"
+                                                                Tag="{x:Bind}"
+                                                                ToolTipService.ToolTip="Cancel"
+                                                                Visibility="{x:Bind CancelVisibility, Mode=OneWay}">
+                                                                <FontIcon FontSize="12" Glyph="&#xE711;" />
+                                                            </Button>
+                                                            <Grid
+                                                                Grid.Column="2"
+                                                                Width="28"
+                                                                Height="28"
+                                                                VerticalAlignment="Center">
+                                                                <FontIcon
+                                                                    HorizontalAlignment="Center"
+                                                                    VerticalAlignment="Center"
+                                                                    FontSize="14"
+                                                                    Foreground="{ThemeResource AccentColorBrush}"
+                                                                    Glyph="{x:Bind StatusGlyph, Mode=OneWay}"
+                                                                    Visibility="{x:Bind StatusGlyphVisibility, Mode=OneWay}" />
+                                                            </Grid>
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ListView.ItemTemplate>
+                                            </ListView>
+                                        </Grid>
+
+                                    </Flyout>
+                                </Button.Flyout>
+                                <FontIcon
+                                    FontSize="16"
+                                    FontWeight="Light"
+                                    Glyph="&#xE896;" />
+                            </Button>
+
+                        </Grid>
+
+                        <Grid Width="32" Height="32">
+                            <Button
+                                x:Name="AccountsButton"
+                                Width="32"
+                                Height="32"
+                                Padding="0,0,0,0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                CornerRadius="16"
+                                ToolTipService.ToolTip="Account">
+                                <Button.Flyout>
+                                    <Flyout
+                                        x:Name="accountsFlyout"
+                                        Placement="BottomEdgeAlignedRight"
+                                        ShouldConstrainToRootBounds="True">
+                                        <Flyout.FlyoutPresenterStyle>
+                                            <Style TargetType="FlyoutPresenter">
+                                                <Setter Property="Padding" Value="0" />
+                                                <Setter Property="CornerRadius" Value="8" />
+                                                <Setter Property="Background" Value="{ThemeResource PopupAcrylicBrush}" />
+                                            </Style>
+                                        </Flyout.FlyoutPresenterStyle>
+                                        <StackPanel
+                                            Width="250"
+                                            Padding="1,0,1,0"
+                                            Orientation="Vertical">
+
+                                            <Grid Padding="16,10" ColumnSpacing="10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid
+                                                    Width="28"
+                                                    Height="28"
+                                                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                                    CornerRadius="14">
+                                                    <Ellipse
+                                                        x:Name="githubAvatarImage"
+                                                        Width="28"
+                                                        Height="28"
+                                                        Visibility="Collapsed" />
+                                                    <FontIcon
+                                                        x:Name="genericAccountIcon"
+                                                        FontSize="14"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Glyph="&#xE77B;" />
+                                                </Grid>
+                                                <StackPanel
+                                                    Grid.Column="1"
+                                                    VerticalAlignment="Center"
+                                                    Spacing="2">
+                                                    <TextBlock
+                                                        x:Name="accountNameText"
+                                                        FontSize="14"
+                                                        FontWeight="SemiBold"
+                                                        Text="Not signed in"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                    <TextBlock
+                                                        x:Name="accountStatusText"
+                                                        FontSize="12"
+                                                        Opacity="0.6"
+                                                        Text="Sign in to link private profiles"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Grid>
+                                            <Border
+                                                Height="1"
+                                                Margin="0,4,0,4"
+                                                Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                                            <Button
+                                                Height="32"
+                                                Padding="12,0,0,0"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Click="AccountFlyout_Themes_Click">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <FontIcon
+                                                        VerticalAlignment="Center"
+                                                        FontSize="18"
+                                                        Glyph="&#xF4A5;" />
+                                                    <TextBlock VerticalAlignment="Center" Text="Themes" />
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Button
+                                                Height="32"
+                                                Padding="13,0,0,0"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Click="AccountFlyout_Skins_Click">
+                                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                                    <FontIcon
+                                                        VerticalAlignment="Center"
+                                                        FontSize="14"
+                                                        Glyph="&#xE7B8;" />
+                                                    <TextBlock VerticalAlignment="Center" Text="Manage Skins" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button
+                                                x:Name="viewGitHubProfileItem"
+                                                Height="32"
+                                                Padding="13,0,0,0"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Click="AccountFlyout_Profile_Click">
+                                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                                    <FontIcon
+                                                        VerticalAlignment="Center"
+                                                        FontSize="14"
+                                                        Glyph="&#xE774;" />
+                                                    <TextBlock VerticalAlignment="Center" Text="View your profiles repository" />
+                                                </StackPanel>
+                                            </Button>
+
+                                            <Border
+                                                Height="1"
+                                                Margin="0,4,0,4"
+                                                Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                                            <Button
+                                                x:Name="disconnectItem"
+                                                Height="32"
+                                                Margin="0,0,0,4"
+                                                Padding="38,0,0,0"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Click="AccountFlyout_Disconnect_Click">
+                                                <TextBlock
+                                                    x:Name="disconnectItemText"
+                                                    VerticalAlignment="Center"
+                                                    Text="Sign Out" />
+                                            </Button>
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
+                                <Grid Width="24" Height="24">
+                                    <Ellipse
+                                        x:Name="githubAvatarButtonImage"
+                                        Width="24"
+                                        Height="24"
+                                        Visibility="Collapsed" />
+                                    <FontIcon
+                                        x:Name="genericAccountButtonIcon"
+                                        FontSize="16"
+                                        FontWeight="Light"
+                                        Glyph="&#xE77B;" />
+                                </Grid>
+                            </Button>
+                        </Grid>
                     </StackPanel>
                 </Grid>
             </TitleBar.RightHeader>
         </TitleBar>
 
+
         <Frame x:Name="mainFrame" Grid.Row="1" />
+
+
 
     </Grid>
 </Window>

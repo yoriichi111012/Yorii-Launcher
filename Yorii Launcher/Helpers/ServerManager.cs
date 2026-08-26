@@ -21,7 +21,7 @@ namespace Yorii_Launcher.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[ServerManager] Failed to parse servers.dat: {ex.Message}");
+                Logger.Warn($"Failed to parse servers.dat: {ex.Message}");
                 return [];
             }
         }
@@ -106,7 +106,7 @@ namespace Yorii_Launcher.Helpers
             File.WriteAllBytes(serversDat, ms.ToArray());
         }
 
-        // 0x1F 0x8B = gzip magic bytes
+        // 0x1f 0x8b = gzip magic bytes
         private static List<ServerItem> ParseServersDat(string path)
         {
             byte[] data = File.ReadAllBytes(path);
@@ -142,43 +142,43 @@ namespace Yorii_Launcher.Helpers
 
             switch (type)
             {
-                case 10: // tag_Compound
+                case 10: // tag_compound
                     ReadCompound(reader, servers);
                     break;
-                case 9: // tag_List
+                case 9: // tag_list
                     ReadList(reader, servers);
                     break;
-                case 8: // tag_String
+                case 8: // tag_string
                     ReadString(reader);
                     break;
-                case 3: // tag_Int
+                case 3: // tag_int
                     ReadInt32BE(reader);
                     break;
-                case 2: // tag_Short
+                case 2: // tag_short
                     reader.ReadInt16();
                     break;
-                case 5: // tag_Double
+                case 5: // tag_double
                     reader.ReadDouble();
                     break;
-                case 6: // tag_Float
+                case 6: // tag_float
                     reader.ReadSingle();
                     break;
-                case 7: // tag_Byte_Array
+                case 7: // tag_byte_array
                     var arrLen = ReadInt32BE(reader);
                     reader.ReadBytes(arrLen);
                     break;
-                case 11: // tag_Int_Array   
+                case 11: // tag_int_array
                     var intLen = ReadInt32BE(reader);
                     for (int i = 0; i < intLen; i++) ReadInt32BE(reader);
                     break;
-                case 12: // tag_Long_Array
+                case 12: // tag_long_array
                     var longLen = ReadInt32BE(reader);
                     for (int i = 0; i < longLen; i++) reader.ReadInt64();
                     break;
-                case 1: // tag_Byte
+                case 1: // tag_byte
                     reader.ReadByte();
                     break;
-                case 4: // tag_Long
+                case 4: // tag_long
                     reader.ReadInt64();
                     break;
             }
@@ -202,34 +202,34 @@ namespace Yorii_Launcher.Helpers
 
                 switch (type)
                 {
-                    case 8: // tag_String
+                    case 8: // tag_string
                         var val = ReadString(reader);
                         if (key == "name") name = val;
                         else if (key == "ip") ip = val;
                         else if (key == "icon") icon = val;
                         break;
-                    case 3: // tag_Int
+                    case 3: // tag_int
                         var intVal = ReadInt32BE(reader);
                         if (key == "port") port = intVal;
                         break;
                     case 10: // nested compound
                         SkipCompound(reader);
                         break;
-                    case 9: // tag_List
+                    case 9: // tag_list
                         if (key == "servers")
                             ReadList(reader, servers);
                         else
                             SkipList(reader);
                         break;
-                    case 7: // tag_Byte_Array
+                    case 7: // tag_byte_array
                         var arrLen = ReadInt32BE(reader);
                         reader.ReadBytes(arrLen);
                         break;
-                    case 11: // tag_Int_Array
+                    case 11: // tag_int_array
                         var intLen = ReadInt32BE(reader);
                         for (int i = 0; i < intLen; i++) ReadInt32BE(reader);
                         break;
-                    case 12: // tag_Long_Array
+                    case 12: // tag_long_array
                         var longLen = ReadInt32BE(reader);
                         for (int i = 0; i < longLen; i++) reader.ReadInt64();
                         break;
@@ -345,7 +345,7 @@ namespace Yorii_Launcher.Helpers
             }
         }
 
-        // nbt uses big endian, .net doesnt. manually swap bytes.
+        // nbt uses big endian, .net doesnt. manually swap bytes
         private static int ReadInt32BE(BinaryReader reader)
         {
             var b0 = reader.ReadByte();

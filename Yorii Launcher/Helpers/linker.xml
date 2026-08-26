@@ -1,4 +1,4 @@
 ﻿<linker>
-	<assembly fullname="CmlLib.Core" preserve="all"/>
+	<assembly fullname="Quiescent.Core" preserve="all"/>
 	
 </linker>

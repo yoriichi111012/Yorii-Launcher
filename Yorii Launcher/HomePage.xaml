@@ -30,10 +30,20 @@
             <Border
                 MinHeight="260"
                 Padding="24"
-                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8">
+
+                <!--<Border
+                MinHeight="260"
+                Padding="24"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Border.Background>
+                    <media:BackdropBlurBrush Amount="10.0" />
+                </Border.Background>-->
                 <Grid ColumnSpacing="24">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -53,7 +63,7 @@
                             <TextBlock
                                 FontSize="13"
                                 FontWeight="SemiBold"
-                                Foreground="{ThemeResource SystemAccentColor}"
+                                Foreground="{ThemeResource AccentColorBrush}"
                                 Text="YORII LAUNCHER" />
                             <TextBlock
                                 FontSize="34"
@@ -80,7 +90,28 @@
                                 Header="Player"
                                 PlaceholderText="Select player"
                                 SelectionChanged="AccountComboBox_SelectionChanged"
-                                Style="{StaticResource AcrylicComboBoxStyle}" />
+                                Style="{StaticResource AcrylicComboBoxStyle}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="models:AccountComboItem">
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <Grid Width="16" Height="16">
+                                                <Image
+                                                    Width="16"
+                                                    Height="16"
+                                                    Source="{x:Bind PreviewImage, Mode=OneWay}"
+                                                    Stretch="Uniform"
+                                                    Visibility="{x:Bind models:AccountComboItem.HeadVisibility(PreviewImage)}" />
+                                                <FontIcon
+                                                    FontSize="12"
+                                                    Foreground="{ThemeResource AccentColorBrush}"
+                                                    Glyph="{x:Bind IconGlyph}"
+                                                    Visibility="{x:Bind models:AccountComboItem.GlyphVisibility(IconGlyph)}" />
+                                            </Grid>
+                                            <TextBlock VerticalAlignment="Center" Text="{x:Bind DisplayName}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
 
                             <ComboBox
                                 x:Name="versionComboBox"
@@ -93,12 +124,12 @@
                                 Style="{StaticResource AcrylicComboBoxStyle}" />
                         </Grid>
 
-                        <ProgressBar
+                        <!-- <ProgressBar
                             x:Name="downloadProgressBar"
                             Grid.Row="2"
                             Maximum="100"
                             Minimum="0"
-                            Opacity="0" />
+                            Opacity="0" />-->
 
 
                     </Grid>
@@ -120,18 +151,6 @@
                             Click="OpenFolderButton_Click"
                             ToolTipService.ToolTip="Open Minecraft folder">
                             <FontIcon FontSize="16" Glyph="&#xE838;" />
-                        </Button>
-                        <Button
-                            x:Name="instancesButton"
-                            Grid.Column="1"
-                            Width="44"
-                            Height="36"
-                            Padding="0"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Click="InstancesButton_Click"
-                            ToolTipService.ToolTip="Instances">
-                            <FontIcon FontSize="16" Glyph="&#xE81E;" />
                         </Button>
                         <Button
                             Grid.Column="2"
@@ -161,8 +180,12 @@
                         Grid.Column="1"
                         Height="150"
                         VerticalAlignment="Bottom">
+                        <!--<Border
+                            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8" />-->
                         <Border
-                            Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
                             CornerRadius="8" />
@@ -174,7 +197,7 @@
                             <!--<FontIcon
                                 HorizontalAlignment="Center"
                                 FontSize="46"
-                                Foreground="{ThemeResource SystemAccentColor}"
+                                Foreground="{ThemeResource AccentColorBrush}"
                                 Glyph="&#xE768;" />-->
                             <Button
                                 x:Name="playButton"
@@ -197,11 +220,13 @@
                 </Grid.ColumnDefinitions>
 
                 <Border
+                    x:Name="instanceCard"
                     Padding="16"
-                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
-                    CornerRadius="8">
+                    CornerRadius="8"
+                    Tapped="InstanceCard_Tapped">
                     <StackPanel Spacing="4">
                         <TextBlock FontWeight="SemiBold" Text="Instance" />
                         <TextBlock
@@ -215,7 +240,7 @@
                 <Border
                     Grid.Column="1"
                     Padding="16"
-                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8">
@@ -251,7 +276,7 @@
                 <Border
                     Grid.Column="2"
                     Padding="16"
-                    Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     CornerRadius="8">
@@ -288,7 +313,7 @@
                 Grid.Row="2"
                 Padding="18"
                 VerticalAlignment="Top"
-                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8">
@@ -302,7 +327,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <FontIcon
                                 FontSize="15"
-                                Foreground="{ThemeResource SystemAccentColor}"
+                                Foreground="{ThemeResource AccentColorBrush}"
                                 Glyph="&#xE789;" />
                             <TextBlock FontWeight="SemiBold" Text="What's new" />
                             <TextBlock
@@ -364,7 +389,7 @@
                 x:Name="serverListPanel"
                 MaxHeight="340"
                 Padding="16"
-                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8">
@@ -383,7 +408,7 @@
                             <TextBlock
                                 FontSize="13"
                                 FontWeight="SemiBold"
-                                Foreground="{ThemeResource SystemAccentColor}"
+                                Foreground="{ThemeResource AccentColorBrush}"
                                 Text="MULTIPLAYER" />
                             <TextBlock
                                 FontSize="24"
@@ -418,7 +443,7 @@
                             <FontIcon
                                 HorizontalAlignment="Center"
                                 FontSize="28"
-                                Foreground="{ThemeResource SystemAccentColor}"
+                                Foreground="{ThemeResource AccentColorBrush}"
                                 Glyph="&#xE774;" />
                             <TextBlock
                                 MaxWidth="260"
@@ -469,7 +494,7 @@
                                             <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
                                             <FontIcon
                                                 FontSize="20"
-                                                Foreground="{ThemeResource SystemAccentColor}"
+                                                Foreground="{ThemeResource AccentColorBrush}"
                                                 Glyph="&#xE774;"
                                                 Visibility="{x:Bind local:HomePage.IconVisibility(Icon)}" />
                                         </Grid>
@@ -501,7 +526,7 @@
                 Height="300"
                 MaxHeight="340"
                 Padding="16"
-                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8">
@@ -520,7 +545,7 @@
                             <TextBlock
                                 FontSize="13"
                                 FontWeight="SemiBold"
-                                Foreground="{ThemeResource SystemAccentColor}"
+                                Foreground="{ThemeResource AccentColorBrush}"
                                 Text="SINGLEPLAYER" />
                             <TextBlock
                                 FontSize="24"
@@ -589,7 +614,7 @@
                                             <Image Source="{x:Bind Icon}" Stretch="UniformToFill" />
                                             <FontIcon
                                                 FontSize="20"
-                                                Foreground="{ThemeResource SystemAccentColor}"
+                                                Foreground="{ThemeResource AccentColorBrush}"
                                                 Glyph="&#xE80F;"
                                                 Visibility="{x:Bind local:HomePage.IconVisibility(Icon)}" />
                                         </Grid>

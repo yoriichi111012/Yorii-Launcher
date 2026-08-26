@@ -6,6 +6,7 @@
     xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Yorii_Launcher.Models"
     xmlns:ui="using:CommunityToolkit.WinUI"
     mc:Ignorable="d">
 
@@ -46,12 +47,8 @@
                         Grid.Column="1"
                         HorizontalAlignment="Right"
                         SelectionChanged="ViewModeSegmented_SelectionChanged">
-                        <controls:SegmentedItem
-                            AutomationProperties.Name="List view"
-                            Icon="{ui:FontIcon Glyph=&#xE8FD;}" />
-                        <controls:SegmentedItem
-                            AutomationProperties.Name="Grid view"
-                            Icon="{ui:FontIcon Glyph=&#xE8A9;}" />
+                        <controls:SegmentedItem AutomationProperties.Name="List view" Icon="{ui:FontIcon Glyph=&#xE8FD;}" />
+                        <controls:SegmentedItem AutomationProperties.Name="Grid view" Icon="{ui:FontIcon Glyph=&#xE8A9;}" />
                     </controls:Segmented>
                 </Grid>
 
@@ -87,19 +84,21 @@
                     BorderThickness="0"
                     SelectionMode="None">
                     <ListView.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="models:OnlineModItem">
                             <Button
                                 MaxWidth="1200"
                                 Margin="0,0,0,6"
                                 Padding="0"
                                 HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
                                 HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
                                 Background="Transparent"
                                 BorderBrush="Transparent"
                                 BorderThickness="0"
                                 Click="OpenOnlineResourcePack_Click"
-                                CornerRadius="4"
-                                Tag="{Binding}">
+                                CornerRadius="8"
+                                Tag="{x:Bind}">
                                 <Border
                                     MaxWidth="1200"
                                     Padding="10"
@@ -121,18 +120,20 @@
                                                 Width="40"
                                                 Height="40"
                                                 Margin="6,0,0,0"
-                                                Source="{Binding Icon}" />
+                                                Source="{x:Bind Icon}" />
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                 <TextBlock
                                                     FontSize="14"
                                                     FontWeight="SemiBold"
-                                                    Text="{Binding Title}" />
+                                                    Text="{x:Bind Title}" />
                                                 <TextBlock
                                                     Margin="0,0,8,0"
                                                     FontSize="12"
+                                                    MaxLines="1"
                                                     Opacity="0.7"
-                                                    Text="{Binding Description}"
-                                                    MaxLines="2" TextTrimming="CharacterEllipsis" TextWrapping="WrapWholeWords" />
+                                                    Text="{x:Bind Description}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="NoWrap" />
                                             </StackPanel>
                                         </Grid>
 
@@ -142,7 +143,7 @@
                                             Padding="10,0,10,0"
                                             Click="InstallResourcePack_Click"
                                             Style="{ThemeResource AccentButtonStyle}"
-                                            Tag="{Binding}">
+                                            Tag="{x:Bind}">
                                             <TextBlock
                                                 HorizontalAlignment="Center"
                                                 VerticalAlignment="Center"
@@ -156,7 +157,7 @@
                                             Margin="4,0,0,0"
                                             Padding="0"
                                             Click="ShowVersions_Click"
-                                            Tag="{Binding}">
+                                            Tag="{x:Bind}">
                                             <FontIcon
                                                 FontSize="16"
                                                 Glyph="&#xE70D;"

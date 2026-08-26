@@ -91,7 +91,8 @@
                 x:Name="instancesGrid"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
-                CanDragItems="True"
+                AllowDrop="True"
+                CanDragItems="False"
                 CanReorderItems="True"
                 IsItemClickEnabled="True"
                 ItemClick="InstancesGrid_ItemClick"
@@ -102,7 +103,7 @@
 
                             <Border
                                 Padding="12"
-                                Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                                 BorderThickness="1"
                                 CornerRadius="6">

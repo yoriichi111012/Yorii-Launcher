@@ -3,13 +3,13 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Yorii_Launcher.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
@@ -70,10 +70,25 @@ namespace Yorii_Launcher.Helpers
 
         public static string? GetLoader(ModrinthProjectKind kind) => kind switch
         {
-            ModrinthProjectKind.Mod => "fabric",
+            ModrinthProjectKind.Mod => GetActiveModLoader(),
             ModrinthProjectKind.ResourcePack => "minecraft",
             _ => null
         };
+
+        // the loader of the currently selected version. version names carry the
+        // loader prefix ("neoforge 1.21.1", "forge 1.20.1", "fabric 1.20.4")
+        // vanilla/snapshot versions have no loader so fall back to fabric
+        private static string GetActiveModLoader()
+        {
+            var selected = SettingsManager.Current.SelectedVersion;
+            if (selected.StartsWith("NeoForge ", StringComparison.Ordinal))
+                return "neoforge";
+            if (selected.StartsWith("Forge ", StringComparison.Ordinal))
+                return "forge";
+            if (selected.StartsWith("Fabric ", StringComparison.Ordinal))
+                return "fabric";
+            return "fabric";
+        }
 
         public static async Task<List<OnlineModItem>> SearchProjectsAsync(ModrinthProjectKind kind, string query, int limit = 30)
         {
@@ -153,12 +168,44 @@ namespace Yorii_Launcher.Helpers
             return versions.Take(limit).ToList();
         }
 
-        public static Task InstallLatestProjectAsync(ModrinthProjectKind kind, string slug)
+        // checks whether a file matching the project's slug already exists in
+        // the install folder, without any network call; used to detect
+        // re-downloads of an already-installed pack before hitting modrinth
+        public static bool IsAlreadyInstalled(ModrinthProjectKind kind, string slug)
         {
-            return InstallLatestProjectAsync(kind, slug, []);
+            var folder = GetInstallFolder(kind);
+            if (string.IsNullOrWhiteSpace(slug) || !Directory.Exists(folder))
+                return false;
+
+            var slugLower = slug.ToLowerInvariant();
+            var separators = new[] { "-", "_", " ", ".", "+" };
+
+            foreach (var file in Directory.EnumerateFiles(folder))
+            {
+                var name = Path.GetFileNameWithoutExtension(file).ToLowerInvariant();
+
+                if (name.EndsWith(".disabled", StringComparison.Ordinal))
+                    name = name[..^".disabled".Length];
+
+                if (name.Equals(slugLower, StringComparison.Ordinal))
+                    return true;
+
+                foreach (var sep in separators)
+                {
+                    if (name.StartsWith(slugLower + sep, StringComparison.Ordinal))
+                        return true;
+                }
+            }
+
+            return false;
         }
 
-        private static async Task InstallLatestProjectAsync(ModrinthProjectKind kind, string slug, HashSet<string> installed)
+        public static Task InstallLatestProjectAsync(ModrinthProjectKind kind, string slug, string? displayName = null, ImageSource? icon = null)
+        {
+            return InstallLatestProjectAsync(kind, slug, [], displayName, icon);
+        }
+
+        private static async Task InstallLatestProjectAsync(ModrinthProjectKind kind, string slug, HashSet<string> installed, string? displayName = null, ImageSource? icon = null)
         {
             var key = $"{kind}:{slug}";
             if (!installed.Add(key))
@@ -204,15 +251,15 @@ namespace Yorii_Launcher.Helpers
             if (kind == ModrinthProjectKind.Mod)
                 await InstallRequiredDependenciesAsync(selectedVersion.Value, installed);
 
-            await InstallVersionElementAsync(kind, selectedVersion.Value);
+            await InstallVersionElementAsync(kind, selectedVersion.Value, displayName, icon);
         }
 
-        public static async Task InstallVersionAsync(ModrinthProjectKind kind, string versionId)
+        public static async Task InstallVersionAsync(ModrinthProjectKind kind, string versionId, string? displayName = null, ImageSource? icon = null)
         {
-            await InstallVersionAsync(kind, versionId, []);
+            await InstallVersionAsync(kind, versionId, [], displayName, icon);
         }
 
-        private static async Task InstallVersionAsync(ModrinthProjectKind kind, string versionId, HashSet<string> installed)
+        private static async Task InstallVersionAsync(ModrinthProjectKind kind, string versionId, HashSet<string> installed, string? displayName = null, ImageSource? icon = null)
         {
             var json = await GetCachedStringAsync($"https://api.modrinth.com/v2/version/{versionId}");
             using var doc = JsonDocument.Parse(json);
@@ -220,7 +267,7 @@ namespace Yorii_Launcher.Helpers
             if (kind == ModrinthProjectKind.Mod)
                 await InstallRequiredDependenciesAsync(doc.RootElement, installed);
 
-            await InstallVersionElementAsync(kind, doc.RootElement);
+            await InstallVersionElementAsync(kind, doc.RootElement, displayName, icon);
         }
 
         private static async Task InstallRequiredDependenciesAsync(JsonElement version, HashSet<string> installed)
@@ -266,12 +313,12 @@ namespace Yorii_Launcher.Helpers
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Dependency install failed: {ex}");
+                    Logger.Warn($"Dependency install failed: {ex.Message}");
                 }
             }
         }
 
-        private static async Task InstallVersionElementAsync(ModrinthProjectKind kind, JsonElement version)
+        private static async Task InstallVersionElementAsync(ModrinthProjectKind kind, JsonElement version, string? displayName = null, ImageSource? icon = null)
         {
             if (!TrySelectFile(kind, version, out var file))
                 return;
@@ -289,13 +336,71 @@ namespace Yorii_Launcher.Helpers
             if (File.Exists(destination))
                 return;
 
-            using var response = await HttpService.DownloadClient.GetAsync(downloadUrl);
-            response.EnsureSuccessStatusCode();
+            var downloadKind = kind switch
+            {
+                ModrinthProjectKind.Mod => DownloadKind.Mod,
+                ModrinthProjectKind.ResourcePack => DownloadKind.ResourcePack,
+                _ => DownloadKind.Modpack
+            };
 
-            await using var stream = await response.Content.ReadAsStreamAsync();
-            await using var fileStream = File.Create(destination);
-            await stream.CopyToAsync(fileStream);
-            await fileStream.FlushAsync();
+            var item = DownloadManager.Add(displayName ?? fileName, downloadKind, icon);
+
+            try
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                using var response = await HttpService.DownloadClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, item.Token).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+
+                var totalBytes = response.Content.Headers.ContentLength ?? 0L;
+                await using var contentStream = await response.Content.ReadAsStreamAsync(item.Token).ConfigureAwait(false);
+                await using var fileStream = File.Create(destination, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+                var buffer = new byte[81920];
+                long progressedBytes = 0;
+
+                while (true)
+                {
+                    var bytesRead = await contentStream.ReadAsync(buffer, item.Token).ConfigureAwait(false);
+                    if (bytesRead <= 0)
+                        break;
+
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), item.Token).ConfigureAwait(false);
+                    progressedBytes += bytesRead;
+
+                    // downloaditem throttles the raises internally, so report every
+                    // chunk; this also records the size for downloads that have no
+                    // content-length header (otherwise they'd show "0 b")
+                    item.SetByteProgress(progressedBytes, totalBytes);
+                }
+
+                await fileStream.FlushAsync(item.Token).ConfigureAwait(false);
+                item.SetByteProgress(progressedBytes, totalBytes);
+                item.Complete();
+            }
+            catch (OperationCanceledException)
+            {
+                TryDelete(destination);
+                item.Cancel();
+                throw;
+            }
+            catch (Exception ex)
+            {
+                TryDelete(destination);
+                item.Fail(ex.Message);
+                throw;
+            }
+        }
+
+        private static void TryDelete(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch
+            {
+            }
         }
 
         private static string BuildVersionsUrl(ModrinthProjectKind kind, string slug)
@@ -433,7 +538,7 @@ namespace Yorii_Launcher.Helpers
             return item;
         }
 
-        // LRU cache with max 100 entries, keeps repeated api calls fast
+        // lru cache with max 100 entries, keeps repeated api calls fast
         private static async Task<string> GetCachedStringAsync(string url)
         {
             if (responseCache.TryGetValue(url, out var cached))

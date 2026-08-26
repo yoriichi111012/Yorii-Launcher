@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Yorii_Launcher.Pages.MyThemesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:models="using:Yorii_Launcher.Models"
+    mc:Ignorable="d">
+
+    <Grid>
+        <Border Padding="12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="24"
+                        FontWeight="SemiBold"
+                        Text="My Themes" />
+
+                    <Button
+                        x:Name="PublishButton"
+                        Width="32"
+                        Height="32"
+                        Padding="0"
+                        HorizontalAlignment="Right"
+                        Click="PublishButton_Click"
+                        Style="{ThemeResource AccentButtonStyle}"
+                        Visibility="Collapsed">
+                        <FontIcon FontSize="16" Glyph="&#xE710;" />
+                    </Button>
+                </Grid>
+
+                <TextBox
+                    x:Name="SearchBox"
+                    Grid.Row="1"
+                    Width="350"
+                    Margin="0,8,0,8"
+                    HorizontalAlignment="Center"
+                    PlaceholderText="Search your themes..."
+                    TextChanged="SearchBox_TextChanged" />
+
+                <StackPanel
+                    x:Name="LoginPrompt"
+                    Grid.Row="1"
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Center"
+                    Orientation="Vertical"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="13"
+                        Opacity="0.7"
+                        Text="Sign in with GitHub to publish themes." />
+                </StackPanel>
+
+                <ProgressRing
+                    x:Name="LoadingRing"
+                    Grid.Row="2"
+                    Width="30"
+                    Height="30"
+                    Margin="0,16,0,0"
+                    HorizontalAlignment="Center"
+                    IsActive="True" />
+
+                <StackPanel
+                    x:Name="ThemesErrorPanel"
+                    Grid.Row="2"
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Center"
+                    Orientation="Vertical"
+                    Spacing="8"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontSize="13"
+                        Opacity="0.7"
+                        Text="Could not load your themes." />
+                    <Button
+                        x:Name="ThemesRetryButton"
+                        Padding="16,4"
+                        HorizontalAlignment="Center"
+                        Click="ThemesRetryButton_Click"
+                        Style="{ThemeResource AccentButtonStyle}">
+                        <TextBlock VerticalAlignment="Center" Text="Retry" />
+                    </Button>
+                </StackPanel>
+
+                <ListView
+                    x:Name="ThemeList"
+                    Grid.Row="2"
+                    Margin="0,8,0,0"
+                    Padding="24,0,24,0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    BorderThickness="0"
+                    SelectionMode="None"
+                    Visibility="Collapsed">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsStackPanel Orientation="Vertical" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ThemeMarketplaceItem">
+                            <Border
+                                Margin="4,0,0,6"
+                                Padding="16"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8">
+
+                                <Grid RowSpacing="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                x:Phase="1"
+                                                FontSize="14"
+                                                FontWeight="SemiBold"
+                                                Text="{x:Bind ThemeName}"
+                                                TextTrimming="CharacterEllipsis" />
+                                            <TextBlock
+                                                Grid.Row="1"
+                                                Margin="6,0,0,0"
+                                                VerticalAlignment="Center"
+                                                x:Phase="1"
+                                                FontSize="14"
+                                                Opacity="0.6"
+                                                Text="{x:Bind Author}"
+                                                TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+
+                                        <StackPanel
+                                            HorizontalAlignment="Right"
+                                            Orientation="Horizontal"
+                                            Spacing="6">
+
+                                            <Button
+                                                x:Name="InstallButton"
+                                                Width="90"
+                                                Height="30"
+                                                Padding="10,0"
+                                                Click="InstallTheme_Click"
+                                                Content="Install"
+                                                Style="{ThemeResource AccentButtonStyle}"
+                                                Tag="{x:Bind}"
+                                                Visibility="{x:Bind InstallButtonVisibility, Mode=OneWay}" />
+
+                                            <Button
+                                                x:Name="ApplyButton"
+                                                Width="90"
+                                                Height="30"
+                                                Padding="10,0"
+                                                Click="ApplyTheme_Click"
+                                                Content="Apply"
+                                                Style="{ThemeResource AccentButtonStyle}"
+                                                Tag="{x:Bind}"
+                                                Visibility="{x:Bind ApplyButtonVisibility, Mode=OneWay}" />
+
+                                            <Button
+                                                x:Name="ActiveIndicator"
+                                                Width="90"
+                                                Height="30"
+                                                Padding="10,0"
+                                                Content="Active"
+                                                IsEnabled="False"
+                                                Opacity="0.7"
+                                                Tag="{x:Bind}"
+                                                Visibility="{x:Bind ActiveIndicatorVisibility, Mode=OneWay}" />
+
+                                            <Button
+                                                x:Name="UninstallButton"
+                                                Width="28"
+                                                Height="30"
+                                                Padding="0,0"
+                                                Click="UninstallTheme_Click"
+                                                FontWeight="SemiBold"
+                                                Tag="{x:Bind}"
+                                                Visibility="{x:Bind UninstallButtonVisibility, Mode=OneWay}">
+                                                <FontIcon
+                                                    FontSize="14"
+                                                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                                    Glyph="&#xE74D;" />
+                                            </Button>
+
+                                            <!--<Button
+                                                x:Name="CatalogDeleteButton"
+                                                Width="110"
+                                                Height="28"
+                                                Padding="10,0"
+                                                Click="DeleteFromCatalog_Click"
+                                                FontSize="12"
+                                                Tag="{x:Bind}"
+                                                Visibility="{x:Bind CatalogDeleteButtonVisibility, Mode=OneWay}">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <FontIcon
+                                                        FontSize="14"
+                                                        Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                                        Glyph="&#xE74D;" />
+                                                    <TextBlock
+                                                        VerticalAlignment="Center"
+                                                        Text="Delete from GitHub"
+                                                        TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Button>-->
+
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border
+                                        Grid.Row="2"
+                                        Margin="0,10,0,0"
+                                        Background="{ThemeResource CardBackgroundFillColorSecondaryBrush}"
+                                        CornerRadius="4">
+                                        <Grid Height="200">
+                                            <Image
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Center"
+                                                x:Phase="2"
+                                                Source="{x:Bind PreviewImage, Mode=OneWay}"
+                                                Stretch="UniformToFill" />
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                Opacity="0.5"
+                                                Text="Loading preview…"
+                                                Visibility="{x:Bind PreviewPlaceholderVisibility, Mode=OneWay}" />
+                                        </Grid>
+                                    </Border>
+
+                                </Grid>
+                                <Border.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem
+                                            Click="DeleteFromCatalog_Click"
+                                            Tag="{x:Bind}"
+                                            Text="Delete from GitHub"
+                                            Visibility="{x:Bind CatalogDeleteButtonVisibility, Mode=OneWay}">
+                                            <MenuFlyoutItem.Icon>
+                                                <FontIcon
+                                                    FontSize="14"
+                                                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                                    Glyph="&#xE74D;" />
+                                            </MenuFlyoutItem.Icon>
+                                        </MenuFlyoutItem>
+                                    </MenuFlyout>
+                                </Border.ContextFlyout>
+
+                            </Border>
+
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+
+                </ListView>
+
+            </Grid>
+        </Border>
+    </Grid>
+</Page>

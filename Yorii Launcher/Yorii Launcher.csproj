@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	<OutputType>WinExe</OutputType>
 	<TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
 	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-	<Version>0.9.0</Version>
+	<Version>0.9.6</Version>
 	<RootNamespace>Yorii_Launcher</RootNamespace>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
 	<Platforms>x64;ARM64</Platforms>
@@ -17,6 +17,35 @@
 	  <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="%2a%2a\**" />
+    <Compile Remove="Authenticator\**" />
+    <Compile Remove="Resources\AccentColorThemes\**" />
+    <Compile Remove="cmllib.migration\**" />
+    <Compile Remove="0.9\**" />
+    <Compile Remove="AppPackages\**" />
+    <Compile Remove="temp\**" />
+    <EmbeddedResource Remove="%2a%2a\**" />
+    <EmbeddedResource Remove="Authenticator\**" />
+    <EmbeddedResource Remove="Resources\AccentColorThemes\**" />
+    <EmbeddedResource Remove="cmllib.migration\**" />
+    <EmbeddedResource Remove="0.9\**" />
+    <None Remove="%2a%2a\**" />
+    <None Remove="Authenticator\**" />
+    <None Remove="Resources\AccentColorThemes\**" />
+    <None Remove="cmllib.migration\**" />
+    <None Remove="0.9\**" />
+    <Page Remove="%2a%2a\**" />
+    <Page Remove="Authenticator\**" />
+    <Page Remove="0.9\**" />
+    <Page Remove="Resources\AccentColorThemes\**" />
+    <PRIResource Remove="cmllib.migration\**" />
+    <PRIResource Remove="0.9\**" />
+  </ItemGroup>
+  <ItemGroup>
+
+    <None Remove="%2a%2a/%2a" />
+
+    <None Remove="720.png" />
 
     <None Remove="authlib-injector.jar" />
 
@@ -30,13 +59,18 @@
 	<None Remove="Pages\InstalledModpacksPage.xaml" />
 	<None Remove="Pages\InstalledResourcePacksPage.xaml" />
 	<None Remove="Pages\InstancesPage.xaml" />
+	<None Remove="Pages\Onboarding.xaml" />
 	<None Remove="Pages\ReleaseNotesPage.xaml" />
 	<None Remove="Resources\ComboBox.xaml" />
 	<None Remove="SettingsPage.xaml" />
+	<None Remove="yorii launcher 0.9.5.zip" />
   </ItemGroup>
 
   <ItemGroup>
 	<Content Include="128.ico" />
+	<Content Include="720.png">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Content>
 	<Content Include="Assets\SplashScreen.scale-200.png" />
 	<Content Include="Assets\LockScreenLogo.scale-200.png" />
 	<Content Include="Assets\Square150x150Logo.scale-200.png" />
@@ -44,7 +78,19 @@
 	<Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
 	<Content Include="Assets\Wide310x150Logo.scale-200.png" />
 	<Content Include="authlib-injector.jar">
-	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	</Content>
+	<Content Include="yoriiSkinsLoader-fabric.jar">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	</Content>
+	<Content Include="yoriiSkinsLoader-forge.jar">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	</Content>
+	<Content Include="yoriiSkinsLoader-neoforge.jar">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	</Content>
+	<Content Include="mc-version-index.json">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</Content>
   </ItemGroup>
 
@@ -61,14 +107,22 @@
 	<ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="CmlLib.Core" Version="4.0.6" />
-    <PackageReference Include="CmlLib.Core.Auth.Microsoft" Version="3.3.1" />
+    <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.Core\Quiescent.Core.csproj" />
+    <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\Quiescent.Core.Auth.Microsoft.csproj" />
+    <!-- direct reference with explicit TFM so the interactive-login broker
+         (net8.0-windows asset) is used; negotiation otherwise resolves the
+         plain net8.0 asset and MSA login throws PlatformNotSupportedException -->
+    <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\Quiescent.XboxAuthNet.csproj" SetTargetFramework="TargetFramework=net10.0-windows" />
+    <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.Forge\Quiescent.Core.Installer.Forge.csproj" />
+    <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\Quiescent.Core.Installer.NeoForge.csproj" />
     <PackageReference Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.251219" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.Segmented" Version="8.2.251219" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1839" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.1.3" />
-    <PackageReference Include="XboxAuthNet.Game" Version="1.4.1" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2526" />
+	  <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+	  <!-- <PackageReference Include="Optifine.Installer" Version="1.0.1" /> -->
+    <PackageReference Include="YamlDotNet" Version="16.3.0" />
+    <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="16.3.0" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
 	<Page Update="Controls\ComboBox.xaml">
@@ -76,6 +130,15 @@
 	</Page>
 	<Page Update="HomePage.xaml">
 	  <Generator>MSBuild:Compile</Generator>
+	</Page>
+	<Page Update="Resources\ComboBox.xaml">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Page>
+	<Page Update="Resources\SettingsExpander.xaml">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	</Page>
+	<Page Update="Resources\ThemeOverrides.xaml">
+	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Page>
   </ItemGroup>
   <ItemGroup>
@@ -88,16 +151,10 @@
 		<TrimmerRootDescriptor Include="Helpers\linker.xml" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Compile Update="Helpers\ElyJsonContext.cs">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </Compile>
-	  <Compile Update="Helpers\HttpClient.cs">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </Compile>
-	  <Compile Update="Helpers\InstanceManager.cs">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </Compile>
+	<ItemGroup><!-- source files are compiled in-place; no longer copied to output
+	       (Compile Update + glob produced duplicate items on SDK 10) -->
+	
+	  <Page Remove="%2a%2a/%2a.xaml" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -138,6 +195,14 @@
 		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
 		<TrimMode>partial</TrimMode>
 		<InvariantGlobalization>true</InvariantGlobalization>
+	</PropertyGroup>
+
+	<!-- runtime + layout efficiency: jit profile-guided opts, drop XBF line
+	     info in release (smaller xbf, faster load, less xaml memory) -->
+	<PropertyGroup>
+		<TieredPGO>true</TieredPGO>
+		<TieredCompilationQuickJitForLoops>true</TieredCompilationQuickJitForLoops>
+		<EnableXbfLineInfo Condition="'$(Configuration)' != 'Debug'">false</EnableXbfLineInfo>
 	</PropertyGroup>
 
   <PropertyGroup>
@@ -183,6 +248,21 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <Page Update="Pages\ThemesMarketplace.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Pages\ThemesPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Pages\DiscoverThemesPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Pages\MyThemesPage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Pages\Onboarding.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Pages\InstalledResourcePacksPage.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -195,5 +275,54 @@
     <Page Update="Console.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <PRIResource Remove="Authenticator\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PRIResource Remove="Resources\AccentColorThemes\**" />
+  </ItemGroup>
+  <!-- unneeded WinAppSDK metapackage payloads (~45MB): AI/ML ships
+       onnxruntime+DirectML, Search/Widgets are unused by this app.
+       patterns resolved inside the target because packages re-copy them
+       during Build -->
+	<ItemGroup>
+	  <!-- XboxAuthNet (via CmlLib.Core.Auth.Microsoft) declares a WinForms
+	       framework reference for its interactive broker, which copies
+	       ~27MB of System.Windows.Forms into self-contained output even
+	       though this app never uses it (login is custom WebView2) -->
+	  <FrameworkReference Remove="Microsoft.WindowsDesktop.App.WindowsForms" />
+	</ItemGroup>
+
+  <!-- strips junk from BOTH the build output dir and the publish layout
+       (dotnet publish stages payloads under win-x64\publish, which the
+       Build-anchored pass never saw) -->
+  <Target Name="StripUnusedWinAppSdkPayloads" AfterTargets="Build;Publish" BeforeTargets="Pack">
+    <PropertyGroup>
+      <_BinAbs>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)'))</_BinAbs>
+      <_PubAbs>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)publish\'))</_PubAbs>
+    </PropertyGroup>
+    <ItemGroup>
+      <_WinAppSdkJunk Include="$(_BinAbs)onnxruntime*.dll;&#xD;&#xA;                               $(_BinAbs)DirectML.dll;&#xD;&#xA;                               $(_BinAbs)microsoft.windows.search.*;&#xD;&#xA;                               $(_BinAbs)microsoft.windows.widgets.*;&#xD;&#xA;                               $(_BinAbs)Microsoft.Windows.Search.dll;&#xD;&#xA;                               $(_BinAbs)Microsoft.Windows.Widgets.dll;&#xD;&#xA;                               $(_BinAbs)Microsoft.Windows.Search.Projection.dll;&#xD;&#xA;                               $(_BinAbs)Microsoft.Windows.Widgets.Projection.dll;&#xD;&#xA;                               $(_BinAbs)Microsoft.Windows.Search.winmd;&#xD;&#xA;                               $(_BinAbs)Microsoft.Windows.Widgets.winmd;&#xD;&#xA;                               $(_BinAbs)System.Windows.Forms.dll;&#xD;&#xA;                               $(_BinAbs)System.Windows.Forms.Design.dll;&#xD;&#xA;                               $(_BinAbs)System.Windows.Forms.Design.Editors.dll;&#xD;&#xA;                               $(_BinAbs)System.Windows.Forms.Primitives.dll;&#xD;&#xA;                               $(_PubAbs)onnxruntime*.dll;&#xD;&#xA;                               $(_PubAbs)DirectML.dll;&#xD;&#xA;                               $(_PubAbs)microsoft.windows.search.*;&#xD;&#xA;                               $(_PubAbs)microsoft.windows.widgets.*;&#xD;&#xA;                               $(_PubAbs)Microsoft.Windows.Search.dll;&#xD;&#xA;                               $(_PubAbs)Microsoft.Windows.Widgets.dll;&#xD;&#xA;                               $(_PubAbs)Microsoft.Windows.Search.Projection.dll;&#xD;&#xA;                               $(_PubAbs)Microsoft.Windows.Widgets.Projection.dll;&#xD;&#xA;                               $(_PubAbs)Microsoft.Windows.Search.winmd;&#xD;&#xA;                               $(_PubAbs)Microsoft.Windows.Widgets.winmd;&#xD;&#xA;                               $(_PubAbs)System.Windows.Forms.dll;&#xD;&#xA;                               $(_PubAbs)System.Windows.Forms.Design.dll;&#xD;&#xA;                               $(_PubAbs)System.Windows.Forms.Design.Editors.dll;&#xD;&#xA;                               $(_PubAbs)System.Windows.Forms.Primitives.dll" />
+      <_FormsSatellites Include="$(_BinAbs)cs\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)de\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)es\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)fr\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)it\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)ja\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)ko\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)pl\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)pt-BR\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)ru\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)tr\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)zh-Hans\System.Windows.Forms.*;&#xD;&#xA;                                $(_BinAbs)zh-Hant\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)cs\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)de\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)es\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)fr\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)it\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)ja\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)ko\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)pl\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)pt-BR\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)ru\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)tr\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)zh-Hans\System.Windows.Forms.*;&#xD;&#xA;                                $(_PubAbs)zh-Hant\System.Windows.Forms.*" />
+     </ItemGroup>
+    <Delete Files="@(_WinAppSdkJunk);@(_FormsSatellites)" />
+    <!-- strip 100+ language satellite assemblies that ship with the self-contained runtime and winappsdk, keep only en + en-US -->
+    <ItemGroup>
+      <_LangResourcesBin Include="$(_BinAbs)**\*.resources.dll" Exclude="$(_BinAbs)en\**; $(_BinAbs)en-US\**" />
+      <_LangResourcesPub Include="$(_PubAbs)**\*.resources.dll" Exclude="$(_PubAbs)en\**; $(_PubAbs)en-US\**" />
+      <_BgBin Include="$(_BinAbs)Resources\launcherbackground.png" />
+      <_BgPub Include="$(_PubAbs)Resources\launcherbackground.png" />
+    </ItemGroup>
+    <Delete Files="@(_LangResourcesBin); @(_LangResourcesPub); @(_BgBin); @(_BgPub)" />
+  </Target>
+  <ItemGroup>
+    <PRIResource Remove="%2a%2a\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="%2a%2a/%2a.resx" />
+  </ItemGroup>
+  <ItemGroup>
+    <PRIResource Remove="%2a%2a/%2a.resw" />
   </ItemGroup>
 </Project>
