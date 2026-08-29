@@ -13,20 +13,21 @@ irm https://raw.githubusercontent.com/yoriichi111012/Yorii-Launcher/main/Install
 It is recommended for the user to check and customize the launcher settings when the launcher has launched for the first time.
 
 ## Features
-- Mojang (Microsoft), Ely.by and offline account support with skins
+- Yorii Skins, Mojang (Microsoft) and offline account support
 - Mods and Resource Packs Downloading and Management through launcher UI
 - Official Release Notes, Instances, World List, Server List and Auto-Join World/Server support
 - Background customization and Game Console (Minecraft Logging) support
-- Fabric and Vanilla version support
+- Vanilla, Fabric, Forge, Neoforge and Snapshots
 - Native Windows UI built using WinUI 3
 - Lightweight and optimized
 
 # Preview
 ### Light Mode
-<img width="1426" height="758" alt="{D99D9D82-D3D4-49CB-85EE-BF3254845104}" src="https://github.com/user-attachments/assets/40285313-1bbe-4e3f-9b57-cf9f9e2f57e7" />
+<img width="1424" height="756" alt="image" src="https://github.com/user-attachments/assets/0cf54fb4-72ac-459c-a354-3858b0a79a7c" />
 
 ### Dark Mode
-<img width="1424" height="756" alt="{2573784B-C508-4EE8-88A5-306EC66DA7B0} - Copy" src="https://github.com/user-attachments/assets/44b9dd83-e36f-45c2-ba71-97b363bb0f03" />
+<img width="1424" height="755" alt="image" src="https://github.com/user-attachments/assets/40802320-fc23-4f96-8e91-8d634637d22e" />
+
 
 <!--
 ### Installed Mods Page
