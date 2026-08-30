@@ -1,5 +1,18 @@
-# Yorii Launcher
-A modern Minecraft launcher built with focus on performance, lightweight resource usage, and clean visuals.
+<p align="center">
+  <img src="Yorii%20Launcher/720.png" alt="Yorii Launcher logo" width="180">
+</p>
+
+<h1 align="center">Yorii Launcher</h1>
+
+<p align="center">
+  A Minecraft Launcher built in WinUI 3 with focus on performance <br> lightweight resource usage and modern visuals. No Electron, No Tauri.
+</p>
+
+<p align="center">
+  <a href="https://yoriichi111012.github.io/Yorii-Launcher.app/">Website</a> ·
+  <a href="https://yoriichi111012.github.io/Yorii-Launcher.app/#/docs">Documentation</a> ·
+  <a href="https://discord.com/invite/jnwBMCPsd">Discord</a>
+</p>
 
 ## Installation
 Run this command in Windows PowerShell
