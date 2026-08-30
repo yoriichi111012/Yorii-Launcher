@@ -2,14 +2,17 @@
 A modern Minecraft launcher built with focus on performance, lightweight resource usage, and clean visuals.
 
 ## Installation
-Install using [YoriiInstaller.exe](https://raw.githubusercontent.com/yoriichi111012/Yorii-Installer/main/bin/YoriiInstaller.exe) (May require disabling antivirus)
-
-or
-
-Run this command in Windows PowerShell (Does not require disabling antivirus)
+Run this command in Windows PowerShell
 ``` 
 irm https://raw.githubusercontent.com/yoriichi111012/Yorii-Launcher/main/Install.ps1 | iex
 ```
+
+or
+
+Install using [YoriiInstaller.exe](https://raw.githubusercontent.com/yoriichi111012/Yorii-Installer/main/bin/YoriiInstaller.exe) (May require disabling antivirus)
+
+Note: Installing using YoriiInstaller.exe may require disabling antivirus but the script will work in any case.
+
 It is recommended for the user to check and customize the launcher settings when the launcher has launched for the first time.
 
 ## Features
