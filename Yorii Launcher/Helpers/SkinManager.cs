@@ -118,7 +118,11 @@ public const string IndexRepoOwner = "yorii-accounts";
 
         public static string GetOAuthUrl(string state)
         {
-            return $"{GitHubOAuthUrl}?client_id={GitHubClientId}&redirect_uri=http://localhost:{CallbackPort}/callback&state={Uri.EscapeDataString(state)}&scope=read:user public_repo";
+            // repo scope is required for the worker to create the private yorii-profiles
+            // repository on first private upload via POST /user/repos (installation
+            // tokens cannot create user repos). The token is stored locally and only
+            // sent to the worker (Authorization: Bearer) for auth/repo creation.
+            return $"{GitHubOAuthUrl}?client_id={GitHubClientId}&redirect_uri=http://localhost:{CallbackPort}/callback&state={Uri.EscapeDataString(state)}&scope=read:user repo";
         }
 
         public static async Task AuthenticateWithGitHub()
@@ -539,6 +543,70 @@ public const string IndexRepoOwner = "yorii-accounts";
             {
                 // account-list sync must never fail an already-confirmed delete
             }
+        }
+
+        // server-verified rename for YoriiSkins: create new profile with same skin, then delete old
+        // used by both Skins page and Manage Accounts edit - refuses if new name already taken
+        public static async Task RenameProfileAsync(string oldUsername, string newUsername)
+        {
+            if (string.Equals(oldUsername, newUsername, StringComparison.Ordinal))
+                return;
+            if (string.IsNullOrWhiteSpace(newUsername) || newUsername.Length > 16 || !System.Text.RegularExpressions.Regex.IsMatch(newUsername, @"^[A-Za-z0-9_]+$"))
+                throw new Exception("Invalid new Minecraft username.");
+            if (string.IsNullOrWhiteSpace(oldUsername))
+                throw new Exception("Original profile not found.");
+
+            var entries = await FetchRawIndexAsync();
+            var oldEntry = entries.FirstOrDefault(e => e.Username == oldUsername);
+            if (oldEntry == null)
+                throw new Exception($"Profile '{oldUsername}' not found.");
+            if (entries.Any(e => string.Equals(e.Username, newUsername, StringComparison.Ordinal)))
+                throw new Exception($"'{newUsername}' is already taken.");
+
+            // YoriiSkins rename must be verified via worker; Offline has no server entry
+            if (oldEntry.Kind != "private" && oldEntry.Kind != "public")
+                throw new Exception("Only YoriiSkins profiles can be renamed via server.");
+
+            // fetch the published skin bytes for the old profile (worker proxy can read private repos)
+            byte[]? skinBytes = await GetSkinBytesAsync(oldUsername, oldEntry.SkinUrl);
+            if (skinBytes == null || skinBytes.Length == 0)
+            {
+                // fallback to local skin if remote not reachable
+                string localPath = Path.Combine(GetLocalSkinsDir(), "skins", $"{oldUsername}.png");
+                if (File.Exists(localPath))
+                    skinBytes = await File.ReadAllBytesAsync(localPath);
+            }
+            if (skinBytes == null || skinBytes.Length == 0)
+                throw new Exception("Could not fetch current skin for rename. Upload a skin first.");
+
+            string kind = oldEntry.Kind;
+
+            // create new profile with same skin - server enforces 403 if taken and 409 limit
+            await AddOrUpdateProfile(newUsername, skinBytes, kind);
+
+            // delete old - if this fails we have both names, but new is already verified
+            try
+            {
+                await RemoveProfile(oldUsername);
+            }
+            catch (Exception ex)
+            {
+                // new succeeded, old remains - inform caller so they can retry delete
+                throw new Exception($"Renamed to '{newUsername}' but could not delete old '{oldUsername}': {ex.Message}. Delete it manually on the Skins page.");
+            }
+
+            // also move local skin file
+            try
+            {
+                string oldLocal = Path.Combine(GetLocalSkinsDir(), "skins", $"{oldUsername}.png");
+                string newLocal = Path.Combine(GetLocalSkinsDir(), "skins", $"{newUsername}.png");
+                if (File.Exists(oldLocal))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(newLocal)!);
+                    File.Move(oldLocal, newLocal, true);
+                }
+            }
+            catch { }
         }
 
         // the local snapshot reflects mutations immediately; the api refresh

@@ -536,6 +536,60 @@ namespace Yorii_Launcher.Pages
             }
         }
 
+        private async void RenameProfile_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not string oldUsername) return;
+
+            var newNameBox = new TextBox
+            {
+                Header = "New username",
+                PlaceholderText = "New in-game name",
+                Text = oldUsername
+            };
+
+            var dialog = new ContentDialog
+            {
+                Title = $"Rename '{oldUsername}'",
+                Content = newNameBox,
+                XamlRoot = this.XamlRoot,
+                PrimaryButtonText = "Rename",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+                Background = DialogHelper.GetAcrylicBrush(),
+                RequestedTheme = ThemeHelper.GetCurrentTheme()
+            };
+
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
+            var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
+            if (result != ContentDialogResult.Primary) return;
+
+            string newUsername = newNameBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(newUsername) || string.Equals(oldUsername, newUsername, StringComparison.Ordinal))
+                return;
+
+            try
+            {
+                SetBusy($"Renaming '{oldUsername}' → '{newUsername}'...");
+                try
+                {
+                    await SkinManager.RenameProfileAsync(oldUsername, newUsername);
+                    ShowInfo($"Renamed '{oldUsername}' → '{newUsername}' (server-verified).");
+                    MainWindow.Instance?.RefreshAccounts();
+                }
+                finally
+                {
+                    SetBusy(null);
+                    Logger.Info($"Rename finished for '{oldUsername}' → '{newUsername}', re-rendering");
+                    await LoadProfilesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowInfo($"Rename failed: {ex.Message}");
+            }
+        }
+
         private void SetBusy(string? message)
         {
             addProfileButton.IsEnabled = message == null;

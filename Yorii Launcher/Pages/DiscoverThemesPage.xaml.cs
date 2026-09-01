@@ -198,7 +198,7 @@ public sealed partial class DiscoverThemesPage : Page
             return;
 
         button.IsEnabled = false;
-        button.Content = "Installing...";
+        button.Content = "Installing";
 
         try
         {

@@ -394,7 +394,7 @@ private IReadOnlyList<ThemeCatalogEntry> catalog = [];
             return;
 
         button.IsEnabled = false;
-        button.Content = "Installing...";
+        button.Content = "Installing";
 
 try
         {

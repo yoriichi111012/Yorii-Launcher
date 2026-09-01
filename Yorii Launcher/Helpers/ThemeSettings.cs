@@ -5,7 +5,7 @@ namespace Yorii_Launcher.Helpers
     public class ThemeSettings
     {
         public string CurrentTheme { get; set; } = "Dark";
-        public string BackgroundImagePath { get; set; } = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "launcherbackground.png");
+        public string BackgroundImagePath { get; set; } = "";
         public double OverlayOpacity { get; set; } = 0.3;
         public bool OverlayBlurEnabled { get; set; } = false;
         public bool UseCustomAccentColor { get; set; } = true;

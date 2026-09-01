@@ -318,6 +318,19 @@
                                         Padding="0"
                                         Background="Transparent"
                                         BorderThickness="0"
+                                        Click="RenameProfile_Click"
+                                        Tag="{x:Bind Username}"
+                                        ToolTipService.ToolTip="Rename profile (server-verified)">
+                                        <FontIcon
+                                            FontSize="13"
+                                            Glyph="&#xE70F;" />
+                                    </Button>
+                                    <Button
+                                        Width="26"
+                                        Height="26"
+                                        Padding="0"
+                                        Background="Transparent"
+                                        BorderThickness="0"
                                         Click="DeleteProfile_Click"
                                         Tag="{x:Bind Username}"
                                         ToolTipService.ToolTip="Delete profile">

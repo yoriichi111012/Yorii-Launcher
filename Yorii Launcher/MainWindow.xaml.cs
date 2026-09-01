@@ -1374,7 +1374,7 @@ namespace Yorii_Launcher
 
             var hintText = new TextBlock
             {
-                Text = "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page.",
+                Text = "Yorii Skins profiles must be verified on the Skins page. Click 'Go to Skins' to create your profile.",
                 FontSize = 12,
                 Opacity = 0.6,
                 TextWrapping = TextWrapping.Wrap
@@ -1386,19 +1386,6 @@ namespace Yorii_Launcher
             panel.Children.Add(usernameBox);
             panel.Children.Add(hintText);
 
-            // update field visibility based on selected account type
-            accountTypeBox.SelectionChanged += (_, _) =>
-            {
-                bool isMojang = accountTypeBox.SelectedItem is ComboBoxItem item && item.Tag is PlayerAccountType.Mojang;
-                bool isYoriiSkins = accountTypeBox.SelectedItem is ComboBoxItem ysItem && ysItem.Tag is PlayerAccountType.YoriiSkins;
-                usernameBox.Visibility = isMojang ? Visibility.Collapsed : Visibility.Visible;
-                hintText.Text = isMojang
-                    ? "You'll be signed in via Microsoft OAuth."
-                    : isYoriiSkins
-                        ? "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page."
-                        : "Offline players can join any server, but skins only work when the Yorii Skins skin mod is installed.";
-            };
-
             // get theme to apply to the dialog
             ElementTheme theme = ThemeHelper.GetCurrentTheme();
 
@@ -1407,7 +1394,7 @@ namespace Yorii_Launcher
             {
                 Title = "Add player",
                 Content = panel,
-                PrimaryButtonText = "Add",
+                PrimaryButtonText = "Go to Skins",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = rootGrid.XamlRoot,
@@ -1415,8 +1402,37 @@ namespace Yorii_Launcher
                 RequestedTheme = theme
             };
 
-            // show the dialog and wait for the result
+            // Yorii Skins must be created via Skins page verification, not free-form
+            // keep the option visible for discoverability but turn it into navigation
+            usernameBox.Visibility = Visibility.Collapsed;
             dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
+
+            accountTypeBox.SelectionChanged += (_, _) =>
+            {
+                bool isMojang = accountTypeBox.SelectedItem is ComboBoxItem item && item.Tag is PlayerAccountType.Mojang;
+                bool isYoriiSkins = accountTypeBox.SelectedItem is ComboBoxItem ysItem && ysItem.Tag is PlayerAccountType.YoriiSkins;
+                usernameBox.Visibility = (isMojang || isYoriiSkins) ? Visibility.Collapsed : Visibility.Visible;
+                if (isYoriiSkins)
+                {
+                    hintText.Text = "Yorii Skins profiles must be verified on the Skins page. Click 'Go to Skins' to create your profile.";
+                    dialog.PrimaryButtonText = "Go to Skins";
+                }
+                else if (isMojang)
+                {
+                    hintText.Text = "You'll be signed in via Microsoft OAuth.";
+                    dialog.PrimaryButtonText = "Add";
+                }
+                else
+                {
+                    hintText.Text = "Offline players can join any server, but skins only work when the Yorii Skins skin mod is installed.";
+                    dialog.PrimaryButtonText = "Add";
+                }
+            };
+
+            // trigger initial state (SelectedIndex=0 is Yorii Skins, but event won't fire until change)
+            // already set to collapsed/Go to Skins above for initial Yorii Skins
+
+            // show the dialog and wait for the result
             var result = await dialog.ShowAsync();
             MemoryOptimizer.ReduceMemory();
 
@@ -1427,7 +1443,13 @@ namespace Yorii_Launcher
             if (accountTypeBox.SelectedItem is not ComboBoxItem selectedTypeItem ||
                 selectedTypeItem.Tag is not PlayerAccountType accountType)
             {
-                accountType = PlayerAccountType.YoriiSkins;
+                accountType = PlayerAccountType.Offline;
+            }
+
+            if (accountType == PlayerAccountType.YoriiSkins)
+            {
+                NavigateToSkins();
+                return;
             }
 
             if (accountType == PlayerAccountType.Mojang)
@@ -1476,37 +1498,20 @@ namespace Yorii_Launcher
                 return;
             }
 
-            PlayerAccount newAccount;
-            if (accountType == PlayerAccountType.Offline)
+            // YoriiSkins is handled above via Skins page navigation; only Offline remains here
+            var newAccount = new PlayerAccount
             {
-                newAccount = new PlayerAccount
-                {
-                    Id = Guid.NewGuid().ToString("N"),
-                    Username = username,
-                    Password = null,
-                    AccountType = PlayerAccountType.Offline
-                };
-            }
-            else
-            {
-                // yorii skins is our cloudflare auth server worker which fetches skins from github repo
-                newAccount = new PlayerAccount
-                {
-                    Id = Guid.NewGuid().ToString("N"),
-                    Username = username,
-                    Password = null,
-                    AccountType = PlayerAccountType.YoriiSkins,
-                    CustomUUID = Guid.NewGuid().ToString("N")
-                };
-            }
+                Id = Guid.NewGuid().ToString("N"),
+                Username = username,
+                Password = null,
+                AccountType = PlayerAccountType.Offline
+            };
 
             AccountManager.SaveAccount(newAccount);
             LoadAccounts();
             accountComboBox.SelectedItem = accountItems.FirstOrDefault(x => x.Account?.Id == newAccount.Id);
 
-            ShowNotification("Account added", newAccount.AccountType == PlayerAccountType.Offline
-                ? $"{username} added as offline player."
-                : $"{username} added as Yorii Skins player.");
+            ShowNotification("Account added", $"{username} added as offline player.");
         }
 
         private async Task ShowManagePlayersDialogAsync()
@@ -1716,56 +1721,40 @@ namespace Yorii_Launcher
                 IsReadOnly = isMojang
             };
 
-            var accountTypeBox = new ComboBox
+            var typeLabel = new TextBlock
             {
-                Header = "Account type"
+                Text = PlayerAccount.GetAccountTypeLabel(account.AccountType),
+                FontSize = 14,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                Opacity = 0.9
             };
-
-            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Yorii Skins", Tag = PlayerAccountType.YoriiSkins });
-            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Mojang (Microsoft)", Tag = PlayerAccountType.Mojang });
-            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Offline", Tag = PlayerAccountType.Offline });
-            if (Application.Current.Resources.TryGetValue("AcrylicComboBoxStyle", out object resource) && resource is Style acrylicStyle)
+            var typeHeader = new TextBlock
             {
-                accountTypeBox.Style = acrylicStyle;
-            }
-
-            for (int i = 0; i < accountTypeBox.Items.Count; i++)
-            {
-                if (accountTypeBox.Items[i] is ComboBoxItem item && item.Tag is PlayerAccountType type && type == account.AccountType)
-                {
-                    accountTypeBox.SelectedIndex = i;
-                    break;
-                }
-            }
-
-            if (accountTypeBox.SelectedIndex < 0)
-                accountTypeBox.SelectedIndex = 0;
+                Text = "Account type",
+                FontSize = 12,
+                Opacity = 0.6
+            };
+            var typePanel = new StackPanel { Spacing = 2 };
+            typePanel.Children.Add(typeHeader);
+            typePanel.Children.Add(typeLabel);
 
             var hintText = new TextBlock
             {
                 Text = isMojang
                     ? "Microsoft accounts are authenticated via OAuth. Click Save to re-authenticate."
-                    : "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page.",
+                    : account.AccountType == PlayerAccountType.YoriiSkins
+                        ? "Change your Yorii Skins name here (server-verified). New name must not be taken."
+                        : "Offline: username is local, change freely.",
                 FontSize = 12,
                 Opacity = 0.6,
                 TextWrapping = TextWrapping.Wrap
             };
 
-            // update field visibility based on selected account type
-            accountTypeBox.SelectionChanged += (_, _) =>
-            {
-                bool nowMojang = accountTypeBox.SelectedItem is ComboBoxItem selItem && selItem.Tag is PlayerAccountType.Mojang;
-                bool nowYoriiSkins = accountTypeBox.SelectedItem is ComboBoxItem ysItem && ysItem.Tag is PlayerAccountType.YoriiSkins;
-                usernameBox.IsReadOnly = nowMojang;
-                hintText.Text = nowMojang
-                    ? "Microsoft accounts are authenticated via OAuth. Click Save to re-authenticate."
-                    : nowYoriiSkins
-                        ? "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page."
-                        : "Offline players can join any server, but skins only work when the Yorii Skins skin mod is installed.";
-            };
+            // YoriiSkins rename is server-verified but editable here; Mojang is read-only
+            usernameBox.IsReadOnly = isMojang;
 
             var panel = new StackPanel { Spacing = 10 };
-            panel.Children.Add(accountTypeBox);
+            panel.Children.Add(typePanel);
             panel.Children.Add(usernameBox);
             panel.Children.Add(hintText);
 
@@ -1790,86 +1779,73 @@ namespace Yorii_Launcher
             if (dialogResult != ContentDialogResult.Primary)
                 return;
 
-            if (accountTypeBox.SelectedItem is ComboBoxItem selectedTypeItem &&
-                selectedTypeItem.Tag is PlayerAccountType newAccountType)
+            // Edit is for the existing account's type only - no type switching
+            if (account.AccountType == PlayerAccountType.Mojang)
             {
-                if (newAccountType == PlayerAccountType.Mojang)
+                try
                 {
-                    if (account.AccountType != PlayerAccountType.Mojang)
+                    playButton.IsEnabled = false;
+                    playButton.Content = "Signing in...";
+
+                    var (session, identifier) = await LoginHelper.LoginWithMojangInteractive();
+
+                    account.Username = session.Username;
+                    account.MojangIdentifier = identifier;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"Mojang re-auth failed: {ex.Message}");
+                    ShowNotification("Re-authentication failed", ex.Message);
+                    return;
+                }
+                finally
+                {
+                    playButton.Content = "Play";
+                    playButton.IsEnabled = true;
+                }
+            }
+            else if (account.AccountType == PlayerAccountType.Offline)
+            {
+                string newUsername = usernameBox.Text.Trim();
+                if (string.IsNullOrWhiteSpace(newUsername) || newUsername.Length > 16 || !System.Text.RegularExpressions.Regex.IsMatch(newUsername, @"^[A-Za-z0-9_]+$"))
+                {
+                    ShowNotification("Invalid username", "Use 3-16 letters, numbers, underscores.");
+                    return;
+                }
+                account.Username = newUsername;
+            }
+            else if (account.AccountType == PlayerAccountType.YoriiSkins)
+            {
+                string newUsername = usernameBox.Text.Trim();
+                if (string.IsNullOrWhiteSpace(newUsername) || newUsername.Length > 16 || !System.Text.RegularExpressions.Regex.IsMatch(newUsername, @"^[A-Za-z0-9_]+$"))
+                {
+                    ShowNotification("Invalid username", "Use 3-16 letters, numbers, underscores.");
+                    return;
+                }
+                if (!string.Equals(account.Username, newUsername, StringComparison.Ordinal))
+                {
+                    try
                     {
-                        try
-                        {
-                            playButton.IsEnabled = false;
-                            playButton.Content = "Signing in...";
-
-                            var (session, identifier) = await LoginHelper.LoginWithMojangInteractive();
-
-                            account.Username = session.Username;
-                            account.Password = null;
-                            account.AccountType = PlayerAccountType.Mojang;
-                            account.MojangIdentifier = identifier;
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error($"Mojang login failed: {ex.Message}");
-                            ShowNotification("Login failed", ex.Message);
-                            return;
-                        }
-                        finally
-                        {
-                            playButton.Content = "Play";
-                            playButton.IsEnabled = true;
-                        }
+                        playButton.IsEnabled = false;
+                        playButton.Content = "Renaming...";
+                        await SkinManager.RenameProfileAsync(account.Username, newUsername);
+                        ShowNotification("Renamed", $"'{account.Username}' → '{newUsername}' verified via worker.");
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            playButton.IsEnabled = false;
-                            playButton.Content = "Signing in...";
-
-                            var (session, identifier) = await LoginHelper.LoginWithMojangInteractive();
-
-                            account.Username = session.Username;
-                            account.MojangIdentifier = identifier;
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error($"Mojang re-auth failed: {ex.Message}");
-                            ShowNotification("Re-authentication failed", ex.Message);
-                            return;
-                        }
-                        finally
-                        {
-                            playButton.Content = "Play";
-                            playButton.IsEnabled = true;
-                        }
+                        Logger.Error($"Rename failed: {ex.Message}");
+                        ShowNotification("Rename failed", ex.Message);
+                        return;
                     }
+                    finally
+                    {
+                        playButton.Content = "Play";
+                        playButton.IsEnabled = true;
+                    }
+                    LoadAccounts();
+                    return;
                 }
-                else if (newAccountType == PlayerAccountType.Offline)
-                {
-                    account.Username = usernameBox.Text.Trim();
-                    account.Password = null;
-                    account.AccountType = PlayerAccountType.Offline;
-                    account.MojangIdentifier = null;
-                    account.CustomUUID = null;
-                }
-                else if (newAccountType == PlayerAccountType.YoriiSkins)
-                {
-                    account.Username = usernameBox.Text.Trim();
-                    account.Password = null;
-                    account.AccountType = PlayerAccountType.YoriiSkins;
-                    account.MojangIdentifier = null;
-                    account.CustomUUID ??= Guid.NewGuid().ToString("N");
-                }
-                else
-                {
-                    // unknown/removed types are treated as offline players
-                    account.Username = usernameBox.Text.Trim();
-                    account.Password = null;
-                    account.AccountType = PlayerAccountType.Offline;
-                    account.MojangIdentifier = null;
-                }
+                // same name - nothing to do
             }
 
             // refresh accounts

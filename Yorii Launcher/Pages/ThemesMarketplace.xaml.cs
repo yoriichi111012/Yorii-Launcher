@@ -226,7 +226,7 @@ public sealed partial class ThemesMarketplace : Page
             return;
 
         button.IsEnabled = false;
-        button.Content = "Installing...";
+        button.Content = "Installing";
 
         try
         {

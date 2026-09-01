@@ -1,9 +1,9 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	<OutputType>WinExe</OutputType>
 	<TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
-	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-	<Version>0.9.6</Version>
+	<TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+	<Version>0.9.7</Version>
 	<RootNamespace>Yorii_Launcher</RootNamespace>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
 	<Platforms>x64;ARM64</Platforms>
@@ -15,39 +15,39 @@
 	<EnableMsixTooling>true</EnableMsixTooling>
 	<Nullable>enable</Nullable>
 	  <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+	<DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="%2a%2a\**" />
+    <Compile Remove="0.9\**" />
     <Compile Remove="Authenticator\**" />
     <Compile Remove="Resources\AccentColorThemes\**" />
     <Compile Remove="cmllib.migration\**" />
-    <Compile Remove="0.9\**" />
     <Compile Remove="AppPackages\**" />
     <Compile Remove="temp\**" />
-    <EmbeddedResource Remove="%2a%2a\**" />
+    <EmbeddedResource Remove="0.9\**" />
     <EmbeddedResource Remove="Authenticator\**" />
     <EmbeddedResource Remove="Resources\AccentColorThemes\**" />
     <EmbeddedResource Remove="cmllib.migration\**" />
-    <EmbeddedResource Remove="0.9\**" />
-    <None Remove="%2a%2a\**" />
+    <None Remove="0.9\**" />
     <None Remove="Authenticator\**" />
     <None Remove="Resources\AccentColorThemes\**" />
     <None Remove="cmllib.migration\**" />
-    <None Remove="0.9\**" />
-    <Page Remove="%2a%2a\**" />
-    <Page Remove="Authenticator\**" />
     <Page Remove="0.9\**" />
-    <Page Remove="Resources\AccentColorThemes\**" />
+    <Page Remove="Authenticator\**" />
     <PRIResource Remove="cmllib.migration\**" />
-    <PRIResource Remove="0.9\**" />
   </ItemGroup>
   <ItemGroup>
-
-    <None Remove="%2a%2a/%2a" />
 
     <None Remove="720.png" />
 
     <None Remove="authlib-injector.jar" />
+
+	<!-- MainWindow.xaml must be compiled as WinUI XAML, not left as a None item. -->
+	<Page Remove="MainWindow.xaml" />
+	<None Remove="MainWindow.xaml" />
+	<Page Include="MainWindow.xaml">
+	  <Generator>MSBuild:Compile</Generator>
+	</Page>
 
     <None Remove="Console.xaml" />
 	<None Remove="HomePage.xaml" />
@@ -63,7 +63,6 @@
 	<None Remove="Pages\ReleaseNotesPage.xaml" />
 	<None Remove="Resources\ComboBox.xaml" />
 	<None Remove="SettingsPage.xaml" />
-	<None Remove="yorii launcher 0.9.5.zip" />
   </ItemGroup>
 
   <ItemGroup>
@@ -118,14 +117,14 @@
     <PackageReference Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.251219" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.Segmented" Version="8.2.251219" />
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2526" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
 	  <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
 	  <!-- <PackageReference Include="Optifine.Installer" Version="1.0.1" /> -->
-    <PackageReference Include="YamlDotNet" Version="16.3.0" />
-    <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="16.3.0" PrivateAssets="all" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+    <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="18.1.0" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-	<Page Update="Controls\ComboBox.xaml">
+	<Page Update="Resources\ComboBox.xaml">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Page>
 	<Page Update="HomePage.xaml">
@@ -149,12 +148,6 @@
 
 	<ItemGroup>
 		<TrimmerRootDescriptor Include="Helpers\linker.xml" />
-	</ItemGroup>
-
-	<ItemGroup><!-- source files are compiled in-place; no longer copied to output
-	       (Compile Update + glob produced duplicate items on SDK 10) -->
-	
-	  <Page Remove="%2a%2a/%2a.xaml" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -220,7 +213,6 @@
 	<PublishAot>False</PublishAot>
 	<PackageIcon>128.png</PackageIcon>
 	<AppxBundlePlatforms>x64|arm64</AppxBundlePlatforms>
-	<PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
 	<DebugType>none</DebugType>
@@ -275,6 +267,10 @@
     <Page Update="Console.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
+
+	  <Page Update="MainWindow.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+	  </Page>
   </ItemGroup>
   <ItemGroup>
     <PRIResource Remove="Authenticator\**" />
@@ -297,7 +293,7 @@
   <!-- strips junk from BOTH the build output dir and the publish layout
        (dotnet publish stages payloads under win-x64\publish, which the
        Build-anchored pass never saw) -->
-  <Target Name="StripUnusedWinAppSdkPayloads" AfterTargets="Build;Publish" BeforeTargets="Pack">
+   <Target Name="StripUnusedWinAppSdkPayloads" AfterTargets="Publish" BeforeTargets="Pack" Condition="'$(Configuration)'=='Release'">
     <PropertyGroup>
       <_BinAbs>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)'))</_BinAbs>
       <_PubAbs>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)publish\'))</_PubAbs>
@@ -311,18 +307,10 @@
     <ItemGroup>
       <_LangResourcesBin Include="$(_BinAbs)**\*.resources.dll" Exclude="$(_BinAbs)en\**; $(_BinAbs)en-US\**" />
       <_LangResourcesPub Include="$(_PubAbs)**\*.resources.dll" Exclude="$(_PubAbs)en\**; $(_PubAbs)en-US\**" />
-      <_BgBin Include="$(_BinAbs)Resources\launcherbackground.png" />
-      <_BgPub Include="$(_PubAbs)Resources\launcherbackground.png" />
     </ItemGroup>
-    <Delete Files="@(_LangResourcesBin); @(_LangResourcesPub); @(_BgBin); @(_BgPub)" />
+    <Delete Files="@(_LangResourcesBin); @(_LangResourcesPub)" />
   </Target>
   <ItemGroup>
-    <PRIResource Remove="%2a%2a\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Remove="%2a%2a/%2a.resx" />
-  </ItemGroup>
-  <ItemGroup>
-    <PRIResource Remove="%2a%2a/%2a.resw" />
+    <PRIResource Remove="0.9\**" />
   </ItemGroup>
 </Project>

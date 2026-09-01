@@ -12,7 +12,7 @@
   <Identity
     Name="yoriilauncher-samarium"
     Publisher="CN=yorii"
-    Version="0.9.6.0" />
+    Version="0.9.7.0" />
 
   <mp:PhoneIdentity PhoneProductId="a18a5722-8573-42f5-896b-9bd818be8df2" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
@@ -23,8 +23,8 @@
   </Properties>
 
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26226.0" />
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26226.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26226.0" />
   </Dependencies>
 
   <Resources>
