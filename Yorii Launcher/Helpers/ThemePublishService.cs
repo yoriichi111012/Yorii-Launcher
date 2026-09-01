@@ -50,7 +50,9 @@ public sealed class ThemePublishService
             ? string.Join(",", resp.Headers.GetValues("X-OAuth-Scopes"))
             : "";
 
-        if (!scopes.Contains("public_repo"))
+        var scopeSet = scopes.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (!scopeSet.Contains("public_repo") && !scopeSet.Contains("repo"))
             throw new Exception(
                 "Your GitHub token doesn't have permission to publish themes. " +
                 "Please sign out and sign back in to grant the required access.");
