@@ -14,6 +14,12 @@
   <a href="https://discord.com/invite/jnwBMCPsd">Discord</a>
 </p>
 
+<div align="center">
+  
+![GitHub Downloads (all assets, all releases)](https://shields.io./github/downloads/yoriichi111012/Yorii-Launcher/total?style=for-the-badge&labelColor=%23082848&color=%23082848&link=https%3A%2F%2Fgithub.com%2Fyoriichi111012%2FYorii-Launcher%2F%23installation)
+  
+</div>
+
 ## Installation
 Run this command in Windows PowerShell
 ``` 
@@ -22,9 +28,9 @@ irm https://raw.githubusercontent.com/yoriichi111012/Yorii-Launcher/main/Install
 
 or
 
-Install using [YoriiInstaller.exe](https://raw.githubusercontent.com/yoriichi111012/Yorii-Installer/main/bin/YoriiInstaller.exe) (May require disabling antivirus)
+Install using [YoriiInstaller.exe](https://raw.githubusercontent.com/yoriichi111012/Yorii-Installer/main/bin/YoriiInstaller.exe)
 
-Note: Installing using YoriiInstaller.exe may require disabling antivirus but the script will work in any case.
+**Note:** YoriiInstaller.exe may be flagged by some antivirus software or SmartScreen as a **false positive**. This is caused by the installer being not widely recognized. If Windows or your antivirus blocks the installer, the PowerShell installation method is recommended instead.
 
 It is recommended for the user to check and customize the launcher settings when the launcher has launched for the first time.
 
