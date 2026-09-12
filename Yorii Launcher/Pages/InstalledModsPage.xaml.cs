@@ -40,8 +40,9 @@ namespace Yorii_Launcher.Pages
 
             this.NavigationCacheMode = NavigationCacheMode.Required;
             ModsList.ItemsSource = Mods;
+            ModsGridList.ItemsSource = Mods;
             var savedMode = (PluginViewMode)SettingsManager.Current.InstalledModsViewMode;
-            PluginViewModeHelper.Apply(ModsList, savedMode);
+            PluginViewModeHelper.ApplyDualView(ModsList, ModsGridList, savedMode);
             ModsViewModeSegmented.SelectedIndex = (int)savedMode;
 
             _ = LoadMods();
@@ -53,12 +54,16 @@ namespace Yorii_Launcher.Pages
 
         private void ViewModeSegmented_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            PluginViewModeHelper.ApplyFromSelectedIndex(ModsList, ModsViewModeSegmented.SelectedIndex);
+            PluginViewModeHelper.ApplyDualViewFromSelectedIndex(ModsList, ModsGridList, ModsViewModeSegmented.SelectedIndex);
             SettingsManager.Current.InstalledModsViewMode = ModsViewModeSegmented.SelectedIndex;
             SettingsManager.SaveSettings();
         }
 
-        // watch mods folder for changes and refresh the list
+        // watch mods folder for changes and refresh the list. the watcher fires
+        // on pool threads while StartModsWatcher runs on the ui thread, so the
+        // watcher/cts swap is locked: an unlocked cancel-then-dispose race
+        // here used to throw ObjectDisposedException out of OnNavigatedTo.
+        private readonly object watcherLock = new();
         private void StartModsWatcher()
         {
             var minecraftPath = SettingsManager.Current.GetActiveMinecraftPath();
@@ -67,34 +72,55 @@ namespace Yorii_Launcher.Pages
             var modsFolder = Path.Combine(minecraftPath, "mods");
             Directory.CreateDirectory(modsFolder);
 
-            modsWatcher?.Dispose();
-            watcherCts?.Cancel();
-            watcherCts?.Dispose();
-
-            modsWatcher = new FileSystemWatcher(modsFolder)
+            FileSystemWatcher? oldWatcher;
+            CancellationTokenSource? oldCts;
+            lock (watcherLock)
             {
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
-                Filter = "*.jar*",
-                IncludeSubdirectories = false,
-                InternalBufferSize = 32768,
-                EnableRaisingEvents = true
-            };
-            modsWatcher.Created += ModsChanged;
-            modsWatcher.Changed += ModsChanged;
-            modsWatcher.Deleted += ModsChanged;
-            modsWatcher.Renamed += ModsChanged;
-            modsWatcher.Error += (_, _) => StartModsWatcher();
+                oldWatcher = modsWatcher;
+                oldCts = watcherCts;
+                modsWatcher = new FileSystemWatcher(modsFolder)
+                {
+                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
+                    Filter = "*.jar*",
+                    IncludeSubdirectories = false,
+                    InternalBufferSize = 32768,
+                    EnableRaisingEvents = true
+                };
+                modsWatcher.Created += ModsChanged;
+                modsWatcher.Changed += ModsChanged;
+                modsWatcher.Deleted += ModsChanged;
+                modsWatcher.Renamed += ModsChanged;
+                modsWatcher.Error += (_, _) => StartModsWatcher();
+                watcherCts = null;
+            }
+            oldWatcher?.Dispose();
+            CancelAndDisposeCts(oldCts);
+            Logger.Info($"Mods watcher watching {modsFolder}");
         }
 
         private CancellationTokenSource? watcherCts;
+
+        private static void CancelAndDisposeCts(CancellationTokenSource? cts)
+        {
+            if (cts is null) return;
+            try { cts.Cancel(); } catch (ObjectDisposedException) { }
+            cts.Dispose();
+        }
+
         private void ModsChanged(object sender, FileSystemEventArgs e)
         {
             if (ignoreWatcherChanges) return;
 
-            watcherCts?.Cancel();
-            watcherCts?.Dispose();
-            watcherCts = new CancellationTokenSource();
-            var token = watcherCts.Token;
+            CancellationTokenSource? oldCts;
+            CancellationTokenSource freshCts;
+            lock (watcherLock)
+            {
+                oldCts = watcherCts;
+                freshCts = new CancellationTokenSource();
+                watcherCts = freshCts;
+            }
+            CancelAndDisposeCts(oldCts);
+            var token = freshCts.Token;
 
             _ = Task.Delay(350, token).ContinueWith(async _ =>
             {
@@ -383,6 +409,7 @@ namespace Yorii_Launcher.Pages
                     .ToList();
 
                 mods = loadedMods;
+                Logger.Info($"Loaded {loadedMods.Count} mods from {path}");
 
                 // remove missing
                 for (int i = Mods.Count - 1; i >= 0; i--)
@@ -425,6 +452,7 @@ namespace Yorii_Launcher.Pages
 
             // re-point the watcher at the active instance (the page is cached, so
             // the folder can change between visits) then always refresh the list
+            Logger.Info("Navigated to InstalledModsPage");
             StartModsWatcher();
             await LoadMods(); // always refresh when page is shown
         }

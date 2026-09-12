@@ -31,8 +31,9 @@ namespace Yorii_Launcher.Pages
             NavigationCacheMode = NavigationCacheMode.Required;
 
             ModpacksList.ItemsSource = Modpacks;
+            ModpacksGridList.ItemsSource = Modpacks;
             var savedMode = (PluginViewMode)SettingsManager.Current.InstalledModpacksViewMode;
-            PluginViewModeHelper.Apply(ModpacksList, savedMode);
+            PluginViewModeHelper.ApplyDualView(ModpacksList, ModpacksGridList, savedMode);
             ModpacksViewModeSegmented.SelectedIndex = (int)savedMode;
 
             _ = LoadModpacks();
@@ -43,7 +44,7 @@ namespace Yorii_Launcher.Pages
 
         private void ViewModeSegmented_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            PluginViewModeHelper.ApplyFromSelectedIndex(ModpacksList, ModpacksViewModeSegmented.SelectedIndex);
+            PluginViewModeHelper.ApplyDualViewFromSelectedIndex(ModpacksList, ModpacksGridList, ModpacksViewModeSegmented.SelectedIndex);
             SettingsManager.Current.InstalledModpacksViewMode = ModpacksViewModeSegmented.SelectedIndex;
             SettingsManager.SaveSettings();
         }
@@ -57,16 +58,36 @@ namespace Yorii_Launcher.Pages
             }
         }
 
+        // same locked swap as InstalledModsPage: watcher events arrive on pool
+        // threads while Start runs on the ui thread
+        private readonly object watcherLock = new();
         private void StartModpacksWatcher()
         {
             Directory.CreateDirectory(ModpacksFolder);
 
-            modpacksWatcher?.Dispose();
-            modpacksWatcher = new FileSystemWatcher(ModpacksFolder);
-            modpacksWatcher.Created += ModpacksChanged;
-            modpacksWatcher.Deleted += ModpacksChanged;
-            modpacksWatcher.Renamed += ModpacksChanged;
-            modpacksWatcher.EnableRaisingEvents = true;
+            FileSystemWatcher? oldWatcher;
+            CancellationTokenSource? oldCts;
+            lock (watcherLock)
+            {
+                oldWatcher = modpacksWatcher;
+                oldCts = watcherCts;
+                modpacksWatcher = new FileSystemWatcher(ModpacksFolder);
+                modpacksWatcher.Created += ModpacksChanged;
+                modpacksWatcher.Deleted += ModpacksChanged;
+                modpacksWatcher.Renamed += ModpacksChanged;
+                modpacksWatcher.EnableRaisingEvents = true;
+                watcherCts = null;
+            }
+            oldWatcher?.Dispose();
+            CancelAndDisposeCts(oldCts);
+            Logger.Info($"Modpacks watcher watching {ModpacksFolder}");
+        }
+
+        private static void CancelAndDisposeCts(CancellationTokenSource? cts)
+        {
+            if (cts is null) return;
+            try { cts.Cancel(); } catch (ObjectDisposedException) { }
+            cts.Dispose();
         }
 
         private void ModpacksChanged(object sender, FileSystemEventArgs e)
@@ -76,14 +97,22 @@ namespace Yorii_Launcher.Pages
 
             Debug.WriteLine($"WATCHER: {e.ChangeType} -> {e.FullPath}");
 
-            watcherCts?.Cancel();
-            watcherCts = new CancellationTokenSource();
+            CancellationTokenSource? oldCts;
+            CancellationTokenSource freshCts;
+            lock (watcherLock)
+            {
+                oldCts = watcherCts;
+                freshCts = new CancellationTokenSource();
+                watcherCts = freshCts;
+            }
+            CancelAndDisposeCts(oldCts);
+            var token = freshCts.Token;
 
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await Task.Delay(250, watcherCts.Token);
+                    await Task.Delay(250, token);
 
                     await DispatcherQueue.EnqueueAsync(async () =>
                     {
@@ -286,6 +315,7 @@ namespace Yorii_Launcher.Pages
 
                 modpacks = loadedModpacks.OrderBy(m => m.Name).ToList();
                 SyncModpacks(modpacks);
+                Logger.Info($"Loaded {modpacks.Count} modpacks");
             }
             finally
             {
@@ -317,8 +347,8 @@ namespace Yorii_Launcher.Pages
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-
             // re-point the watcher at the active instance, then refresh the list
+            Logger.Info("Navigated to InstalledModpacksPage");
             StartModpacksWatcher();
             await LoadModpacks();
         }

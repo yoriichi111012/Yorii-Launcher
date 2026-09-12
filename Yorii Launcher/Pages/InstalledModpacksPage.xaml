@@ -73,11 +73,17 @@
                     x:Name="ModpacksList"
                     Grid.Row="2"
                     Margin="0,0,0,4"
-                    Padding="24,0,24,0"
+                    Padding="0"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
                     BorderThickness="0"
+                    ItemContainerStyle="{StaticResource PluginListViewItemContainerStyle}"
                     SelectionMode="None">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsStackPanel Orientation="Vertical" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:ManagedFileItem">
                             <Border
@@ -127,6 +133,83 @@
                                         </StackPanel>
                                     </StackPanel>
 
+                                    <ToggleSwitch
+                                        Grid.Column="1"
+                                        Width="50"
+                                        MinWidth="0"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        IsOn="{x:Bind IsEnabled, Mode=TwoWay}"
+                                        OffContent=""
+                                        OnContent=""
+                                        Toggled="ToggleSwitch_Toggled" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <ListView
+                    x:Name="ModpacksGridList"
+                    Grid.Row="2"
+                    Margin="0,0,0,4"
+                    Padding="0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    BorderThickness="0"
+                    ItemContainerStyle="{StaticResource PluginGridViewItemContainerStyle}"
+                    SelectionMode="None"
+                    Visibility="Collapsed">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid HorizontalAlignment="Center" Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:ManagedFileItem">
+                            <Border
+                                MaxWidth="1200"
+                                Margin="0,0,0,6"
+                                Padding="10"
+                                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="4">
+                                <Border.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem Click="OpenFile_Click" Text="Reveal in Explorer" />
+                                        <MenuFlyoutItem Click="OpenFolder_Click" Text="Open Modpacks Folder" />
+                                        <MenuFlyoutItem Click="OpenModrinth_Click" Text="Open Modrinth Page" />
+                                        <MenuFlyoutSeparator />
+                                        <MenuFlyoutItem
+                                            Click="DeleteModpack_Click"
+                                            Foreground="#FF5555"
+                                            Text="Delete Modpack" />
+                                    </MenuFlyout>
+                                </Border.ContextFlyout>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel
+                                        Margin="6,0,0,0"
+                                        Orientation="Horizontal"
+                                        Spacing="16">
+                                        <FontIcon
+                                            Width="40"
+                                            Height="40"
+                                            FontSize="24"
+                                            Foreground="{ThemeResource AccentColorBrush}"
+                                            Glyph="&#xE8FD;" />
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock
+                                                FontSize="14"
+                                                FontWeight="SemiBold"
+                                                Text="{x:Bind Name}" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Opacity="0.7"
+                                                Text="{x:Bind Version}" />
+                                        </StackPanel>
+                                    </StackPanel>
                                     <ToggleSwitch
                                         Grid.Column="1"
                                         Width="50"

@@ -7,7 +7,11 @@ using Yorii_Launcher.Helpers;
 
 namespace Yorii_Launcher.Models;
 
-public sealed class ThemeMarketplaceItem : INotifyPropertyChanged
+    // explicit opt-in: this type crosses the WinRT ABI (ItemsSource,
+    // container items, Tag) and Auto detection alone did not generate its
+    // AOT vtable (E_NOINTERFACE crash on the Themes page).
+    [WinRT.GeneratedWinRTExposedType]
+    public sealed partial class ThemeMarketplaceItem : INotifyPropertyChanged
 {
     private string themeName = "";
     private string author = "";

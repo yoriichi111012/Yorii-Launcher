@@ -12,7 +12,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
+using Windows.Storage;
 using Yorii_Launcher.Models;
 
 namespace Yorii_Launcher.Helpers
@@ -29,9 +30,11 @@ public const string IndexRepoOwner = "yorii-accounts";
 
         public const string WorkerBaseUrl = "https://yorii-worker.yoriiskin.workers.dev";
 
-        private static readonly HttpClient http = new();
+        // public profiles are disposable: the worker deletes entries unseen
+        // for longer than this (PUBLIC_TTL_MS in the worker). keep in sync
+        public const int PublicProfileTtlDays = 15;
 
-        private static readonly JsonSerializerOptions SkinJsonOptions = new() { WriteIndented = true };
+        private static readonly HttpClient http = new();
 
         // local index snapshot, the single source of truth for the ui. seeded from
         // disk at startup, replaced only with fresh github api data and updated
@@ -71,25 +74,21 @@ public const string IndexRepoOwner = "yorii-accounts";
             }
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Reflection-based JSON is intentionally enabled via JsonSerializerIsReflectionEnabledByDefault.")]
         private static void PersistIndexCache()
         {
             try
             {
-                Dictionary<string, object?> players = [];
+                Dictionary<string, SkinProfileSnapshot> players = [];
                 foreach (var p in _profilesCache ?? [])
                 {
-                    players[p.Username] = new Dictionary<string, object?>
-                    {
-                        ["kind"] = p.Kind,
-                        ["owner"] = p.Owner,
-                        ["uuid"] = p.Uuid,
-                        ["skinUrl"] = p.SkinUrl
-                    };
+                    players[p.Username] = new SkinProfileSnapshot(
+                        p.Kind, p.Owner, p.Uuid, p.SkinUrl,
+                        p.CapeUrl, p.CapeVersion, p.Version, p.LastSeenAt);
                 }
                 string dir = Path.GetDirectoryName(LocalIndexPath)!;
                 Directory.CreateDirectory(dir);
-                File.WriteAllText(LocalIndexPath, JsonSerializer.Serialize(new { players }));
+                File.WriteAllText(LocalIndexPath, JsonSerializer.Serialize(
+                    new SkinIndexSnapshot(players), LauncherJsonContext.Default.SkinIndexSnapshot));
             }
             catch
             {
@@ -108,6 +107,10 @@ public const string IndexRepoOwner = "yorii-accounts";
         private static readonly ConcurrentDictionary<string, (SkinSyncInfo Info, DateTime CheckedAt)> syncCache = new();
         private static readonly TimeSpan SyncTtl = TimeSpan.FromSeconds(60);
 
+        // downloaded cape bytes + sync results, mirroring the skin caches above
+        private static readonly ConcurrentDictionary<string, (byte[] Bytes, DateTime FetchedAt)> capeBytesCache = new();
+        private static readonly ConcurrentDictionary<string, (CapeSyncInfo Info, DateTime CheckedAt)> capeSyncCache = new();
+
         private static string GitHubToken => SettingsManager.Current.GitHubToken ?? "";
         private static string GitHubUsername => SettingsManager.Current.GitHubUsername ?? "";
 
@@ -118,11 +121,7 @@ public const string IndexRepoOwner = "yorii-accounts";
 
         public static string GetOAuthUrl(string state)
         {
-            // repo scope is required for the worker to create the private yorii-profiles
-            // repository on first private upload via POST /user/repos (installation
-            // tokens cannot create user repos). The token is stored locally and only
-            // sent to the worker (Authorization: Bearer) for auth/repo creation.
-            return $"{GitHubOAuthUrl}?client_id={GitHubClientId}&redirect_uri=http://localhost:{CallbackPort}/callback&state={Uri.EscapeDataString(state)}&scope=read:user repo";
+            return $"{GitHubOAuthUrl}?client_id={GitHubClientId}&redirect_uri=http://localhost:{CallbackPort}/callback&state={Uri.EscapeDataString(state)}&scope=read:user public_repo";
         }
 
         public static async Task AuthenticateWithGitHub()
@@ -221,11 +220,11 @@ public const string IndexRepoOwner = "yorii-accounts";
 
         // the worker exchanges the code so the oauth client secret never ships
         // in the launcher binary
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Reflection-based JSON is intentionally enabled via JsonSerializerIsReflectionEnabledByDefault.")]
         private static async Task<(string token, string login)> ExchangeCodeForToken(string code)
         {
             using var web = new HttpClient();
-            var content = new StringContent(JsonSerializer.Serialize(new { code }), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
+            var content = new StringContent(JsonSerializer.Serialize(
+                new OAuthCodeRequest(code), LauncherJsonContext.Default.OAuthCodeRequest), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
             var resp = await web.PostAsync($"{WorkerBaseUrl}/api/oauth/token", content);
             string json = await resp.Content.ReadAsStringAsync();
             if (!resp.IsSuccessStatusCode)
@@ -290,10 +289,19 @@ public const string IndexRepoOwner = "yorii-accounts";
                         string username = prop.Name;
                         string uuid = "";
                         string skinUrl = "";
+                        string capeUrl = "";
+                        string capeVersion = "";
+                        string version = "";
+                        long lastSeenAt = 0;
                         string kind = "private";
                         string owner = "";
                         if (prop.Value.TryGetProperty("uuid", out var uuidEl)) uuid = uuidEl.GetString() ?? "";
                         if (prop.Value.TryGetProperty("skinUrl", out var urlEl)) skinUrl = urlEl.GetString() ?? "";
+                        if (prop.Value.TryGetProperty("capeUrl", out var capeEl)) capeUrl = capeEl.GetString() ?? "";
+                        if (prop.Value.TryGetProperty("capeVersion", out var capeVerEl)) capeVersion = capeVerEl.GetString() ?? "";
+                        // version is the skin file commit (what the worker's ?v= uses)
+                        if (prop.Value.TryGetProperty("version", out var verEl)) version = verEl.GetString() ?? "";
+                        if (prop.Value.TryGetProperty("lastSeenAt", out var seenEl) && seenEl.ValueKind == JsonValueKind.Number && seenEl.TryGetInt64(out var seen)) lastSeenAt = seen;
                         if (prop.Value.TryGetProperty("kind", out var kindEl)) kind = kindEl.GetString() ?? "private";
                         if (prop.Value.TryGetProperty("owner", out var ownerEl)) owner = ownerEl.GetString() ?? "";
                         profiles.Add(new ProfileEntry
@@ -301,6 +309,10 @@ public const string IndexRepoOwner = "yorii-accounts";
                             Username = username,
                             Uuid = uuid,
                             SkinUrl = skinUrl,
+                            CapeUrl = capeUrl,
+                            CapeVersion = capeVersion,
+                            Version = version,
+                            LastSeenAt = lastSeenAt,
                             Kind = kind,
                             Owner = owner
                         });
@@ -328,18 +340,12 @@ public const string IndexRepoOwner = "yorii-accounts";
             return ParseProfiles(await resp.Content.ReadAsStringAsync(cancellationToken));
         }
 
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Reflection-based JSON is intentionally enabled via JsonSerializerIsReflectionEnabledByDefault.")]
         public static async Task AddOrUpdateProfile(string minecraftUsername, byte[] skinData, string kind)
         {
             if (kind == "private" && !IsLoggedIn) throw new Exception("Not logged into GitHub.");
 
             string base64 = Convert.ToBase64String(skinData);
-            var payload = new Dictionary<string, object?>
-            {
-                ["username"] = minecraftUsername,
-                ["skinBase64"] = base64,
-                ["kind"] = kind
-            };
+            var payload = new SkinUploadPayload(minecraftUsername, base64, kind);
 
             using var web = new HttpClient();
             var req = new HttpRequestMessage(HttpMethod.Post, $"{WorkerBaseUrl}/api/skins");
@@ -354,7 +360,8 @@ public const string IndexRepoOwner = "yorii-accounts";
                 if (SettingsManager.Current.ClaimTokens.TryGetValue(minecraftUsername, out var storedToken))
                     req.Headers.TryAddWithoutValidation("X-Yorii-Claim-Token", storedToken);
             }
-            req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
+            req.Content = new StringContent(JsonSerializer.Serialize(
+                payload, LauncherJsonContext.Default.SkinUploadPayload), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
 
             var resp = await web.SendAsync(req);
             string body = await resp.Content.ReadAsStringAsync();
@@ -397,7 +404,10 @@ public const string IndexRepoOwner = "yorii-accounts";
                 throw new Exception(message ?? "This profile name is already taken.");
             }
             if (!resp.IsSuccessStatusCode)
+            {
+                Logger.Warn($"Skin upload rejected for '{minecraftUsername}' ({kind}): {(int)resp.StatusCode} {body}");
                 throw new Exception($"Upload failed: {(int)resp.StatusCode} {body}");
+            }
 
             // on creation the worker mints the claim token - keep it so the
             // profile stays updatable/deletable from this launcher
@@ -421,11 +431,13 @@ public const string IndexRepoOwner = "yorii-accounts";
             // mutation or leave a stale list behind
             string entryUuid = "";
             string entrySkinUrl = "";
+            string entryVersion = "";
             try
             {
                 using var doc = JsonDocument.Parse(body);
                 if (doc.RootElement.TryGetProperty("uuid", out var uuidEl)) entryUuid = uuidEl.GetString() ?? "";
                 if (doc.RootElement.TryGetProperty("skinUrl", out var urlEl)) entrySkinUrl = urlEl.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("version", out var verEl)) entryVersion = verEl.GetString() ?? "";
             }
             catch { }
 
@@ -434,10 +446,13 @@ public const string IndexRepoOwner = "yorii-accounts";
                 Username = minecraftUsername,
                 Uuid = entryUuid,
                 SkinUrl = entrySkinUrl,
+                Version = entryVersion,
                 Kind = kind,
-                Owner = kind == "private" ? GitHubUsername : ""
+                Owner = kind == "private" ? GitHubUsername : "",
+                // an upload counts as activity for the public-profile lease
+                LastSeenAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             });
-            Logger.Info($"Upload confirmed for '{minecraftUsername}', snapshot count={_profilesCache?.Count ?? 0}");
+            Logger.Info($"Upload confirmed for '{minecraftUsername}', kind={kind}, snapshot count={_profilesCache?.Count ?? 0}, uuidEmpty={string.IsNullOrEmpty(entryUuid)}, skinUrlEmpty={string.IsNullOrEmpty(entrySkinUrl)}");
 
             ClearSkinCache();
             InvalidateIndexCache(minecraftUsername);
@@ -545,68 +560,259 @@ public const string IndexRepoOwner = "yorii-accounts";
             }
         }
 
-        // server-verified rename for YoriiSkins: create new profile with same skin, then delete old
-        // used by both Skins page and Manage Accounts edit - refuses if new name already taken
-        public static async Task RenameProfileAsync(string oldUsername, string newUsername)
+        // uploads a cape for a profile that already has a skin (attached-only,
+        // mirroring AddOrUpdateProfile): posts capeBase64 to /api/capes with the
+        // same bearer/claim-token auth, then reflects the cape in the local
+        // snapshot and syncs it to every instance's localskin capes folder
+        public static async Task AddOrUpdateCape(string minecraftUsername, byte[] capeData, string kind)
         {
-            if (string.Equals(oldUsername, newUsername, StringComparison.Ordinal))
-                return;
-            if (string.IsNullOrWhiteSpace(newUsername) || newUsername.Length > 16 || !System.Text.RegularExpressions.Regex.IsMatch(newUsername, @"^[A-Za-z0-9_]+$"))
-                throw new Exception("Invalid new Minecraft username.");
-            if (string.IsNullOrWhiteSpace(oldUsername))
-                throw new Exception("Original profile not found.");
+            if (kind == "private" && !IsLoggedIn) throw new Exception("Not logged into GitHub.");
+            if (!IsValidCapePng(capeData, out int width, out int height))
+                throw new Exception($"Invalid cape dimensions {(width > 0 ? $"{width}x{height}" : "unknown")} (expected 64x32 or HD multiple).");
 
-            var entries = await FetchRawIndexAsync();
-            var oldEntry = entries.FirstOrDefault(e => e.Username == oldUsername);
-            if (oldEntry == null)
-                throw new Exception($"Profile '{oldUsername}' not found.");
-            if (entries.Any(e => string.Equals(e.Username, newUsername, StringComparison.Ordinal)))
-                throw new Exception($"'{newUsername}' is already taken.");
+            string base64 = Convert.ToBase64String(capeData);
+            var payload = new CapeUploadPayload(minecraftUsername, base64, kind);
 
-            // YoriiSkins rename must be verified via worker; Offline has no server entry
-            if (oldEntry.Kind != "private" && oldEntry.Kind != "public")
-                throw new Exception("Only YoriiSkins profiles can be renamed via server.");
-
-            // fetch the published skin bytes for the old profile (worker proxy can read private repos)
-            byte[]? skinBytes = await GetSkinBytesAsync(oldUsername, oldEntry.SkinUrl);
-            if (skinBytes == null || skinBytes.Length == 0)
+            using var web = new HttpClient();
+            var req = new HttpRequestMessage(HttpMethod.Post, $"{WorkerBaseUrl}/api/capes");
+            if (kind == "private")
             {
-                // fallback to local skin if remote not reachable
-                string localPath = Path.Combine(GetLocalSkinsDir(), "skins", $"{oldUsername}.png");
-                if (File.Exists(localPath))
-                    skinBytes = await File.ReadAllBytesAsync(localPath);
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", GitHubToken);
             }
-            if (skinBytes == null || skinBytes.Length == 0)
-                throw new Exception("Could not fetch current skin for rename. Upload a skin first.");
-
-            string kind = oldEntry.Kind;
-
-            // create new profile with same skin - server enforces 403 if taken and 409 limit
-            await AddOrUpdateProfile(newUsername, skinBytes, kind);
-
-            // delete old - if this fails we have both names, but new is already verified
-            try
+            else
             {
-                await RemoveProfile(oldUsername);
+                if (SettingsManager.Current.ClaimTokens.TryGetValue(minecraftUsername, out var storedToken))
+                    req.Headers.TryAddWithoutValidation("X-Yorii-Claim-Token", storedToken);
             }
-            catch (Exception ex)
-            {
-                // new succeeded, old remains - inform caller so they can retry delete
-                throw new Exception($"Renamed to '{newUsername}' but could not delete old '{oldUsername}': {ex.Message}. Delete it manually on the Skins page.");
-            }
+            req.Content = new StringContent(JsonSerializer.Serialize(
+                payload, LauncherJsonContext.Default.CapeUploadPayload), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
 
-            // also move local skin file
-            try
+            var resp = await web.SendAsync(req);
+            string body = await resp.Content.ReadAsStringAsync();
+
+            // 412 -> the user hasn't installed the yorii github app yet
+            if (resp.StatusCode == HttpStatusCode.PreconditionFailed)
             {
-                string oldLocal = Path.Combine(GetLocalSkinsDir(), "skins", $"{oldUsername}.png");
-                string newLocal = Path.Combine(GetLocalSkinsDir(), "skins", $"{newUsername}.png");
-                if (File.Exists(oldLocal))
+                string? installUrl = null;
+                try
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(newLocal)!);
-                    File.Move(oldLocal, newLocal, true);
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("installUrl", out var u)) installUrl = u.GetString();
                 }
+                catch { }
+                if (!string.IsNullOrEmpty(installUrl)) OpenBrowser(installUrl);
+                throw new Exception("Install the Yorii GitHub App to manage private capes (browser opened).");
+            }
+            // 403 -> first-come wins or no skin on the profile yet
+            if (resp.StatusCode == HttpStatusCode.Forbidden)
+            {
+                string? message = null;
+                try
+                {
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("error", out var m)) message = m.GetString();
+                }
+                catch { }
+                throw new Exception(message ?? "You don't own this profile.");
+            }
+            // 400 -> no skin on the profile yet (attached-only) or invalid png
+            if (resp.StatusCode == HttpStatusCode.BadRequest)
+            {
+                string? message = null;
+                try
+                {
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("error", out var m)) message = m.GetString();
+                }
+                catch { }
+                throw new Exception(message ?? "Cape upload rejected.");
+            }
+            if (!resp.IsSuccessStatusCode)
+                throw new Exception($"Cape upload failed: {(int)resp.StatusCode} {body}");
+
+            string entryCapeUrl = "";
+            string entryCapeVersion = "";
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("capeUrl", out var urlEl)) entryCapeUrl = urlEl.GetString() ?? "";
+                if (doc.RootElement.TryGetProperty("capeVersion", out var verEl)) entryCapeVersion = verEl.GetString() ?? "";
             }
             catch { }
+
+            // merge the cape into the existing local snapshot entry (the skin
+            // entry must already be there - capes are attached-only). the
+            // mutation timestamp is set regardless so a lagging api refresh
+            // can never revert this confirmed upload
+            _lastMutationAt = DateTime.UtcNow;
+            if (_profilesCache is not null)
+            {
+                int idx = _profilesCache.FindIndex(p => p.Username == minecraftUsername);
+                if (idx >= 0)
+                {
+                    var existing = _profilesCache[idx];
+                    _profilesCache[idx] = new ProfileEntry
+                    {
+                        Username = existing.Username,
+                        Uuid = existing.Uuid,
+                        SkinUrl = existing.SkinUrl,
+                        CapeUrl = entryCapeUrl,
+                        CapeVersion = entryCapeVersion,
+                        Version = existing.Version,
+                        Kind = existing.Kind,
+                        Owner = existing.Owner,
+                        // a cape upload counts as activity for the public-profile lease
+                        LastSeenAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                    };
+                    PersistIndexCache();
+                }
+            }
+            Logger.Info($"Cape upload confirmed for '{minecraftUsername}'");
+
+            capeBytesCache.TryRemove(minecraftUsername, out _);
+            capeSyncCache.TryRemove(minecraftUsername, out _);
+
+            // propagate the freshly uploaded cape to every instance's localskin
+            await SyncCapeToAllInstancesAsync(minecraftUsername);
+        }
+
+        // removes only the cape fields from a profile (the skin entry stays),
+        // mirroring RemoveProfile auth
+        public static async Task RemoveCape(string minecraftUsername)
+        {
+            var entries = await FetchRawIndexAsync();
+            var entry = entries.FirstOrDefault(e => e.Username == minecraftUsername);
+            if (entry is null || string.IsNullOrEmpty(entry.CapeUrl))
+            {
+                // nothing on the server - nothing to remove
+                capeBytesCache.TryRemove(minecraftUsername, out _);
+                capeSyncCache.TryRemove(minecraftUsername, out _);
+                DeleteLocalCape(minecraftUsername);
+                ClearCapeSnapshot(minecraftUsername);
+                return;
+            }
+
+            if (entry.Kind == "private" && !IsLoggedIn)
+                throw new Exception("Not logged into GitHub.");
+
+            using var web = new HttpClient();
+            var req = new HttpRequestMessage(HttpMethod.Delete, $"{WorkerBaseUrl}/api/capes/{Uri.EscapeDataString(minecraftUsername)}");
+            if (entry.Kind == "private")
+            {
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", GitHubToken);
+            }
+            else
+            {
+                if (!SettingsManager.Current.ClaimTokens.TryGetValue(minecraftUsername, out var storedToken))
+                    throw new Exception("This public profile's claim token is missing; its cape can't be removed from this launcher.");
+                req.Headers.TryAddWithoutValidation("X-Yorii-Claim-Token", storedToken);
+            }
+
+            var resp = await web.SendAsync(req);
+            string body = await resp.Content.ReadAsStringAsync();
+            if (resp.StatusCode == HttpStatusCode.Forbidden)
+            {
+                string? message = null;
+                try
+                {
+                    using var doc = JsonDocument.Parse(body);
+                    if (doc.RootElement.TryGetProperty("error", out var m)) message = m.GetString();
+                }
+                catch { }
+                throw new Exception(message ?? "You don't own this profile.");
+            }
+            if (!resp.IsSuccessStatusCode)
+                throw new Exception($"Cape delete failed: {(int)resp.StatusCode} {body}");
+
+            ClearCapeSnapshot(minecraftUsername);
+            Logger.Info($"Cape delete confirmed for '{minecraftUsername}'");
+            capeBytesCache.TryRemove(minecraftUsername, out _);
+            capeSyncCache.TryRemove(minecraftUsername, out _);
+            DeleteLocalCape(minecraftUsername);
+        }
+
+        // clears only the cape fields on the local snapshot entry, the skin stays
+        private static void ClearCapeSnapshot(string username)
+        {
+            if (_profilesCache is null) return;
+            int idx = _profilesCache.FindIndex(p => p.Username == username);
+            if (idx < 0) return;
+            var existing = _profilesCache[idx];
+            if (string.IsNullOrEmpty(existing.CapeUrl)) return;
+            _lastMutationAt = DateTime.UtcNow;
+            _profilesCache[idx] = new ProfileEntry
+            {
+                Username = existing.Username,
+                Uuid = existing.Uuid,
+                SkinUrl = existing.SkinUrl,
+                CapeUrl = "",
+                CapeVersion = "",
+                Version = existing.Version,
+                Kind = existing.Kind,
+                Owner = existing.Owner,
+                LastSeenAt = existing.LastSeenAt
+            };
+            PersistIndexCache();
+        }
+
+        // keeps owned public profiles alive: the worker deletes public entries
+        // unseen for PublicProfileTtlDays, so visits refresh the lease.
+        // fire-and-forget, best-effort, never throws. a 404 means the profile
+        // already expired (or was deleted) - the dead claim token is dropped
+        // so the row stops pretending to be claimed
+        public static async Task HeartbeatPublicProfilesAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var profiles = _profilesCache ?? await GetProfilesAsync(cancellationToken);
+                var owned = profiles
+                    .Where(p => p.Kind == "public" && SettingsManager.Current.ClaimTokens.ContainsKey(p.Username))
+                    .ToList();
+                if (owned.Count == 0) return;
+
+                using var web = new HttpClient();
+                await Task.WhenAll(owned.Select(async p =>
+                {
+                    try
+                    {
+                        var token = SettingsManager.Current.ClaimTokens[p.Username];
+                        var req = new HttpRequestMessage(HttpMethod.Post, $"{WorkerBaseUrl}/api/public/heartbeat");
+                        req.Headers.TryAddWithoutValidation("X-Yorii-Claim-Token", token);
+                        req.Content = new StringContent(
+                            JsonSerializer.Serialize(
+                                new HeartbeatPayload(p.Username), LauncherJsonContext.Default.HeartbeatPayload),
+                            Encoding.UTF8,
+                            new MediaTypeHeaderValue("application/json"));
+                        using var resp = await web.SendAsync(req, cancellationToken);
+                        if (resp.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            SettingsManager.Current.ClaimTokens.Remove(p.Username);
+                            SettingsManager.SaveSettings();
+                        }
+                    }
+                    catch { }
+                }));
+            }
+            catch { }
+        }
+
+        // reads png width/height from the ihdr chunk (big-endian at bytes 16-23)
+        public static bool TryGetPngDimensions(byte[] data, out int width, out int height)
+        {
+            width = 0;
+            height = 0;
+            try
+            {
+                if (data == null || data.Length < 24) return false;
+                if (data[0] != 0x89 || data[1] != 0x50 || data[2] != 0x4E || data[3] != 0x47) return false;
+                width = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+                height = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+                return width > 0 && height > 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         // the local snapshot reflects mutations immediately; the api refresh
@@ -615,6 +821,8 @@ public const string IndexRepoOwner = "yorii-accounts";
         {
             skinBytesCache.TryRemove(username, out _);
             syncCache.TryRemove(username, out _);
+            capeBytesCache.TryRemove(username, out _);
+            capeSyncCache.TryRemove(username, out _);
         }
 
                 // optimistic local updates: the ui shows the change the moment the
@@ -669,10 +877,19 @@ public const string IndexRepoOwner = "yorii-accounts";
             }
         }
 
+        // profile names end up in local file paths - keep them to the
+        // minecraft charset so a crafted name can never escape the skins
+        // folder via ../ sequences
+        private static readonly Regex SafeProfileName = new("^[A-Za-z0-9_]{1,16}$", RegexOptions.Compiled);
+
+        public static bool IsSafeProfileName(string username) =>
+            !string.IsNullOrEmpty(username) && SafeProfileName.IsMatch(username);
+
         // save the published skin into the active instances customskinloader
         // localskin folder so the game loads it instantly without downloading again
         public static string? SaveLocalSkin(string minecraftUsername, byte[] skinData)
         {
+            if (!IsSafeProfileName(minecraftUsername)) return null;
             try
             {
                 string dir = Path.Combine(GetLocalSkinsDir(), "skins");
@@ -694,6 +911,7 @@ public const string IndexRepoOwner = "yorii-accounts";
         // worker or waiting for the first launch
         public static void CopyLocalSkinToPath(string minecraftUsername, string targetMinecraftPath)
         {
+            if (!IsSafeProfileName(minecraftUsername)) return;
             try
             {
                 string source = Path.Combine(GetLocalSkinsDir(), "skins", $"{minecraftUsername}.png");
@@ -717,13 +935,13 @@ public const string IndexRepoOwner = "yorii-accounts";
         // all serve the latest skin
         public static async Task SyncSkinToAllInstancesAsync(string minecraftUsername)
         {
-            if (string.IsNullOrWhiteSpace(minecraftUsername)) return;
+            if (!IsSafeProfileName(minecraftUsername)) return;
             try
             {
                 byte[]? data = null;
                 try
                 {
-                    string url = $"{WorkerBaseUrl}/MinecraftSkins/{Uri.EscapeDataString(minecraftUsername)}.png";
+                    string url = SkinFetchUrl(minecraftUsername);
                     data = await http.GetByteArrayAsync(url);
                 }
                 catch (Exception ex)
@@ -771,6 +989,7 @@ public const string IndexRepoOwner = "yorii-accounts";
         }
         public static void DeleteLocalSkin(string minecraftUsername)
         {
+            if (!IsSafeProfileName(minecraftUsername)) return;
             try
             {
                 string path = Path.Combine(GetLocalSkinsDir(), "skins", $"{minecraftUsername}.png");
@@ -780,6 +999,470 @@ public const string IndexRepoOwner = "yorii-accounts";
             {
                 Logger.Warn($"Failed to delete local skin for {minecraftUsername}: {ex.Message}");
             }
+        }
+
+        // removes a local-only skin from every instance, so deleting an
+        // offline player doesn't leave its skin behind in other instances
+        public static void DeleteLocalSkinFromAllInstances(string minecraftUsername)
+        {
+            if (!IsSafeProfileName(minecraftUsername)) return;
+            var roots = new List<string>();
+            try
+            {
+                foreach (var inst in InstanceManager.LoadInstances())
+                    if (!string.IsNullOrEmpty(inst.MinecraftPath))
+                        roots.Add(inst.MinecraftPath);
+            }
+            catch { }
+            roots.Add(SettingsManager.Current.GetActiveMinecraftPath());
+
+            foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    string path = Path.Combine(root, "CustomSkinLoader", "LocalSkin", "skins", $"{minecraftUsername}.png");
+                    if (File.Exists(path)) File.Delete(path);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Local skin delete failed for '{root}': {ex.Message}");
+                }
+            }
+        }
+
+        // offline accounts have no published skin: this writes a user-picked
+        // png straight into every instance's localskin folder (no upload, no
+        // index entry). the mod's preload fast-path then serves it in
+        // singleplayer and on servers where the mod resolves skins; vanilla
+        // clients keep showing steve/alex
+        public static void WriteLocalSkinToAllInstances(string minecraftUsername, byte[] skinData)
+        {
+            if (!IsSafeProfileName(minecraftUsername) || skinData == null || skinData.Length == 0) return;
+            var roots = new List<string>();
+            try
+            {
+                foreach (var inst in InstanceManager.LoadInstances())
+                    if (!string.IsNullOrEmpty(inst.MinecraftPath))
+                        roots.Add(inst.MinecraftPath);
+            }
+            catch { }
+            roots.Add(SettingsManager.Current.GetActiveMinecraftPath());
+
+            foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    string dir = Path.Combine(root, "CustomSkinLoader", "LocalSkin", "skins");
+                    Directory.CreateDirectory(dir);
+                    File.WriteAllBytes(Path.Combine(dir, $"{minecraftUsername}.png"), skinData);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Local skin write failed for '{root}': {ex.Message}");
+                }
+            }
+        }
+
+        public static bool HasLocalSkin(string minecraftUsername)
+        {
+            if (!IsSafeProfileName(minecraftUsername)) return false;
+            try
+            {
+                return File.Exists(Path.Combine(GetLocalSkinsDir(), "skins", $"{minecraftUsername}.png"));
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // local-only skins accept the two vanilla formats (64x64 modern,
+        // 64x32 legacy)
+        public static bool IsValidSkinPng(byte[] data, out int width, out int height)
+        {
+            if (!TryGetPngDimensions(data, out width, out height)) return false;
+            return (width == 64 && height == 64) || (width == 64 && height == 32);
+        }
+
+        // classic 64x32 capes and HD multiples (width 2x height)
+        public static bool IsValidCapePng(byte[] data, out int width, out int height)
+        {
+            if (!TryGetPngDimensions(data, out width, out height)) return false;
+            return width % 64 == 0 && height % 32 == 0 && width == height * 2;
+        }
+
+        // carry the local-only skin along when an offline player is renamed,
+        // so the new name keeps working without re-picking the file
+        public static void RenameLocalSkin(string oldUsername, string newUsername)
+        {
+            if (!IsSafeProfileName(oldUsername) || !IsSafeProfileName(newUsername)) return;
+            if (string.Equals(oldUsername, newUsername, StringComparison.OrdinalIgnoreCase)) return;
+            var roots = new List<string>();
+            try
+            {
+                foreach (var inst in InstanceManager.LoadInstances())
+                    if (!string.IsNullOrEmpty(inst.MinecraftPath))
+                        roots.Add(inst.MinecraftPath);
+            }
+            catch { }
+            roots.Add(SettingsManager.Current.GetActiveMinecraftPath());
+
+            foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    string dir = Path.Combine(root, "CustomSkinLoader", "LocalSkin", "skins");
+                    string source = Path.Combine(dir, $"{oldUsername}.png");
+                    string dest = Path.Combine(dir, $"{newUsername}.png");
+                    if (File.Exists(source) && !File.Exists(dest))
+                        File.Copy(source, dest);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Local skin rename failed for '{root}': {ex.Message}");
+                }
+            }
+        }
+
+        // save the published cape into the active instances localskin capes
+        // folder so the game loads it instantly without downloading again
+        public static string? SaveLocalCape(string minecraftUsername, byte[] capeData)
+        {
+            if (!IsSafeProfileName(minecraftUsername)) return null;
+            try
+            {
+                string dir = Path.Combine(GetLocalSkinsDir(), "capes");
+                Directory.CreateDirectory(dir);
+                string path = Path.Combine(dir, $"{minecraftUsername}.png");
+                File.WriteAllBytes(path, capeData);
+                return path;
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to save local cape for {minecraftUsername}: {ex.Message}");
+                return null;
+            }
+        }
+
+        // copy the players local cape into another minecraft path (used for newly created instances)
+        public static void CopyLocalCapeToPath(string minecraftUsername, string targetMinecraftPath)
+        {
+            if (!IsSafeProfileName(minecraftUsername)) return;
+            try
+            {
+                string source = Path.Combine(GetLocalSkinsDir(), "capes", $"{minecraftUsername}.png");
+                if (!File.Exists(source)) return;
+
+                string dir = Path.Combine(targetMinecraftPath, "CustomSkinLoader", "LocalSkin", "capes");
+                Directory.CreateDirectory(dir);
+                File.Copy(source, Path.Combine(dir, $"{minecraftUsername}.png"), true);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to copy local cape for {minecraftUsername}: {ex.Message}");
+            }
+        }
+
+        // csl prefers the local cape over remote sources so a stale png in any
+        // instance would keep beating the freshly uploaded github cape - this
+        // writes the players current cape into every instance (and the global
+        // folder), mirroring SyncSkinToAllInstancesAsync
+        public static async Task SyncCapeToAllInstancesAsync(string minecraftUsername)
+        {
+            if (!IsSafeProfileName(minecraftUsername)) return;
+            try
+            {
+                byte[]? data = null;
+                try
+                {
+                    string url = CapeFetchUrl(minecraftUsername);
+                    data = await http.GetByteArrayAsync(url);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Cape sync fetch failed for {minecraftUsername}: {ex.Message}");
+                }
+
+                if (data == null || data.Length == 0)
+                {
+                    // offline / no published cape: fall back to the active local copy
+                    string local = Path.Combine(GetLocalSkinsDir(), "capes", $"{minecraftUsername}.png");
+                    if (File.Exists(local))
+                        data = await File.ReadAllBytesAsync(local);
+                }
+                if (data == null || data.Length == 0) return;
+
+                var roots = new List<string>();
+                try
+                {
+                    foreach (var inst in InstanceManager.LoadInstances())
+                        if (!string.IsNullOrEmpty(inst.MinecraftPath))
+                            roots.Add(inst.MinecraftPath);
+                }
+                catch { }
+                roots.Add(SettingsManager.Current.GetActiveMinecraftPath());
+
+                foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        string dir = Path.Combine(root, "CustomSkinLoader", "LocalSkin", "capes");
+                        Directory.CreateDirectory(dir);
+                        File.WriteAllBytes(Path.Combine(dir, $"{minecraftUsername}.png"), data);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Cape sync write failed for '{root}': {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to sync cape for {minecraftUsername}: {ex.Message}");
+            }
+        }
+
+        public static void DeleteLocalCape(string minecraftUsername)
+        {
+            if (!IsSafeProfileName(minecraftUsername)) return;
+            try
+            {
+                string path = Path.Combine(GetLocalSkinsDir(), "capes", $"{minecraftUsername}.png");
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to delete local cape for {minecraftUsername}: {ex.Message}");
+            }
+        }
+
+        // offline counterpart to WriteLocalSkinToAllInstances: a user-picked
+        // cape png goes straight into every instance's localskin capes folder
+        public static void WriteLocalCapeToAllInstances(string minecraftUsername, byte[] capeData)
+        {
+            if (!IsSafeProfileName(minecraftUsername) || capeData == null || capeData.Length == 0) return;
+            var roots = new List<string>();
+            try
+            {
+                foreach (var inst in InstanceManager.LoadInstances())
+                    if (!string.IsNullOrEmpty(inst.MinecraftPath))
+                        roots.Add(inst.MinecraftPath);
+            }
+            catch { }
+            roots.Add(SettingsManager.Current.GetActiveMinecraftPath());
+
+            foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    string dir = Path.Combine(root, "CustomSkinLoader", "LocalSkin", "capes");
+                    Directory.CreateDirectory(dir);
+                    File.WriteAllBytes(Path.Combine(dir, $"{minecraftUsername}.png"), capeData);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Local cape write failed for '{root}': {ex.Message}");
+                }
+            }
+        }
+
+        public static bool HasLocalCape(string minecraftUsername)
+        {
+            if (!IsSafeProfileName(minecraftUsername)) return false;
+            try
+            {
+                return File.Exists(Path.Combine(GetLocalSkinsDir(), "capes", $"{minecraftUsername}.png"));
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static void DeleteLocalCapeFromAllInstances(string minecraftUsername)
+        {
+            if (!IsSafeProfileName(minecraftUsername)) return;
+            var roots = new List<string>();
+            try
+            {
+                foreach (var inst in InstanceManager.LoadInstances())
+                    if (!string.IsNullOrEmpty(inst.MinecraftPath))
+                        roots.Add(inst.MinecraftPath);
+            }
+            catch { }
+            roots.Add(SettingsManager.Current.GetActiveMinecraftPath());
+
+            foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    string path = Path.Combine(root, "CustomSkinLoader", "LocalSkin", "capes", $"{minecraftUsername}.png");
+                    if (File.Exists(path)) File.Delete(path);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Local cape delete failed for '{root}': {ex.Message}");
+                }
+            }
+        }
+
+        // carry the local-only cape along on offline renames (same caveat as
+        // RenameLocalSkin: offline renames only)
+        public static void RenameLocalCape(string oldUsername, string newUsername)
+        {
+            if (!IsSafeProfileName(oldUsername) || !IsSafeProfileName(newUsername)) return;
+            if (string.Equals(oldUsername, newUsername, StringComparison.OrdinalIgnoreCase)) return;
+            var roots = new List<string>();
+            try
+            {
+                foreach (var inst in InstanceManager.LoadInstances())
+                    if (!string.IsNullOrEmpty(inst.MinecraftPath))
+                        roots.Add(inst.MinecraftPath);
+            }
+            catch { }
+            roots.Add(SettingsManager.Current.GetActiveMinecraftPath());
+
+            foreach (var root in roots.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    string dir = Path.Combine(root, "CustomSkinLoader", "LocalSkin", "capes");
+                    string source = Path.Combine(dir, $"{oldUsername}.png");
+                    string dest = Path.Combine(dir, $"{newUsername}.png");
+                    if (File.Exists(source) && !File.Exists(dest))
+                        File.Copy(source, dest);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Local cape rename failed for '{root}': {ex.Message}");
+                }
+            }
+        }
+
+        // download the published cape for a profile or serve it from the in-session
+        // cache, mirroring GetSkinBytesAsync
+        public static async Task<byte[]?> GetCapeBytesAsync(
+            string minecraftUsername,
+            string? capeUrl = null,
+            CancellationToken cancellationToken = default)
+        {
+            OnActiveInstanceChanged();
+            if (capeBytesCache.TryGetValue(minecraftUsername, out var cached) &&
+                DateTime.UtcNow - cached.FetchedAt < SkinBytesTtl)
+                return cached.Bytes;
+
+            string url = string.IsNullOrWhiteSpace(capeUrl)
+                ? CapeFetchUrl(minecraftUsername)
+                : capeUrl;
+
+            try
+            {
+                await downloadThrottle.WaitAsync(cancellationToken);
+                try
+                {
+                    byte[] bytes = await http.GetByteArrayAsync(url, cancellationToken);
+                    if (bytes.Length > 0)
+                    {
+                        capeBytesCache[minecraftUsername] = (bytes, DateTime.UtcNow);
+                        return bytes;
+                    }
+                }
+                finally
+                {
+                    downloadThrottle.Release();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        // serve the locally cached cape first and fall back to the published
+        // one, mirroring GetSkinBytesLocalFirstAsync
+        public static async Task<byte[]?> GetCapeBytesLocalFirstAsync(
+            string minecraftUsername,
+            string? capeUrl = null,
+            CancellationToken cancellationToken = default)
+        {
+            OnActiveInstanceChanged();
+            try
+            {
+                string localPath = Path.Combine(GetLocalSkinsDir(), "capes", $"{minecraftUsername}.png");
+                if (File.Exists(localPath))
+                {
+                    byte[] local = await File.ReadAllBytesAsync(localPath, cancellationToken);
+                    if (local.Length > 0) return local;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+            }
+
+            return await GetCapeBytesAsync(minecraftUsername, capeUrl, cancellationToken);
+        }
+
+        // compare the locally cached cape with the published one so the ui can
+        // show if the cape is actually synced to github, mirroring GetSyncInfoAsync
+        public static async Task<CapeSyncInfo> GetCapeSyncInfoAsync(
+            string minecraftUsername,
+            CancellationToken cancellationToken = default)
+        {
+            OnActiveInstanceChanged();
+
+            if (capeSyncCache.TryGetValue(minecraftUsername, out var cached) &&
+                DateTime.UtcNow - cached.CheckedAt < SyncTtl)
+                return cached.Info;
+
+            string localPath = Path.Combine(GetLocalSkinsDir(), "capes", $"{minecraftUsername}.png");
+            bool hasLocal = File.Exists(localPath);
+            if (!hasLocal) return new CapeSyncInfo { HasLocal = false };
+
+            try
+            {
+                byte[] localBytes = await File.ReadAllBytesAsync(localPath, cancellationToken);
+                string localHash = Convert.ToHexString(SHA256.HashData(localBytes));
+
+                byte[]? remoteBytes = await GetCapeBytesAsync(minecraftUsername, null, cancellationToken);
+                if (remoteBytes is null)
+                    return new CapeSyncInfo { HasLocal = true, RemoteReachable = false };
+
+                string remoteHash = Convert.ToHexString(SHA256.HashData(remoteBytes));
+
+                var info = new CapeSyncInfo
+                {
+                    HasLocal = true,
+                    RemoteReachable = true,
+                    MatchesRemote = string.Equals(localHash, remoteHash, StringComparison.OrdinalIgnoreCase)
+                };
+                capeSyncCache[minecraftUsername] = (info, DateTime.UtcNow);
+                return info;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                return new CapeSyncInfo { HasLocal = true, RemoteReachable = false };
+            }
+        }
+
+        // forces a fresh cape sync check for one profile, bypassing the ttl cache
+        public static async Task<CapeSyncInfo> RecheckCapeSyncAsync(
+            string minecraftUsername,
+            CancellationToken cancellationToken = default)
+        {
+            capeSyncCache.TryRemove(minecraftUsername, out _);
+            return await GetCapeSyncInfoAsync(minecraftUsername, cancellationToken);
         }
 
         // preload the players current skin into the games skin caches before launching
@@ -792,7 +1475,7 @@ public const string IndexRepoOwner = "yorii-accounts";
         {
             try
             {
-                string url = $"{WorkerBaseUrl}/MinecraftSkins/{Uri.EscapeDataString(minecraftUsername)}.png";
+                string url = SkinFetchUrl(minecraftUsername);
                 byte[] data = await http.GetByteArrayAsync(url, cancellationToken);
                 if (data == null || data.Length == 0)
                     return;
@@ -806,6 +1489,30 @@ public const string IndexRepoOwner = "yorii-accounts";
                 File.WriteAllBytes(Path.Combine(mcDir, $"{minecraftUsername}.png"), data);
 
                 SaveLocalSkin(minecraftUsername, data);
+
+                // pre-fetch the cape too so the mod's preload fast-path
+                // (LocalSkin/capes/<user>.png) serves it instantly; no cape
+                // on the profile is a normal 404, not an error
+                try
+                {
+                    string capeUrl = CapeFetchUrl(minecraftUsername);
+                    byte[] capeData = await http.GetByteArrayAsync(capeUrl, cancellationToken);
+                    if (capeData != null && capeData.Length > 0)
+                        SaveLocalCape(minecraftUsername, capeData);
+                }
+                catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // profile has no published cape: drop any stale preloaded
+                    // cape so a deleted cape stops showing in-game
+                    DeleteLocalCape(minecraftUsername);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch
+                {
+                }
 
                 // pre-fetch the full csl profile and write it to profilecache so
                 // the game reads the skin instantly from disk instead of querying
@@ -837,7 +1544,6 @@ public const string IndexRepoOwner = "yorii-accounts";
         // 4. enablecape is turned on — capes from mojang/cosmetica/minecraftcapes
         // are preserved
         // everything else in the json is preserved
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Reflection-based JSON is intentionally enabled via JsonSerializerIsReflectionEnabledByDefault.")]
         public static void ConfigureCslForLaunch(string root)
         {
             try
@@ -901,11 +1607,12 @@ public const string IndexRepoOwner = "yorii-accounts";
                 }
                 else
                 {
-                    yoriiSkins = JsonSerializer.Deserialize<JsonElement>(@"{
+                    using var templateDoc = JsonDocument.Parse(@"{
                         ""name"": ""YoriiSkins"",
                         ""type"": ""CustomSkinAPI"",
                         ""root"": ""https://yorii-worker.yoriiskin.workers.dev/csl/""
                     }");
+                    yoriiSkins = templateDoc.RootElement.Clone();
                 }
 
                 // find the mojang index again after the changes
@@ -992,7 +1699,6 @@ public const string IndexRepoOwner = "yorii-accounts";
         // server csl finds the skin on disk instantly (no network for the skin)
         // while the cape hunt (mojang/cosmetica/minecraftcapes/...) still runs
         // in the background, so the user sees their skin immediately
-        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Reflection-based JSON is intentionally enabled via JsonSerializerIsReflectionEnabledByDefault.")]
         static async Task PrefetchCslProfileAsync(string minecraftUsername, string sessionUuid, string root)
         {
             try
@@ -1013,6 +1719,11 @@ public const string IndexRepoOwner = "yorii-accounts";
 
                 if (string.IsNullOrEmpty(skinUrl)) return;
 
+                string? capeUrl = null;
+                if (doc.RootElement.TryGetProperty("cape", out var capeEl) &&
+                    capeEl.ValueKind == JsonValueKind.String)
+                    capeUrl = capeEl.GetString();
+
                 // write to profilecache in the format csl expects
                 string cacheDir = Path.Combine(root, "CustomSkinLoader", "ProfileCache");
                 Directory.CreateDirectory(cacheDir);
@@ -1021,7 +1732,12 @@ public const string IndexRepoOwner = "yorii-accounts";
                 string fileName = $"GameProfile[id={sessionUuid}, name={minecraftUsername}, properties={{}}].json";
                 string cachePath = Path.Combine(cacheDir, fileName);
 
-                string profileJson = JsonSerializer.Serialize(new { skinUrl, model = "default" }, SkinJsonOptions);
+                // capeUrl is part of the mod's UserProfile shape; a missing or
+                // empty cape simply deserializes as null
+                var profilePayload = new CslProfilePayload(
+                    skinUrl, "default", string.IsNullOrEmpty(capeUrl) ? null : capeUrl);
+                string profileJson = JsonSerializer.Serialize(
+                    profilePayload, LauncherJsonContext.Default.CslProfilePayload);
                 File.WriteAllText(cachePath, profileJson);
 
                 Logger.Info($"Pre-fetched CSL profile for {minecraftUsername} → {cachePath}");
@@ -1063,6 +1779,36 @@ public const string IndexRepoOwner = "yorii-accounts";
         private static string GetLocalSkinsDir()
         {
             return Path.Combine(SettingsManager.Current.GetActiveMinecraftPath(), "CustomSkinLoader", "LocalSkin");
+        }
+
+        // worker texture urls, version-busted with the snapshot's file commit:
+        // ?v= hits a distinct immutable edge entry, so an upload can never
+        // serve the previous bytes (bare urls are only cached 60s server-side).
+        // falls back to the bare url when the snapshot has no version yet
+        private static string SkinFetchUrl(string minecraftUsername)
+        {
+            string url = $"{WorkerBaseUrl}/MinecraftSkins/{Uri.EscapeDataString(minecraftUsername)}.png";
+            try
+            {
+                string? version = _profilesCache?.FirstOrDefault(p => p.Username == minecraftUsername)?.Version;
+                if (!string.IsNullOrEmpty(version))
+                    url += "?v=" + Uri.EscapeDataString(version);
+            }
+            catch { }
+            return url;
+        }
+
+        private static string CapeFetchUrl(string minecraftUsername)
+        {
+            string url = $"{WorkerBaseUrl}/MinecraftCapes/{Uri.EscapeDataString(minecraftUsername)}.png";
+            try
+            {
+                string? version = _profilesCache?.FirstOrDefault(p => p.Username == minecraftUsername)?.CapeVersion;
+                if (!string.IsNullOrEmpty(version))
+                    url += "?v=" + Uri.EscapeDataString(version);
+            }
+            catch { }
+            return url;
         }
 
         // compare the locally cached csl skin with the published one so the ui can
@@ -1136,6 +1882,8 @@ public const string IndexRepoOwner = "yorii-accounts";
             _skinsInstancePath = path;
             skinBytesCache.Clear();
             syncCache.Clear();
+            capeBytesCache.Clear();
+            capeSyncCache.Clear();
         }
 
         // download the published skin for a profile or serve it from the in-session
@@ -1152,7 +1900,7 @@ public const string IndexRepoOwner = "yorii-accounts";
                 return cached.Bytes;
 
             string url = string.IsNullOrWhiteSpace(skinUrl)
-                ? $"{WorkerBaseUrl}/MinecraftSkins/{Uri.EscapeDataString(minecraftUsername)}.png"
+                ? SkinFetchUrl(minecraftUsername)
                 : skinUrl;
 
             try
@@ -1213,6 +1961,18 @@ public const string IndexRepoOwner = "yorii-accounts";
             return await GetSkinBytesAsync(minecraftUsername, skinUrl, cancellationToken);
         }
 
+        // disk mirror of the mojang session cache so heads survive restarts
+        // and offline, mirroring AvatarCache. deliberately OUTSIDE the CSL
+        // skins dir: files here are remote textures, never user-set local
+        // skins (which the sync logic would otherwise try to upload).
+        // mojang usernames are [A-Za-z0-9_] so no sanitizing needed.
+        private static string MojangSkinCacheDir => Path.Combine(
+            ApplicationData.Current.LocalFolder.Path, "MojangSkins");
+        private static readonly TimeSpan MojangSkinDiskTtl = TimeSpan.FromHours(24);
+
+        private static string MojangSkinCachePath(string minecraftUsername) =>
+            Path.Combine(MojangSkinCacheDir, $"{minecraftUsername}.png");
+
         // get a mojang accounts current skin: username -> profile id -> session
         // server textures -> skin url
         // so the account box can show real mojang skins instead of a blank head
@@ -1224,6 +1984,38 @@ public const string IndexRepoOwner = "yorii-accounts";
             if (skinBytesCache.TryGetValue(minecraftUsername, out var cached) &&
                 DateTime.UtcNow - cached.FetchedAt < SkinBytesTtl)
                 return cached.Bytes;
+
+            // fresh disk serves instantly; stale disk is kept as the offline
+            // fallback when the network fails below
+            byte[]? staleDisk = null;
+            try
+            {
+                string diskPath = MojangSkinCachePath(minecraftUsername);
+                if (File.Exists(diskPath))
+                {
+                    if (DateTime.UtcNow - File.GetLastWriteTimeUtc(diskPath) < MojangSkinDiskTtl)
+                    {
+                        byte[] fresh = await File.ReadAllBytesAsync(diskPath, cancellationToken);
+                        if (fresh.Length > 0)
+                        {
+                            skinBytesCache[minecraftUsername] = (fresh, DateTime.UtcNow);
+                            return fresh;
+                        }
+                    }
+                    else
+                    {
+                        byte[] old = await File.ReadAllBytesAsync(diskPath, cancellationToken);
+                        if (old.Length > 0) staleDisk = old;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+            }
 
             try
             {
@@ -1271,9 +2063,23 @@ public const string IndexRepoOwner = "yorii-accounts";
 
                     // 4. download the texture
                     byte[] bytes = await http.GetByteArrayAsync(skinUrl, cancellationToken);
-                    if (bytes.Length == 0) return null;
+                    if (bytes.Length == 0) return staleDisk;
 
                     skinBytesCache[minecraftUsername] = (bytes, DateTime.UtcNow);
+                    try
+                    {
+                        Directory.CreateDirectory(MojangSkinCacheDir);
+                        await File.WriteAllBytesAsync(
+                            MojangSkinCachePath(minecraftUsername), bytes, cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch
+                    {
+                        // memory cache already updated; disk is best effort
+                    }
                     return bytes;
                 }
                 finally
@@ -1288,7 +2094,7 @@ public const string IndexRepoOwner = "yorii-accounts";
             {
             }
 
-            return null;
+            return staleDisk;
         }
 
         public static async Task LoadProfilesIntoAccounts()
@@ -1346,11 +2152,26 @@ public const string IndexRepoOwner = "yorii-accounts";
         public bool MatchesRemote { get; init; }
     }
 
+    public sealed class CapeSyncInfo
+    {
+        public bool HasLocal { get; init; }
+        public bool RemoteReachable { get; init; }
+        public bool MatchesRemote { get; init; }
+    }
+
     public sealed class ProfileEntry
     {
         public string Username { get; init; } = "";
         public string Uuid { get; init; } = "";
         public string SkinUrl { get; init; } = "";
+        public string CapeUrl { get; init; } = "";
+        public string CapeVersion { get; init; } = "";
+        // skin file commit from the index (what the worker's ?v= uses). right
+        // after an upload this holds the index commit instead - still fine:
+        // any ?v value busts the stale bare entry and the bytes cached under
+        // it are fetched fresh; the true file commit arrives with the refresh
+        public string Version { get; init; } = "";
+        public long LastSeenAt { get; init; } = 0;
         public string Kind { get; init; } = "private";
         public string Owner { get; init; } = "";
     }

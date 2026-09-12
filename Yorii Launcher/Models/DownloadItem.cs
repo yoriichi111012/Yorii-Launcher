@@ -28,7 +28,8 @@ public enum DownloadKind
     Theme
 }
 
-public sealed class DownloadItem : INotifyPropertyChanged
+[WinRT.GeneratedWinRTExposedType]
+public sealed partial class DownloadItem : INotifyPropertyChanged
 {
     // ui property raises are throttled; progress data still tracked every call
     private static readonly TimeSpan RaiseInterval = TimeSpan.FromMilliseconds(120);

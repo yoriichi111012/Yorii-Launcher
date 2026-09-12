@@ -25,8 +25,9 @@ namespace Yorii_Launcher.Pages
             NavigationCacheMode = NavigationCacheMode.Required;
 
             ModpacksList.ItemsSource = OnlineModpacks;
+            ModpacksGridList.ItemsSource = OnlineModpacks;
             var savedMode = (PluginViewMode)SettingsManager.Current.DownloadModpacksViewMode;
-            PluginViewModeHelper.Apply(ModpacksList, savedMode);
+            PluginViewModeHelper.ApplyDualView(ModpacksList, ModpacksGridList, savedMode);
             ModpacksViewModeSegmented.SelectedIndex = (int)savedMode;
 
             _ = LoadFeaturedModpacks();
@@ -35,7 +36,7 @@ namespace Yorii_Launcher.Pages
 
         private void ViewModeSegmented_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            PluginViewModeHelper.ApplyFromSelectedIndex(ModpacksList, ModpacksViewModeSegmented.SelectedIndex);
+            PluginViewModeHelper.ApplyDualViewFromSelectedIndex(ModpacksList, ModpacksGridList, ModpacksViewModeSegmented.SelectedIndex);
             SettingsManager.Current.DownloadModpacksViewMode = ModpacksViewModeSegmented.SelectedIndex;
             SettingsManager.SaveSettings();
         }

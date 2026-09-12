@@ -50,9 +50,7 @@ public sealed class ThemePublishService
             ? string.Join(",", resp.Headers.GetValues("X-OAuth-Scopes"))
             : "";
 
-        var scopeSet = scopes.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (!scopeSet.Contains("public_repo") && !scopeSet.Contains("repo"))
+        if (!scopes.Contains("public_repo"))
             throw new Exception(
                 "Your GitHub token doesn't have permission to publish themes. " +
                 "Please sign out and sign back in to grant the required access.");
@@ -178,17 +176,11 @@ public sealed class ThemePublishService
         }
         catch { }
 
-        var payload = new
-        {
-            message = commitMessage,
-            content = base64Content,
-            branch = ThemesBranch,
-            sha
-        };
+        var payload = new GitHubPutContentPayload(commitMessage, base64Content, ThemesBranch, sha);
 
         var req = CreateApiRequest(HttpMethod.Put, $"/repos/{RepoOwner}/{RepoName}/contents/{EncodeApiPath(path)}");
         req.Content = new StringContent(
-            JsonSerializer.Serialize(payload),
+            JsonSerializer.Serialize(payload, LauncherJsonContext.Default.GitHubPutContentPayload),
             Encoding.UTF8,
             new MediaTypeHeaderValue("application/json"));
 
@@ -205,16 +197,11 @@ public sealed class ThemePublishService
         if (sha is null)
             return;
 
-        var payload = new
-        {
-            message = commitMessage,
-            sha,
-            branch = ThemesBranch
-        };
+        var payload = new GitHubDeleteContentPayload(commitMessage, sha, ThemesBranch);
 
         var req = CreateApiRequest(HttpMethod.Delete, $"/repos/{RepoOwner}/{RepoName}/contents/{EncodeApiPath(path)}");
         req.Content = new StringContent(
-            JsonSerializer.Serialize(payload),
+            JsonSerializer.Serialize(payload, LauncherJsonContext.Default.GitHubDeleteContentPayload),
             Encoding.UTF8,
             new MediaTypeHeaderValue("application/json"));
 
@@ -276,17 +263,11 @@ public sealed class ThemePublishService
         }
 
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(catalogYaml));
-        var payload = new
-        {
-            message = commitMessage,
-            content = base64,
-            branch = ThemesBranch,
-            sha
-        };
+        var payload = new GitHubPutContentPayload(commitMessage, base64, ThemesBranch, sha);
 
         var putReq = CreateApiRequest(HttpMethod.Put, $"/repos/{RepoOwner}/{RepoName}/contents/{CatalogPath}");
         putReq.Content = new StringContent(
-            JsonSerializer.Serialize(payload),
+            JsonSerializer.Serialize(payload, LauncherJsonContext.Default.GitHubPutContentPayload),
             Encoding.UTF8,
             new MediaTypeHeaderValue("application/json"));
 
@@ -318,17 +299,11 @@ public sealed class ThemePublishService
         var updated = RemoveFromCatalogYaml(decoded, themeName);
 
         var base64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(updated));
-        var payload = new
-        {
-            message = commitMessage,
-            content = base64,
-            branch = ThemesBranch,
-            sha
-        };
+        var payload = new GitHubPutContentPayload(commitMessage, base64, ThemesBranch, sha);
 
         var putReq = CreateApiRequest(HttpMethod.Put, $"/repos/{RepoOwner}/{RepoName}/contents/{CatalogPath}");
         putReq.Content = new StringContent(
-            JsonSerializer.Serialize(payload),
+            JsonSerializer.Serialize(payload, LauncherJsonContext.Default.GitHubPutContentPayload),
             Encoding.UTF8,
             new MediaTypeHeaderValue("application/json"));
 

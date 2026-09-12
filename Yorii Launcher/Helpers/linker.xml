@@ -1,4 +1,13 @@
 ﻿<linker>
 	<assembly fullname="Quiescent.Core" preserve="all"/>
-	
+	<!-- SettingsExpander.xaml / ComboBox.xaml bind TemplatedParent properties
+	     (IsExpanded, CornerRadius, ItemTemplate, PlaceholderForeground) via
+	     {Binding}, which resolves at runtime through ICustomPropertyProvider.
+	     full trimming (implied by PublishAot) would otherwise strip those
+	     property getters. framework ComboBox/TemplateSettings live in the
+	     OS projection and need no roots. -->
+	<assembly fullname="CommunityToolkit.WinUI.Controls.SettingsControls">
+		<type fullname="CommunityToolkit.WinUI.Controls.SettingsExpander" preserve="all"/>
+		<type fullname="CommunityToolkit.WinUI.Controls.SettingsCard" preserve="all"/>
+	</assembly>
 </linker>

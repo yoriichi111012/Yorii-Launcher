@@ -1,5 +1,6 @@
 using Quiescent.Core;
 using Quiescent.Core.Auth;
+using Quiescent.XboxAuthNet.OAuth.CodeFlow;
 using Quiescent.Core.Installer.Forge;
 using Quiescent.Core.Installer.NeoForge;
 using Quiescent.Core.Installer.NeoForge.Installers;
@@ -30,6 +31,8 @@ using System.Threading.Tasks;
 using System.Threading;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
 using Microsoft.UI;
 
 namespace Yorii_Launcher
@@ -71,6 +74,11 @@ namespace Yorii_Launcher
 
             Instance = this;
 
+            // arm the shutdown flag first: ~40 background continuations across
+            // the app check it before touching XAML. it was previously never
+            // set, so teardown races (0xC0000005 on close) ran unguarded.
+            Closed += (_, _) => App.IsShuttingDown = true;
+
             // set up the downloads flyout backing store and keep the
             // title-bar indicator in sync with download activity
             DownloadManager.Initialize(DispatcherQueue);
@@ -87,7 +95,7 @@ namespace Yorii_Launcher
             };
 
             // set window size icon and title bar
-            // appwindow.resize(new windows.graphics.sizeint32(1176, 661));
+            AppWindow.Resize(new Windows.Graphics.SizeInt32(1424, 756));
             SetWindowIcon();
             ExtendsContentIntoTitleBar = true;
             AppWindow.TitleBar.PreferredHeightOption = Microsoft.UI.Windowing.TitleBarHeightOption.Tall;
@@ -1166,6 +1174,9 @@ namespace Yorii_Launcher
                     // sync the other instances in the background so they dont
                     // launch with an old skin
                     _ = SkinManager.SyncSkinToAllInstancesAsync(username);
+                    _ = SkinManager.SyncCapeToAllInstancesAsync(username);
+                    // playing counts as activity for the public-profile lease
+                    _ = SkinManager.HeartbeatPublicProfilesAsync();
                 }
 
                 // yoriiskinsloader is a fork of customskinloader optimized for faster skin loading and other improvements
@@ -1374,7 +1385,7 @@ namespace Yorii_Launcher
 
             var hintText = new TextBlock
             {
-                Text = "Yorii Skins profiles must be verified on the Skins page. Click 'Go to Skins' to create your profile.",
+                Text = "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page.",
                 FontSize = 12,
                 Opacity = 0.6,
                 TextWrapping = TextWrapping.Wrap
@@ -1386,6 +1397,19 @@ namespace Yorii_Launcher
             panel.Children.Add(usernameBox);
             panel.Children.Add(hintText);
 
+            // update field visibility based on selected account type
+            accountTypeBox.SelectionChanged += (_, _) =>
+            {
+                bool isMojang = accountTypeBox.SelectedItem is ComboBoxItem item && item.Tag is PlayerAccountType.Mojang;
+                bool isYoriiSkins = accountTypeBox.SelectedItem is ComboBoxItem ysItem && ysItem.Tag is PlayerAccountType.YoriiSkins;
+                usernameBox.Visibility = isMojang ? Visibility.Collapsed : Visibility.Visible;
+                hintText.Text = isMojang
+                    ? "You'll be signed in via Microsoft OAuth."
+                    : isYoriiSkins
+                        ? "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page."
+                        : "Offline players can join any server. After adding, set a local-only skin and cape from Edit player — singleplayer and modded servers.";
+            };
+
             // get theme to apply to the dialog
             ElementTheme theme = ThemeHelper.GetCurrentTheme();
 
@@ -1394,7 +1418,7 @@ namespace Yorii_Launcher
             {
                 Title = "Add player",
                 Content = panel,
-                PrimaryButtonText = "Go to Skins",
+                PrimaryButtonText = "Add",
                 CloseButtonText = "Cancel",
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = rootGrid.XamlRoot,
@@ -1402,37 +1426,8 @@ namespace Yorii_Launcher
                 RequestedTheme = theme
             };
 
-            // Yorii Skins must be created via Skins page verification, not free-form
-            // keep the option visible for discoverability but turn it into navigation
-            usernameBox.Visibility = Visibility.Collapsed;
-            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
-
-            accountTypeBox.SelectionChanged += (_, _) =>
-            {
-                bool isMojang = accountTypeBox.SelectedItem is ComboBoxItem item && item.Tag is PlayerAccountType.Mojang;
-                bool isYoriiSkins = accountTypeBox.SelectedItem is ComboBoxItem ysItem && ysItem.Tag is PlayerAccountType.YoriiSkins;
-                usernameBox.Visibility = (isMojang || isYoriiSkins) ? Visibility.Collapsed : Visibility.Visible;
-                if (isYoriiSkins)
-                {
-                    hintText.Text = "Yorii Skins profiles must be verified on the Skins page. Click 'Go to Skins' to create your profile.";
-                    dialog.PrimaryButtonText = "Go to Skins";
-                }
-                else if (isMojang)
-                {
-                    hintText.Text = "You'll be signed in via Microsoft OAuth.";
-                    dialog.PrimaryButtonText = "Add";
-                }
-                else
-                {
-                    hintText.Text = "Offline players can join any server, but skins only work when the Yorii Skins skin mod is installed.";
-                    dialog.PrimaryButtonText = "Add";
-                }
-            };
-
-            // trigger initial state (SelectedIndex=0 is Yorii Skins, but event won't fire until change)
-            // already set to collapsed/Go to Skins above for initial Yorii Skins
-
             // show the dialog and wait for the result
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
             var result = await dialog.ShowAsync();
             MemoryOptimizer.ReduceMemory();
 
@@ -1443,13 +1438,7 @@ namespace Yorii_Launcher
             if (accountTypeBox.SelectedItem is not ComboBoxItem selectedTypeItem ||
                 selectedTypeItem.Tag is not PlayerAccountType accountType)
             {
-                accountType = PlayerAccountType.Offline;
-            }
-
-            if (accountType == PlayerAccountType.YoriiSkins)
-            {
-                NavigateToSkins();
-                return;
+                accountType = PlayerAccountType.YoriiSkins;
             }
 
             if (accountType == PlayerAccountType.Mojang)
@@ -1477,9 +1466,17 @@ namespace Yorii_Launcher
 
                     ShowNotification("Account added", $"Signed in as {session.Username}");
                 }
+                catch (AuthCodeException ace) when (string.IsNullOrEmpty(ace.Error) && string.IsNullOrEmpty(ace.ErrorDescription))
+                {
+                    // user closed the Microsoft window without signing in -
+                    // not an error, just go back quietly
+                    Logger.Info("Microsoft sign-in cancelled by user.");
+                    return;
+                }
                 catch (Exception ex)
                 {
-                    Logger.Error($"Mojang login failed: {ex.Message}");
+                    // TEMP-DIAG(mscorlib): full stack to pin the throwing assembly, revert after
+                    Logger.Error($"Mojang login failed: {ex}");
                     ShowNotification("Login failed", ex.Message);
                 }
                 finally
@@ -1498,20 +1495,37 @@ namespace Yorii_Launcher
                 return;
             }
 
-            // YoriiSkins is handled above via Skins page navigation; only Offline remains here
-            var newAccount = new PlayerAccount
+            PlayerAccount newAccount;
+            if (accountType == PlayerAccountType.Offline)
             {
-                Id = Guid.NewGuid().ToString("N"),
-                Username = username,
-                Password = null,
-                AccountType = PlayerAccountType.Offline
-            };
+                newAccount = new PlayerAccount
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Username = username,
+                    Password = null,
+                    AccountType = PlayerAccountType.Offline
+                };
+            }
+            else
+            {
+                // yorii skins is our cloudflare auth server worker which fetches skins from github repo
+                newAccount = new PlayerAccount
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Username = username,
+                    Password = null,
+                    AccountType = PlayerAccountType.YoriiSkins,
+                    CustomUUID = Guid.NewGuid().ToString("N")
+                };
+            }
 
             AccountManager.SaveAccount(newAccount);
             LoadAccounts();
             accountComboBox.SelectedItem = accountItems.FirstOrDefault(x => x.Account?.Id == newAccount.Id);
 
-            ShowNotification("Account added", $"{username} added as offline player.");
+            ShowNotification("Account added", newAccount.AccountType == PlayerAccountType.Offline
+                ? $"{username} added as offline player."
+                : $"{username} added as Yorii Skins player.");
         }
 
         private async Task ShowManagePlayersDialogAsync()
@@ -1703,6 +1717,20 @@ namespace Yorii_Launcher
                 if (!string.IsNullOrEmpty(account.MojangIdentifier))
                     _ = LoginHelper.RemoveMojangAccount(account.MojangIdentifier);
 
+                // an offline player's local-only skin dies with the player -
+                // but only when no remaining account uses the name
+                if (account.IsOffline)
+                {
+                    bool nameStillUsed = AccountManager.LoadAccounts().Any(a =>
+                        a.Id != account.Id &&
+                        string.Equals(a.Username, account.Username, StringComparison.OrdinalIgnoreCase));
+                    if (!nameStillUsed)
+                    {
+                        SkinManager.DeleteLocalSkinFromAllInstances(account.Username);
+                        SkinManager.DeleteLocalCapeFromAllInstances(account.Username);
+                    }
+                }
+
                 // refresh
                 LoadAccounts();
 
@@ -1721,42 +1749,264 @@ namespace Yorii_Launcher
                 IsReadOnly = isMojang
             };
 
-            var typeLabel = new TextBlock
+            var accountTypeBox = new ComboBox
             {
-                Text = PlayerAccount.GetAccountTypeLabel(account.AccountType),
-                FontSize = 14,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                Opacity = 0.9
+                Header = "Account type"
             };
-            var typeHeader = new TextBlock
+
+            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Yorii Skins", Tag = PlayerAccountType.YoriiSkins });
+            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Mojang (Microsoft)", Tag = PlayerAccountType.Mojang });
+            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Offline", Tag = PlayerAccountType.Offline });
+            if (Application.Current.Resources.TryGetValue("AcrylicComboBoxStyle", out object resource) && resource is Style acrylicStyle)
             {
-                Text = "Account type",
-                FontSize = 12,
-                Opacity = 0.6
-            };
-            var typePanel = new StackPanel { Spacing = 2 };
-            typePanel.Children.Add(typeHeader);
-            typePanel.Children.Add(typeLabel);
+                accountTypeBox.Style = acrylicStyle;
+            }
+
+            for (int i = 0; i < accountTypeBox.Items.Count; i++)
+            {
+                if (accountTypeBox.Items[i] is ComboBoxItem item && item.Tag is PlayerAccountType type && type == account.AccountType)
+                {
+                    accountTypeBox.SelectedIndex = i;
+                    break;
+                }
+            }
+
+            if (accountTypeBox.SelectedIndex < 0)
+                accountTypeBox.SelectedIndex = 0;
 
             var hintText = new TextBlock
             {
                 Text = isMojang
                     ? "Microsoft accounts are authenticated via OAuth. Click Save to re-authenticate."
-                    : account.AccountType == PlayerAccountType.YoriiSkins
-                        ? "Change your Yorii Skins name here (server-verified). New name must not be taken."
-                        : "Offline: username is local, change freely.",
+                    : "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page.",
                 FontSize = 12,
                 Opacity = 0.6,
                 TextWrapping = TextWrapping.Wrap
             };
 
-            // YoriiSkins rename is server-verified but editable here; Mojang is read-only
-            usernameBox.IsReadOnly = isMojang;
+            // the offline skin row below hooks the same refresh
+            void RefreshAccountHint()
+            {
+                bool nowMojang = accountTypeBox.SelectedItem is ComboBoxItem selItem && selItem.Tag is PlayerAccountType.Mojang;
+                bool nowYoriiSkins = accountTypeBox.SelectedItem is ComboBoxItem ysItem && ysItem.Tag is PlayerAccountType.YoriiSkins;
+                usernameBox.IsReadOnly = nowMojang;
+                hintText.Text = nowMojang
+                    ? "Microsoft accounts are authenticated via OAuth. Click Save to re-authenticate."
+                    : nowYoriiSkins
+                        ? "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page."
+                        : "Offline players can join any server. Local skin and cape below show in singleplayer and on modded servers — never uploaded.";
+            }
+
+            // local-only skin for offline players: picked png is written
+            // straight into every instance's localskin folder (never uploaded)
+            var localSkinStatus = new TextBlock
+            {
+                FontSize = 12,
+                Opacity = 0.7,
+                TextWrapping = TextWrapping.Wrap,
+                Visibility = Visibility.Collapsed
+            };
+            var localSkinButtons = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                Visibility = Visibility.Collapsed
+            };
+            var setLocalSkinButton = new Button { Content = "Set local skin…" };
+            var removeLocalSkinButton = new Button { Content = "Remove" };
+            localSkinButtons.Children.Add(setLocalSkinButton);
+            localSkinButtons.Children.Add(removeLocalSkinButton);
+
+            var localCapeStatus = new TextBlock
+            {
+                FontSize = 12,
+                Opacity = 0.7,
+                TextWrapping = TextWrapping.Wrap,
+                Visibility = Visibility.Collapsed
+            };
+            var localCapeButtons = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                Visibility = Visibility.Collapsed
+            };
+            var setLocalCapeButton = new Button { Content = "Set local cape…" };
+            var removeLocalCapeButton = new Button { Content = "Remove" };
+            localCapeButtons.Children.Add(setLocalCapeButton);
+            localCapeButtons.Children.Add(removeLocalCapeButton);
+
+            // refuse absurd files before reading them fully into memory (a
+            // valid skin/cape png is kilobytes; 2MB is generous headroom)
+            static bool FileTooLarge(string path)
+            {
+                try
+                {
+                    return new FileInfo(path).Length > 2 * 1024 * 1024;
+                }
+                catch
+                {
+                    return true;
+                }
+            }
+
+            void RefreshLocalRow()
+            {
+                bool offline = accountTypeBox.SelectedItem is ComboBoxItem sel &&
+                    sel.Tag is PlayerAccountType.Offline;
+                string name = usernameBox.Text.Trim();
+                bool hasSkin = offline && SkinManager.HasLocalSkin(name);
+                bool hasCape = offline && SkinManager.HasLocalCape(name);
+                localSkinStatus.Visibility = offline ? Visibility.Visible : Visibility.Collapsed;
+                localSkinButtons.Visibility = offline ? Visibility.Visible : Visibility.Collapsed;
+                localCapeStatus.Visibility = offline ? Visibility.Visible : Visibility.Collapsed;
+                localCapeButtons.Visibility = offline ? Visibility.Visible : Visibility.Collapsed;
+                removeLocalSkinButton.IsEnabled = hasSkin;
+                removeLocalCapeButton.IsEnabled = hasCape;
+                if (offline)
+                {
+                    localSkinStatus.Text = hasSkin
+                        ? $"Local skin set for '{name}' — singleplayer and modded servers only, never uploaded."
+                        : "No local skin — singleplayer uses the default Steve/Alex look.";
+                    localCapeStatus.Text = hasCape
+                        ? $"Local cape set for '{name}' — singleplayer and modded servers only, never uploaded."
+                        : "No local cape.";
+                }
+            }
+
+            usernameBox.TextChanged += (_, _) => RefreshLocalRow();
+
+            setLocalSkinButton.Click += async (_, _) =>
+            {
+                try
+                {
+                    await PickAndSaveLocalSkinAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Local skin picker failed: {ex.Message}");
+                    ShowNotification("Couldn't pick file", ex.Message);
+                }
+            };
+
+            async Task PickAndSaveLocalSkinAsync()
+            {
+                string name = usernameBox.Text.Trim();
+                if (!SkinManager.IsSafeProfileName(name))
+                {
+                    ShowNotification("Invalid name", "Local skins need 1-16 letters, digits or _ in the player name.");
+                    return;
+                }
+                var picker = new FileOpenPicker();
+                picker.FileTypeFilter.Add(".png");
+                InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
+                var file = await picker.PickSingleFileAsync();
+                if (file == null) return;
+                if (FileTooLarge(file.Path))
+                {
+                    ShowNotification("File too large", "Skin files must be under 2MB.");
+                    return;
+                }
+                byte[] data;
+                try
+                {
+                    data = await File.ReadAllBytesAsync(file.Path);
+                }
+                catch (Exception ex)
+                {
+                    ShowNotification("Couldn't read file", ex.Message);
+                    return;
+                }
+                if (!SkinManager.IsValidSkinPng(data, out int w, out int h))
+                {
+                    ShowNotification("Invalid skin", $"Expected a 64x64 or 64x32 PNG, got {(w > 0 ? $"{w}x{h}" : "not a PNG")}.");
+                    return;
+                }
+                SkinManager.WriteLocalSkinToAllInstances(name, data);
+                RefreshLocalRow();
+                ShowNotification("Local skin saved", $"'{name}' now uses it in singleplayer and on modded servers.");
+            }
+
+            removeLocalSkinButton.Click += (_, _) =>
+            {
+                SkinManager.DeleteLocalSkinFromAllInstances(usernameBox.Text.Trim());
+                RefreshLocalRow();
+                ShowNotification("Local skin removed", "Singleplayer is back to Steve/Alex.");
+            };
+
+            setLocalCapeButton.Click += async (_, _) =>
+            {
+                try
+                {
+                    await PickAndSaveLocalCapeAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn($"Local cape picker failed: {ex.Message}");
+                    ShowNotification("Couldn't pick file", ex.Message);
+                }
+            };
+
+            async Task PickAndSaveLocalCapeAsync()
+            {
+                string name = usernameBox.Text.Trim();
+                if (!SkinManager.IsSafeProfileName(name))
+                {
+                    ShowNotification("Invalid name", "Local capes need 1-16 letters, digits or _ in the player name.");
+                    return;
+                }
+                var picker = new FileOpenPicker();
+                picker.FileTypeFilter.Add(".png");
+                InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
+                var file = await picker.PickSingleFileAsync();
+                if (file == null) return;
+                if (FileTooLarge(file.Path))
+                {
+                    ShowNotification("File too large", "Cape files must be under 2MB.");
+                    return;
+                }
+                byte[] data;
+                try
+                {
+                    data = await File.ReadAllBytesAsync(file.Path);
+                }
+                catch (Exception ex)
+                {
+                    ShowNotification("Couldn't read file", ex.Message);
+                    return;
+                }
+                if (!SkinManager.IsValidCapePng(data, out int w, out int h))
+                {
+                    ShowNotification("Invalid cape", $"Expected a 64x32 (or HD multiple) PNG, got {(w > 0 ? $"{w}x{h}" : "not a PNG")}.");
+                    return;
+                }
+                SkinManager.WriteLocalCapeToAllInstances(name, data);
+                RefreshLocalRow();
+                ShowNotification("Local cape saved", $"'{name}' now uses it in singleplayer and on modded servers.");
+            }
+
+            removeLocalCapeButton.Click += (_, _) =>
+            {
+                SkinManager.DeleteLocalCapeFromAllInstances(usernameBox.Text.Trim());
+                RefreshLocalRow();
+                ShowNotification("Local cape removed", "No cape will show in singleplayer.");
+            };
+
+            // update field visibility based on selected account type
+            accountTypeBox.SelectionChanged += (_, _) =>
+            {
+                RefreshAccountHint();
+                RefreshLocalRow();
+            };
 
             var panel = new StackPanel { Spacing = 10 };
-            panel.Children.Add(typePanel);
+            panel.Children.Add(accountTypeBox);
             panel.Children.Add(usernameBox);
             panel.Children.Add(hintText);
+            panel.Children.Add(localSkinStatus);
+            panel.Children.Add(localSkinButtons);
+            panel.Children.Add(localCapeStatus);
+            panel.Children.Add(localCapeButtons);
+            RefreshLocalRow();
 
             // create dialog
             var dialog = new ContentDialog
@@ -1779,73 +2029,106 @@ namespace Yorii_Launcher
             if (dialogResult != ContentDialogResult.Primary)
                 return;
 
-            // Edit is for the existing account's type only - no type switching
-            if (account.AccountType == PlayerAccountType.Mojang)
+            if (accountTypeBox.SelectedItem is ComboBoxItem selectedTypeItem &&
+                selectedTypeItem.Tag is PlayerAccountType newAccountType)
             {
-                try
+                // renaming an offline player should carry its local-only skin
+                // along - but only when it was already offline, so a synced
+                // yoriiskins skin is never copied onto a different name
+                string previousName = account.Username;
+                bool wasOffline = account.AccountType == PlayerAccountType.Offline;
+                if (newAccountType == PlayerAccountType.Mojang)
                 {
-                    playButton.IsEnabled = false;
-                    playButton.Content = "Signing in...";
+                    if (account.AccountType != PlayerAccountType.Mojang)
+                    {
+                        try
+                        {
+                            playButton.IsEnabled = false;
+                            playButton.Content = "Signing in...";
 
-                    var (session, identifier) = await LoginHelper.LoginWithMojangInteractive();
+                            var (session, identifier) = await LoginHelper.LoginWithMojangInteractive();
 
-                    account.Username = session.Username;
-                    account.MojangIdentifier = identifier;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"Mojang re-auth failed: {ex.Message}");
-                    ShowNotification("Re-authentication failed", ex.Message);
-                    return;
-                }
-                finally
-                {
-                    playButton.Content = "Play";
-                    playButton.IsEnabled = true;
-                }
-            }
-            else if (account.AccountType == PlayerAccountType.Offline)
-            {
-                string newUsername = usernameBox.Text.Trim();
-                if (string.IsNullOrWhiteSpace(newUsername) || newUsername.Length > 16 || !System.Text.RegularExpressions.Regex.IsMatch(newUsername, @"^[A-Za-z0-9_]+$"))
-                {
-                    ShowNotification("Invalid username", "Use 3-16 letters, numbers, underscores.");
-                    return;
-                }
-                account.Username = newUsername;
-            }
-            else if (account.AccountType == PlayerAccountType.YoriiSkins)
-            {
-                string newUsername = usernameBox.Text.Trim();
-                if (string.IsNullOrWhiteSpace(newUsername) || newUsername.Length > 16 || !System.Text.RegularExpressions.Regex.IsMatch(newUsername, @"^[A-Za-z0-9_]+$"))
-                {
-                    ShowNotification("Invalid username", "Use 3-16 letters, numbers, underscores.");
-                    return;
-                }
-                if (!string.Equals(account.Username, newUsername, StringComparison.Ordinal))
-                {
-                    try
-                    {
-                        playButton.IsEnabled = false;
-                        playButton.Content = "Renaming...";
-                        await SkinManager.RenameProfileAsync(account.Username, newUsername);
-                        ShowNotification("Renamed", $"'{account.Username}' → '{newUsername}' verified via worker.");
+                            account.Username = session.Username;
+                            account.Password = null;
+                            account.AccountType = PlayerAccountType.Mojang;
+                            account.MojangIdentifier = identifier;
+                        }
+                        catch (AuthCodeException ace) when (string.IsNullOrEmpty(ace.Error) && string.IsNullOrEmpty(ace.ErrorDescription))
+                        {
+                            Logger.Info("Microsoft sign-in cancelled by user.");
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Mojang login failed: {ex.Message}");
+                            ShowNotification("Login failed", ex.Message);
+                            return;
+                        }
+                        finally
+                        {
+                            playButton.Content = "Play";
+                            playButton.IsEnabled = true;
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Logger.Error($"Rename failed: {ex.Message}");
-                        ShowNotification("Rename failed", ex.Message);
-                        return;
+                        try
+                        {
+                            playButton.IsEnabled = false;
+                            playButton.Content = "Signing in...";
+
+                            var (session, identifier) = await LoginHelper.LoginWithMojangInteractive();
+
+                            account.Username = session.Username;
+                            account.MojangIdentifier = identifier;
+                        }
+                        catch (AuthCodeException ace) when (string.IsNullOrEmpty(ace.Error) && string.IsNullOrEmpty(ace.ErrorDescription))
+                        {
+                            Logger.Info("Microsoft re-auth cancelled by user.");
+                            return;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Mojang re-auth failed: {ex.Message}");
+                            ShowNotification("Re-authentication failed", ex.Message);
+                            return;
+                        }
+                        finally
+                        {
+                            playButton.Content = "Play";
+                            playButton.IsEnabled = true;
+                        }
                     }
-                    finally
-                    {
-                        playButton.Content = "Play";
-                        playButton.IsEnabled = true;
-                    }
-                    LoadAccounts();
-                    return;
                 }
-                // same name - nothing to do
+                else if (newAccountType == PlayerAccountType.Offline)
+                {
+                    account.Username = usernameBox.Text.Trim();
+                    account.Password = null;
+                    account.AccountType = PlayerAccountType.Offline;
+                    account.MojangIdentifier = null;
+                    account.CustomUUID = null;
+                    if (wasOffline)
+                    {
+                        SkinManager.RenameLocalSkin(previousName, account.Username);
+                        SkinManager.RenameLocalCape(previousName, account.Username);
+                    }
+                }
+                else if (newAccountType == PlayerAccountType.YoriiSkins)
+                {
+                    account.Username = usernameBox.Text.Trim();
+                    account.Password = null;
+                    account.AccountType = PlayerAccountType.YoriiSkins;
+                    account.MojangIdentifier = null;
+                    account.CustomUUID ??= Guid.NewGuid().ToString("N");
+                }
+                else
+                {
+                    // unknown/removed types are treated as offline players
+                    account.Username = usernameBox.Text.Trim();
+                    account.Password = null;
+                    account.AccountType = PlayerAccountType.Offline;
+                    account.MojangIdentifier = null;
+                }
             }
 
             // refresh accounts
@@ -1961,9 +2244,8 @@ namespace Yorii_Launcher
         public void UpdateGitHubAccountButton()
         {
             string? username = SettingsManager.Current.GitHubUsername;
-            bool loggedIn = SkinManager.IsLoggedIn && !string.IsNullOrEmpty(username);
 
-            if (loggedIn)
+            if (SkinManager.IsLoggedIn && !string.IsNullOrEmpty(username))
             {
                 // keep the button at its xaml size of 32x32 - shrinking it to
                 // 24x24 leaves less content space than the 24x24 avatar needs
@@ -1973,9 +2255,15 @@ namespace Yorii_Launcher
                 // transparent like the rest of the titlebar
                 AccountsButton.Resources["ButtonBackgroundPointerOver"] = new SolidColorBrush(Colors.Transparent);
                 AccountsButton.Resources["ButtonBackgroundPressed"] = new SolidColorBrush(Colors.Transparent);
-                var avatar = new BitmapImage(new Uri($"https://avatars.githubusercontent.com/{username}?size=64"));
-                githubAvatarButtonImage.Fill = new ImageBrush { ImageSource = avatar, Stretch = Stretch.UniformToFill };
-                githubAvatarImage.Fill = new ImageBrush { ImageSource = avatar, Stretch = Stretch.UniformToFill };
+                // cached file first so the avatar survives offline; refresh in
+                // the background when online. falls back to the live URL only
+                // when nothing is cached yet.
+                var cachedAvatar = AvatarCache.GetCachedPath(username);
+                if (cachedAvatar is not null)
+                    SetAccountAvatar(cachedAvatar);
+                else
+                    SetAccountAvatar($"https://avatars.githubusercontent.com/{username}?size=64");
+                _ = RefreshAccountAvatarAsync(username);
                 githubAvatarButtonImage.Visibility = Visibility.Visible;
                 genericAccountButtonIcon.Visibility = Visibility.Collapsed;
                 githubAvatarImage.Visibility = Visibility.Visible;
@@ -1987,8 +2275,7 @@ namespace Yorii_Launcher
                 ToolTipService.SetToolTip(AccountsButton, username);
             }
             else
-            {
-                // restore the default hover/pressed plate for the icon state
+            {                // restore the default hover/pressed plate for the icon state
                 AccountsButton.Resources.Remove("ButtonBackgroundPointerOver");
                 AccountsButton.Resources.Remove("ButtonBackgroundPressed");
                 githubAvatarButtonImage.Fill = null;
@@ -2002,6 +2289,40 @@ namespace Yorii_Launcher
                 viewGitHubProfileItem.Visibility = Visibility.Collapsed;
                 disconnectItemText.Text = "Sign In";
                 ToolTipService.SetToolTip(AccountsButton, "Account");
+            }
+        }
+
+        private void SetAccountAvatar(string pathOrUrl)
+        {
+            try
+            {
+                // IgnoreImageCache: the cached file is rewritten in place on
+                // refresh, and WinUI keys its decode cache by URI - without
+                // this a changed avatar keeps showing the old pixels
+                var avatar = new BitmapImage
+                {
+                    CreateOptions = BitmapCreateOptions.IgnoreImageCache,
+                    UriSource = new Uri(pathOrUrl)
+                };
+                githubAvatarButtonImage.Fill = new ImageBrush { ImageSource = avatar, Stretch = Stretch.UniformToFill };
+                githubAvatarImage.Fill = new ImageBrush { ImageSource = avatar, Stretch = Stretch.UniformToFill };
+            }
+            catch
+            {
+                // corrupt cache entry or bad url: leave whatever is showing
+            }
+        }
+
+        private async Task RefreshAccountAvatarAsync(string username)
+        {
+            try
+            {
+                var fresh = await AvatarCache.EnsureFreshAsync(username);
+                if (fresh is not null)
+                    SetAccountAvatar(fresh);
+            }
+            catch
+            {
             }
         }
 

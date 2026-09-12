@@ -1,8 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	<OutputType>WinExe</OutputType>
 	<TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
-	<TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
 	<Version>0.9.7</Version>
 	<RootNamespace>Yorii_Launcher</RootNamespace>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
@@ -15,39 +15,54 @@
 	<EnableMsixTooling>true</EnableMsixTooling>
 	<Nullable>enable</Nullable>
 	  <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
-	<DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="0.9\**" />
+    <Compile Remove="%2a%2a\**" />
     <Compile Remove="Authenticator\**" />
     <Compile Remove="Resources\AccentColorThemes\**" />
     <Compile Remove="cmllib.migration\**" />
+    <Compile Remove="0.9\**" />
+    <Compile Remove="latest build online\**" />
     <Compile Remove="AppPackages\**" />
     <Compile Remove="temp\**" />
-    <EmbeddedResource Remove="0.9\**" />
+    <Compile Remove="Yorii-Launcher-preview-0.9\**" />
+    <EmbeddedResource Remove="%2a%2a\**" />
+    <EmbeddedResource Remove="AppPackages\**" />
     <EmbeddedResource Remove="Authenticator\**" />
     <EmbeddedResource Remove="Resources\AccentColorThemes\**" />
     <EmbeddedResource Remove="cmllib.migration\**" />
-    <None Remove="0.9\**" />
+    <EmbeddedResource Remove="0.9\**" />
+    <EmbeddedResource Remove="latest build online\**" />
+    <EmbeddedResource Remove="Yorii-Launcher-preview-0.9\**" />
+    <None Remove="%2a%2a\**" />
+    <None Remove="AppPackages\**" />
     <None Remove="Authenticator\**" />
     <None Remove="Resources\AccentColorThemes\**" />
     <None Remove="cmllib.migration\**" />
-    <Page Remove="0.9\**" />
+    <None Remove="0.9\**" />
+    <None Remove="latest build online\**" />
+    <None Remove="Yorii-Launcher-preview-0.9\**" />
+    <Page Remove="%2a%2a\**" />
+    <Page Remove="AppPackages\**" />
     <Page Remove="Authenticator\**" />
+    <Page Remove="0.9\**" />
+    <Page Remove="latest build online\**" />
+    <Page Remove="Resources\AccentColorThemes\**" />
+    <Page Remove="Yorii-Launcher-preview-0.9\**" />
+    <!-- do not delete the Remove lines above: without them, stale source
+         copies under 0.9/ get compiled into the app (duplicate types, broken
+         xaml codegen). the %2a entries are intentional no-ops, leave them -->
     <PRIResource Remove="cmllib.migration\**" />
+    <PRIResource Remove="0.9\**" />
+    <PRIResource Remove="latest build online\**" />
   </ItemGroup>
   <ItemGroup>
+
+    <None Remove="%2a%2a/%2a" />
 
     <None Remove="720.png" />
 
     <None Remove="authlib-injector.jar" />
-
-	<!-- MainWindow.xaml must be compiled as WinUI XAML, not left as a None item. -->
-	<Page Remove="MainWindow.xaml" />
-	<None Remove="MainWindow.xaml" />
-	<Page Include="MainWindow.xaml">
-	  <Generator>MSBuild:Compile</Generator>
-	</Page>
 
     <None Remove="Console.xaml" />
 	<None Remove="HomePage.xaml" />
@@ -63,6 +78,7 @@
 	<None Remove="Pages\ReleaseNotesPage.xaml" />
 	<None Remove="Resources\ComboBox.xaml" />
 	<None Remove="SettingsPage.xaml" />
+	<None Remove="Yorii-Launcher-preview-0.9.zip" />
   </ItemGroup>
 
   <ItemGroup>
@@ -108,10 +124,13 @@
   <ItemGroup>
     <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.Core\Quiescent.Core.csproj" />
     <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\Quiescent.Core.Auth.Microsoft.csproj" />
-    <!-- direct reference with explicit TFM so the interactive-login broker
-         (net8.0-windows asset) is used; negotiation otherwise resolves the
-         plain net8.0 asset and MSA login throws PlatformNotSupportedException -->
-    <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\Quiescent.XboxAuthNet.csproj" SetTargetFramework="TargetFramework=net10.0-windows" />
+    <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\Quiescent.XboxAuthNet.Game.csproj" />
+    <!-- net10.0 asset on purpose: the net10.0-windows asset only adds the
+         legacy WinForms login broker, which cannot work in trimmed/NativeAOT
+         builds (and drags the WebView2 package + Forms into the closure).
+         interactive login now uses the WinUI WebView2 surface
+         (Helpers/WinUILoginWebUI.cs) instead. -->
+    <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\Quiescent.XboxAuthNet.csproj" SetTargetFramework="TargetFramework=net10.0" />
     <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.Forge\Quiescent.Core.Installer.Forge.csproj" />
     <ProjectReference Include="cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\Quiescent.Core.Installer.NeoForge.csproj" />
     <PackageReference Include="CommunityToolkit.WinUI.Behaviors" Version="8.2.251219" />
@@ -119,12 +138,17 @@
     <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
 	  <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+	  <!-- direct ref (same version WinAppSDK pulls transitively): without it the
+	       win-x86 native_uap Microsoft.Web.WebView2.Core.dll gets staged into
+	       x64 output and every EnsureCoreWebView2Async dies with 0x800700C1.
+	       preview 0.9 had this direct ref and was immune -->
+	  <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3719.77" />
 	  <!-- <PackageReference Include="Optifine.Installer" Version="1.0.1" /> -->
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
     <PackageReference Include="Vecc.YamlDotNet.Analyzers.StaticGenerator" Version="18.1.0" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-	<Page Update="Resources\ComboBox.xaml">
+	<Page Update="Controls\ComboBox.xaml">
 	  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</Page>
 	<Page Update="HomePage.xaml">
@@ -148,6 +172,12 @@
 
 	<ItemGroup>
 		<TrimmerRootDescriptor Include="Helpers\linker.xml" />
+	</ItemGroup>
+
+	<ItemGroup><!-- source files are compiled in-place; no longer copied to output
+	       (Compile Update + glob produced duplicate items on SDK 10) -->
+	
+	  <Page Remove="%2a%2a/%2a.xaml" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -182,12 +212,32 @@
   </PropertyGroup>
 
 	<PropertyGroup>
-		<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-		<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-		<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-		<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
-		<TrimMode>partial</TrimMode>
-		<InvariantGlobalization>true</InvariantGlobalization>
+	<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+	<PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+	<PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
+	<PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+	<TrimMode>partial</TrimMode>
+	<InvariantGlobalization>true</InvariantGlobalization>
+	<!-- keep trim + AOT diagnostics on for every build (not just publish) so
+	     NativeAOT-incompatible code can never slip back in silently -->
+	<EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+	<EnableAotAnalyzer>true</EnableAotAnalyzer>
+	<!-- CsWinRT projection diagnostics at max: types crossing the WinRT ABI
+	     (ItemsSource collections, container items) need generated vtables;
+	     level 2 also covers built-in mapped interfaces -->
+	<CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
+	<!-- IL2104 ("assembly X produced trim warnings") and IL3053 (same for AOT
+	     analysis) are unactionable: they fire for third-party/framework
+	     assemblies (HtmlAgilityPack, WinRT, the WinForms broker assemblies
+	     kept for login, YamlDotNet internals — only its static builders are
+	     used). WMC1510 (XAML binding trim warnings) fires for the remaining
+	     {Binding TemplatedParent} sites in Resources/SettingsExpander.xaml and
+	     Resources/ComboBox.xaml: their sources are the EXTERNAL toolkit
+	     SettingsExpander/SettingsCard (fully rooted in Helpers/linker.xml)
+	     and the framework ComboBox (OS projection, never trimmed), so all are
+	     runtime-safe; the OneWay convertible sites already use TemplateBinding.
+	     our own trim/AOT issues still surface as IL2026/IL3050/etc. -->
+	<NoWarn>$(NoWarn);IL2104;IL3053;WMC1510</NoWarn>
 	</PropertyGroup>
 
 	<!-- runtime + layout efficiency: jit profile-guided opts, drop XBF line
@@ -210,9 +260,15 @@
 	<GenerateTestArtifacts>False</GenerateTestArtifacts>
 	<AppxBundle>Never</AppxBundle>
 	<HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
-	<PublishAot>False</PublishAot>
+	<PublishAot>True</PublishAot>
 	<PackageIcon>128.png</PackageIcon>
-	<AppxBundlePlatforms>x64|arm64</AppxBundlePlatforms>
+ 	<AppxBundlePlatforms>x64|arm64</AppxBundlePlatforms>
+	<!-- per-arch PlatformTarget (NOT AnyCPU): the WebView2 SDK targets map
+	     AnyCPU -> x86 and stage runtimes/win-x86/native_uap WebView2.Core.dll
+	     into x64 output, which breaks every EnsureCoreWebView2Async with
+	     0x800700C1. arch-matched target stages the right native_uap file -->
+	<PlatformTarget Condition="'$(Platform)' == 'ARM64'">arm64</PlatformTarget>
+	<PlatformTarget Condition="'$(Platform)' != 'ARM64'">x64</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
 	<DebugType>none</DebugType>
@@ -267,10 +323,6 @@
     <Page Update="Console.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
-
-	  <Page Update="MainWindow.xaml">
-		  <Generator>MSBuild:Compile</Generator>
-	  </Page>
   </ItemGroup>
   <ItemGroup>
     <PRIResource Remove="Authenticator\**" />
@@ -293,7 +345,7 @@
   <!-- strips junk from BOTH the build output dir and the publish layout
        (dotnet publish stages payloads under win-x64\publish, which the
        Build-anchored pass never saw) -->
-   <Target Name="StripUnusedWinAppSdkPayloads" AfterTargets="Publish" BeforeTargets="Pack" Condition="'$(Configuration)'=='Release'">
+  <Target Name="StripUnusedWinAppSdkPayloads" AfterTargets="Build;Publish" BeforeTargets="Pack">
     <PropertyGroup>
       <_BinAbs>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)'))</_BinAbs>
       <_PubAbs>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(OutDir)publish\'))</_PubAbs>
@@ -307,10 +359,71 @@
     <ItemGroup>
       <_LangResourcesBin Include="$(_BinAbs)**\*.resources.dll" Exclude="$(_BinAbs)en\**; $(_BinAbs)en-US\**" />
       <_LangResourcesPub Include="$(_PubAbs)**\*.resources.dll" Exclude="$(_PubAbs)en\**; $(_PubAbs)en-US\**" />
+      <_BgBin Include="$(_BinAbs)Resources\launcherbackground.png" />
+      <_BgPub Include="$(_PubAbs)Resources\launcherbackground.png" />
     </ItemGroup>
-    <Delete Files="@(_LangResourcesBin); @(_LangResourcesPub)" />
+    <Delete Files="@(_LangResourcesBin); @(_LangResourcesPub); @(_BgBin); @(_BgPub)" />
+  </Target>
+  <!-- NativeAOT publish does not copy compiled XAML (.xbf) to the publish
+       dir (upstream WindowsAppSDK#6394): without them every launch dies in
+       InitializeComponent with 'Cannot locate resource from
+       ms-appx:///MainWindow.xaml'. resources.pri already arrives intact;
+       only the .xbf tree needs backfilling, preserving subfolders. -->
+  <Target Name="CopyXamlResourcesForAot" AfterTargets="Publish" Condition="'$(PublishAot)' == 'true'">
+    <ItemGroup>
+      <_AotXbf Include="$(OutputPath)**\*.xbf" Exclude="$(PublishDir)**\*.xbf" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AotXbf)" DestinationFiles="@(_AotXbf->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
   <ItemGroup>
-    <PRIResource Remove="0.9\**" />
+    <PRIResource Remove="%2a%2a\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="%2a%2a/%2a.resx" />
+  </ItemGroup>
+  <ItemGroup>
+    <PRIResource Remove="%2a%2a/%2a.resw" />
+  </ItemGroup>
+  <!-- single-project MSIX stages the AppX dir incrementally: when a packaging
+       run is interrupted (app still running locks files, build stopped), the
+       dir is left partial and later incremental builds consider outputs up to
+       date, so missing .xbf files are never re-staged. heal that automatically
+       by wiping the stale staging dir BEFORE build, so this same build
+       re-stages it fully. scoped to VS builds only: plain dotnet build never
+       stages AppX and must not touch it -->
+  <Target Name="HealStaleAppxXamlPayload" BeforeTargets="Build" Condition="'$(BuildingInsideVisualStudio)' == 'true' And Exists('$(OutDir)AppX\AppxManifest.xml')">
+    <ItemGroup>
+      <_AppxExpectedXbfHeal Include="@(Page->'$(OutDir)AppX\%(RelativeDir)%(Filename).xbf')" Condition="'%(Page.Extension)' == '.xaml'" />
+      <_AppxMissingXbfHeal Include="@(_AppxExpectedXbfHeal)" Condition="!Exists('%(_AppxExpectedXbfHeal.Identity)')" />
+      <_OutExpectedXbfHeal Include="@(Page->'$(OutDir)%(RelativeDir)%(Filename).xbf')" Condition="'%(Page.Extension)' == '.xaml'" />
+      <_OutMissingXbfHeal Include="@(_OutExpectedXbfHeal)" Condition="!Exists('%(_OutExpectedXbfHeal.Identity)')" />
+    </ItemGroup>
+    <Warning Condition="'@(_AppxMissingXbfHeal)' != ''" Text="Stale AppX staging detected (%(_AppxMissingXbfHeal.Filename).xbf missing) - wiping $(OutDir)AppX so this build re-stages it. Close any running Yorii Launcher first." />
+    <RemoveDir Directories="$(OutDir)AppX" Condition="'@(_AppxMissingXbfHeal)' != ''" />
+    <!-- deeper staleness: the build-output .xbf itself is gone while obj claims
+         up to date - touch the pages to force XAML recompile in this build -->
+    <Touch Files="@(Page)" Condition="'@(_OutMissingXbfHeal)' != ''" />
+  </Target>
+  <!-- backstop for the healer above: if the layout is STILL broken after this
+       build re-staged it, fail loudly instead of shipping a package that can
+       never launch (missing MainWindow.xbf dies in InitializeComponent with
+       XamlParseException 'Cannot locate resource from
+       ms-appx:///MainWindow.xaml'; a partially stale layout crashes only when
+       navigating to the affected page). scoped to VS builds only: plain
+       dotnet build never stages AppX and must not trip on its absence -->
+  <Target Name="VerifyAppxXamlPayload" AfterTargets="Build" Condition="'$(BuildingInsideVisualStudio)' == 'true' And Exists('$(OutDir)AppX\AppxManifest.xml')">
+    <Error Condition="!Exists('$(OutDir)AppX\MainWindow.xbf')" Text="AppX layout at $(OutDir)AppX is missing MainWindow.xbf (stale incremental packaging). Close all Yorii Launcher processes, delete bin/obj/.vs, then Rebuild." />
+    <!-- sweep every compiled page: a missing page .xbf crashes on navigation
+         to that page exactly like the MainWindow case above -->
+    <ItemGroup>
+      <_AppxExpectedXbf Include="@(Page->'$(OutDir)AppX\%(RelativeDir)%(Filename).xbf')" Condition="'%(Page.Extension)' == '.xaml'" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(_AppxExpectedXbf.Identity)')" Text="AppX layout at $(OutDir)AppX is missing %(_AppxExpectedXbf.Identity) (stale incremental packaging). Close all Yorii Launcher processes, delete bin/obj/.vs, then Rebuild." />
+  </Target>
+  <ItemGroup>
+    <PRIResource Remove="Yorii-Launcher-preview-0.9\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PRIResource Remove="AppPackages\**" />
   </ItemGroup>
 </Project>

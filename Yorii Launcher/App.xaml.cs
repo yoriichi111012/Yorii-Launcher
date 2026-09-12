@@ -28,7 +28,24 @@ namespace Yorii_Launcher
         public App()
         {
             InitializeComponent();
+            UnhandledException += OnUnhandledException;
             AppDomain.CurrentDomain.AssemblyResolve += OnAssemblyResolve; // for webview2 login
+        }
+
+        // last-resort crash recorder: without this, XAML-thread crashes die
+        // silently (or only in Event Viewer). the full exception incl. stack
+        // lands in LocalFolder/Logs/logs.txt — paste it when reporting.
+        private static void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+        {
+            try
+            {
+                Logger.Error($"Unhandled exception (Handled={e.Handled}): {e.Exception}");
+                if (e.Exception?.InnerException is not null)
+                    Logger.Error($"Inner: {e.Exception.InnerException}");
+            }
+            catch
+            {
+            }
         }
 
         [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "WebView2 assemblies are loaded from the NuGet cache at runtime for OAuth login; they are not part of the trimmed app graph.")]
@@ -37,6 +54,8 @@ namespace Yorii_Launcher
             var name = new AssemblyName(args.Name);
             if (name.Name == "Microsoft.Web.WebView2.Core" || name.Name == "Microsoft.Web.WebView2.WinForms")
             {
+                // TEMP-DIAG(webview): prove whether this 0.9-era hack fires at all
+                Logger.Info($"[login-ui] AssemblyResolve fired for {args.Name} (from {args.RequestingAssembly?.GetName().Name})");
                 var nugetDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                     ".nuget", "packages", "microsoft.web.webview2");
@@ -48,9 +67,13 @@ namespace Yorii_Launcher
                     {
                         var managed = Path.Combine(verDir, "lib", "net462", dllName);
                         if (File.Exists(managed))
+                        {
+                            Logger.Info($"[login-ui] AssemblyResolve loading {managed}");
                             return Assembly.LoadFrom(managed);
+                        }
                     }
                 }
+                Logger.Info("[login-ui] AssemblyResolve found nothing");
             }
             return null;
         }
@@ -70,6 +93,17 @@ namespace Yorii_Launcher
             }
 
             SettingsManager.RestoreSettings();
+            // explicit source-gen JSON registration for NativeAOT certainty:
+            // ModuleInitializers alone are fragile under trimming (a trimmed
+            // initializer = empty registry = JsonTypeInfo failures at runtime,
+            // e.g. LatestVersion on Play). statically-called methods can never
+            // be trimmed away. safe to run alongside the initializers.
+            Quiescent.Core.Json.CoreJsonBootstrap.EnsureRegistered();
+            Quiescent.XboxAuthNet.Json.XboxAuthJsonBootstrap.EnsureRegistered();
+            Quiescent.XboxAuthNet.Game.Json.GameJsonBootstrap.EnsureRegistered();
+            Quiescent.Core.Auth.Microsoft.Json.AuthMicrosoftJsonBootstrap.EnsureRegistered();
+            Quiescent.Core.Installer.Forge.Json.ForgeJsonBootstrap.EnsureRegistered();
+            Quiescent.Core.Installer.NeoForge.Json.NeoForgeJsonBootstrap.EnsureRegistered();
             ThemeManager.RestoreSettings();
             MainWindow = new MainWindow { SystemBackdrop = Mica };
             ThemeHelper.ApplySavedTheme();

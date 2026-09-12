@@ -34,7 +34,7 @@
             <TextBlock
                 Margin="0,4,0,0"
                 Opacity="0.72"
-                Text="Upload 64x64 PNG skins for your profiles. Public profiles (1 max) need no GitHub; private ones (5 max) are tied to your account."
+                Text="Upload 64x64 PNG skins and 64x32 (or HD multiple) PNG capes for your profiles. Public profiles (1 max) need no GitHub but are temporary — deleted after 15 days without opening the launcher. Private ones (5 max) are tied to your account and kept forever."
                 TextWrapping="Wrap" />
         </StackPanel>
 
@@ -272,6 +272,13 @@
                                         <TextBlock
                                             VerticalAlignment="Center"
                                             FontSize="12"
+                                            Foreground="#C79A00"
+                                            Opacity="0.9"
+                                            Text="{x:Bind ExpiryLabel}"
+                                            Visibility="{x:Bind ExpiryVisibility}" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="12"
                                             Opacity="0.5"
                                             Text="{x:Bind CustomUUID}"
                                             TextTrimming="CharacterEllipsis"
@@ -289,6 +296,18 @@
                                             FontSize="12"
                                             Foreground="{x:Bind SyncBrush, Mode=OneWay}"
                                             Text="{x:Bind SyncStatus, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Ellipse
+                                            Width="8"
+                                            Height="8"
+                                            VerticalAlignment="Center"
+                                            Fill="{x:Bind CapeBrush, Mode=OneWay}" />
+                                        <TextBlock
+                                            Margin="0,-1,0,0"
+                                            FontSize="12"
+                                            Foreground="{x:Bind CapeBrush, Mode=OneWay}"
+                                            Text="{x:Bind CapeStatus, Mode=OneWay}" />
                                     </StackPanel>
                                 </StackPanel>
 
@@ -313,17 +332,33 @@
                                         </StackPanel>
                                     </Button>
                                     <Button
+                                        Height="26"
+                                        MinWidth="88"
+                                        Padding="10,0"
+                                        Click="UpdateCape_Click"
+                                        Tag="{x:Bind Username}"
+                                        ToolTipService.ToolTip="Upload a cape (64x32 PNG)">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <FontIcon FontSize="11" Glyph="&#xE895;" />
+                                            <TextBlock
+                                                VerticalAlignment="Center"
+                                                FontSize="12"
+                                                Text="Update Cape" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button
                                         Width="26"
                                         Height="26"
                                         Padding="0"
                                         Background="Transparent"
                                         BorderThickness="0"
-                                        Click="RenameProfile_Click"
+                                        Click="RemoveCape_Click"
                                         Tag="{x:Bind Username}"
-                                        ToolTipService.ToolTip="Rename profile (server-verified)">
+                                        ToolTipService.ToolTip="Remove cape">
                                         <FontIcon
                                             FontSize="13"
-                                            Glyph="&#xE70F;" />
+                                            Foreground="#FF7878"
+                                            Glyph="&#xE74D;" />
                                     </Button>
                                     <Button
                                         Width="26"

@@ -25,8 +25,9 @@ namespace Yorii_Launcher.Pages
             this.NavigationCacheMode = NavigationCacheMode.Required;
 
             ModrinthList.ItemsSource = OnlineMods;
+            ModrinthGridList.ItemsSource = OnlineMods;
             var savedMode = (PluginViewMode)SettingsManager.Current.DownloadModsViewMode;
-            PluginViewModeHelper.Apply(ModrinthList, savedMode);
+            PluginViewModeHelper.ApplyDualView(ModrinthList, ModrinthGridList, savedMode);
             ModrinthViewModeSegmented.SelectedIndex = (int)savedMode;
 
             _ = LoadFeaturedMods();
@@ -35,7 +36,7 @@ namespace Yorii_Launcher.Pages
 
         private void ViewModeSegmented_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            PluginViewModeHelper.ApplyFromSelectedIndex(ModrinthList, ModrinthViewModeSegmented.SelectedIndex);
+            PluginViewModeHelper.ApplyDualViewFromSelectedIndex(ModrinthList, ModrinthGridList, ModrinthViewModeSegmented.SelectedIndex);
             SettingsManager.Current.DownloadModsViewMode = ModrinthViewModeSegmented.SelectedIndex;
             SettingsManager.SaveSettings();
         }

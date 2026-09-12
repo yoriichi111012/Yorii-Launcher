@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Yorii_Launcher.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -343,51 +344,94 @@ namespace Yorii_Launcher.Helpers
                 _ => DownloadKind.Modpack
             };
 
+            // download to a temp name first, then atomic-move into place. writing
+            // straight to the final .jar lets the installed-mods watcher (and
+            // its zip-inspecting LoadMods) open the half-written file, which
+            // collides with this exclusive writer -> "used by another process".
+            // the temp name deliberately contains no ".jar", so watcher filters
+            // (*.jar*) and the .jar/.jar.disabled loader scan skip it entirely.
+            var tempName = fileName.EndsWith(".jar", StringComparison.OrdinalIgnoreCase)
+                ? fileName[..^".jar".Length] + ".part"
+                : Guid.NewGuid().ToString("N") + ".part";
+            var tempPath = Path.Combine(folder, tempName);
+            TryDelete(tempPath); // stale partial from a crashed/cancelled run
+
             var item = DownloadManager.Add(displayName ?? fileName, downloadKind, icon);
+            var label = displayName ?? fileName;
 
-            try
+            const int maxAttempts = 3;
+            for (int attempt = 1; ; attempt++)
             {
-                using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                using var response = await HttpService.DownloadClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, item.Token).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-
-                var totalBytes = response.Content.Headers.ContentLength ?? 0L;
-                await using var contentStream = await response.Content.ReadAsStreamAsync(item.Token).ConfigureAwait(false);
-                await using var fileStream = File.Create(destination, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
-
-                var buffer = new byte[81920];
-                long progressedBytes = 0;
-
-                while (true)
+                try
                 {
-                    var bytesRead = await contentStream.ReadAsync(buffer, item.Token).ConfigureAwait(false);
-                    if (bytesRead <= 0)
-                        break;
+                    Logger.Info($"Mod install start ({label}): {downloadUrl} -> {destination} (attempt {attempt}/{maxAttempts})");
+                    var sw = Stopwatch.StartNew();
 
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), item.Token).ConfigureAwait(false);
-                    progressedBytes += bytesRead;
+                    using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+                    using var response = await HttpService.DownloadClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, item.Token).ConfigureAwait(false);
+                    response.EnsureSuccessStatusCode();
 
-                    // downloaditem throttles the raises internally, so report every
-                    // chunk; this also records the size for downloads that have no
-                    // content-length header (otherwise they'd show "0 b")
+                    var totalBytes = response.Content.Headers.ContentLength ?? 0L;
+                    await using var contentStream = await response.Content.ReadAsStreamAsync(item.Token).ConfigureAwait(false);
+                    await using var fileStream = File.Create(tempPath, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+                    var buffer = new byte[81920];
+                    long progressedBytes = 0;
+
+                    while (true)
+                    {
+                        var bytesRead = await contentStream.ReadAsync(buffer, item.Token).ConfigureAwait(false);
+                        if (bytesRead <= 0)
+                            break;
+
+                        await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), item.Token).ConfigureAwait(false);
+                        progressedBytes += bytesRead;
+
+                        // downloaditem throttles the raises internally, so report every
+                        // chunk; this also records the size for downloads that have no
+                        // content-length header (otherwise they'd show "0 b")
+                        item.SetByteProgress(progressedBytes, totalBytes);
+                    }
+
+                    await fileStream.FlushAsync(item.Token).ConfigureAwait(false);
+                    await fileStream.DisposeAsync().ConfigureAwait(false);
+
+                    // a concurrent install of the same file won while we downloaded
+                    if (File.Exists(destination))
+                    {
+                        TryDelete(tempPath);
+                        item.SetByteProgress(progressedBytes, totalBytes);
+                        item.Complete();
+                        return;
+                    }
+
+                    File.Move(tempPath, destination);
+                    sw.Stop();
+                    Logger.Info($"Mod install done ({label}): {progressedBytes} bytes in {sw.Elapsed.TotalSeconds:F1}s -> {destination}");
                     item.SetByteProgress(progressedBytes, totalBytes);
+                    item.Complete();
+                    return;
                 }
-
-                await fileStream.FlushAsync(item.Token).ConfigureAwait(false);
-                item.SetByteProgress(progressedBytes, totalBytes);
-                item.Complete();
-            }
-            catch (OperationCanceledException)
-            {
-                TryDelete(destination);
-                item.Cancel();
-                throw;
-            }
-            catch (Exception ex)
-            {
-                TryDelete(destination);
-                item.Fail(ex.Message);
-                throw;
+                catch (OperationCanceledException)
+                {
+                    TryDelete(tempPath);
+                    item.Cancel();
+                    throw;
+                }
+                catch (IOException ex) when (attempt < maxAttempts)
+                {
+                    // transient locks (Defender/indexer grabbing the fresh file)
+                    Logger.Warn($"Mod install retry ({label}) attempt {attempt}/{maxAttempts}: {ex.Message}");
+                    TryDelete(tempPath);
+                    await Task.Delay(300 * attempt, item.Token).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    TryDelete(tempPath);
+                    item.Fail(ex.Message);
+                    Logger.Error($"Mod install failed ({label}): {ex.GetType().Name}: {ex.Message} url={downloadUrl} dest={destination}");
+                    throw;
+                }
             }
         }
 

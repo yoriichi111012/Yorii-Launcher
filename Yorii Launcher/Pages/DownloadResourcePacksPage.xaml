@@ -78,11 +78,17 @@
                     x:Name="ResourcePacksList"
                     Grid.Row="2"
                     Margin="0,0,0,4"
-                    Padding="24,0,24,0"
+                    Padding="0"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
                     BorderThickness="0"
+                    ItemContainerStyle="{StaticResource PluginListViewItemContainerStyle}"
                     SelectionMode="None">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsStackPanel Orientation="Vertical" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="models:OnlineModItem">
                             <Button
@@ -150,6 +156,105 @@
                                                 Text="Install" />
                                         </Button>
 
+                                        <Button
+                                            Grid.Column="2"
+                                            Width="30"
+                                            Height="30"
+                                            Margin="4,0,0,0"
+                                            Padding="0"
+                                            Click="ShowVersions_Click"
+                                            Tag="{x:Bind}">
+                                            <FontIcon
+                                                FontSize="16"
+                                                Glyph="&#xE70D;"
+                                                ToolTipService.ToolTip="Versions" />
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </Button>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <ListView
+                    x:Name="ResourcePacksGridList"
+                    Grid.Row="2"
+                    Margin="0,0,0,4"
+                    Padding="0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    BorderThickness="0"
+                    ItemContainerStyle="{StaticResource PluginGridViewItemContainerStyle}"
+                    SelectionMode="None"
+                    Visibility="Collapsed">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid HorizontalAlignment="Center" Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="models:OnlineModItem">
+                            <Button
+                                MaxWidth="1200"
+                                Margin="0,0,0,6"
+                                Padding="0"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                Click="OpenOnlineResourcePack_Click"
+                                CornerRadius="8"
+                                Tag="{x:Bind}">
+                                <Border
+                                    MaxWidth="1200"
+                                    Padding="10"
+                                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="auto" />
+                                            <ColumnDefinition Width="auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid Grid.Column="0" ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Image
+                                                Grid.Column="0"
+                                                Width="40"
+                                                Height="40"
+                                                Margin="6,0,0,0"
+                                                Source="{x:Bind Icon}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock
+                                                    FontSize="14"
+                                                    FontWeight="SemiBold"
+                                                    Text="{x:Bind Title}" />
+                                                <TextBlock
+                                                    Margin="0,0,8,0"
+                                                    FontSize="12"
+                                                    MaxLines="1"
+                                                    Opacity="0.7"
+                                                    Text="{x:Bind Description}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Button
+                                            Grid.Column="1"
+                                            Height="30"
+                                            Padding="10,0,10,0"
+                                            Click="InstallResourcePack_Click"
+                                            Style="{ThemeResource AccentButtonStyle}"
+                                            Tag="{x:Bind}">
+                                            <TextBlock
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Text="Install" />
+                                        </Button>
                                         <Button
                                             Grid.Column="2"
                                             Width="30"

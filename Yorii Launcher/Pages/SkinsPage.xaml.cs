@@ -84,6 +84,10 @@ namespace Yorii_Launcher.Pages
             Logger.Info($"LoadProfiles gen={generation} snapshot count={profiles.Count}");
             if (generation != loadGeneration || App.IsShuttingDown) return;
             _ = RenderProfilesAsync(profiles, generation, token);
+            // every visit refreshes the public-profile lease (worker deletes
+            // public entries unseen for 15 days); expired rows drop their
+            // dead claim token and disappear on the next render
+            _ = HeartbeatAndReloadIfExpiredAsync(generation);
 
             // 2) revalidate against github in the background; re-render only
             // when the index actually changed (no flicker on every visit)
@@ -103,6 +107,37 @@ namespace Yorii_Launcher.Pages
             {
                 // offline — the local snapshot stays on screen
                 Logger.Warn($"LoadProfiles gen={generation} refresh failed, keeping snapshot");
+            }
+        }
+
+        private async Task HeartbeatAndReloadIfExpiredAsync(int generation)
+        {
+            try
+            {
+                int before = SettingsManager.Current.ClaimTokens.Count;
+                await SkinManager.HeartbeatPublicProfilesAsync();
+                // a heartbeat that 404'd drops its token - re-render so
+                // expired rows disappear instead of lingering as claimed
+                if (SettingsManager.Current.ClaimTokens.Count != before &&
+                    generation == loadGeneration && !App.IsShuttingDown)
+                    await LoadProfilesAsync();
+            }
+            catch { }
+        }
+
+        private static string FormatPublicExpiry(long lastSeenAt)
+        {
+            try
+            {
+                if (lastSeenAt <= 0) return "Temporary — deleted after 15 days idle";
+                long daysIdle = (long)(DateTime.UtcNow - DateTimeOffset.FromUnixTimeMilliseconds(lastSeenAt).UtcDateTime).TotalDays;
+                long daysLeft = SkinManager.PublicProfileTtlDays - daysIdle;
+                if (daysLeft < 0) daysLeft = 0;
+                return $"Temporary — expires in {daysLeft}d idle";
+            }
+            catch
+            {
+                return "Temporary — deleted after 15 days idle";
             }
         }
 
@@ -130,6 +165,37 @@ namespace Yorii_Launcher.Pages
                 item.SyncStatus = "Local skin differs from published";
                 item.SyncBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xFF, 0x78, 0x78));
                 dirtyCount++;
+            }
+        }
+
+        // cape sync badge for a row: profiles without a published cape show a
+        // neutral state, the rest mirrors the skin sync colors
+        private static void ApplyCapeSyncStatus(ProfileListItem item, string? publishedCapeUrl, CapeSyncInfo? info)
+        {
+            if (string.IsNullOrEmpty(publishedCapeUrl))
+            {
+                item.CapeStatus = "No cape";
+                item.CapeBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x8A, 0x8A, 0x8A));
+            }
+            else if (info is null || !info.HasLocal)
+            {
+                item.CapeStatus = "Cape published — not saved locally";
+                item.CapeBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x8A, 0x8A, 0x8A));
+            }
+            else if (!info.RemoteReachable)
+            {
+                item.CapeStatus = "Local cape saved — sync unknown";
+                item.CapeBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xC7, 0x9A, 0x00));
+            }
+            else if (info.MatchesRemote)
+            {
+                item.CapeStatus = "Cape synced to GitHub";
+                item.CapeBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x6C, 0xCB, 0x5F));
+            }
+            else
+            {
+                item.CapeStatus = "Local cape differs from published";
+                item.CapeBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xFF, 0x78, 0x78));
             }
         }
 
@@ -181,18 +247,24 @@ namespace Yorii_Launcher.Pages
             // to the logged-in github account
             var visible = profiles
                 .Where(p => SettingsManager.Current.ClaimTokens.ContainsKey(p.Username)
-                         || (SettingsManager.Current.GitHubUsername is not null && p.Owner == SettingsManager.Current.GitHubUsername))
+                         || (SettingsManager.Current.GitHubUsername is not null && string.Equals(p.Owner, SettingsManager.Current.GitHubUsername, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
+            var hidden = profiles.Count - visible.Count;
+            if (hidden > 0)
+                Logger.Info($"RenderProfiles: {profiles.Count} total, {visible.Count} visible; hidden=[{string.Join(",", profiles.Except(visible).Select(p => $"{p.Username}:{p.Kind}:owner='{p.Owner}'"))}] (login='{SettingsManager.Current.GitHubUsername}')");
             var items = visible.Select(p => new ProfileListItem
             {
                 Username = p.Username,
                 CustomUUID = p.Uuid,
                 SkinUrl = p.SkinUrl,
+                CapeUrl = p.CapeUrl,
                 Kind = p.Kind,
                 KindLabel = p.Kind == "public" ? "Public" : "Private",
                 ClaimLabel = p.Kind == "public" && SettingsManager.Current.ClaimTokens.ContainsKey(p.Username)
                     ? "- Claimed on this device"
-                    : ""
+                    : "",
+                ExpiryLabel = p.Kind == "public" ? FormatPublicExpiry(p.LastSeenAt) : "",
+                ExpiryVisibility = p.Kind == "public" ? Visibility.Visible : Visibility.Collapsed
             }).ToList();
 
             if (generation != loadGeneration || App.IsShuttingDown) return;
@@ -243,6 +315,33 @@ namespace Yorii_Launcher.Pages
             statsSyncedText.Text = syncedCount.ToString();
             statsDirtyText.Text = dirtyCount.ToString();
 
+            // cape sync status for all profiles in parallel; same mutation
+            // window handling as skins (bypass the ttl cache while github
+            // may still serve the pre-mutation index)
+            CapeSyncInfo?[] capeInfos;
+            try
+            {
+                capeInfos = await Task.WhenAll(items.Select(async i =>
+                {
+                    if (string.IsNullOrEmpty(i.CapeUrl)) return (CapeSyncInfo?)null;
+                    return SkinManager.MutationPending
+                        ? await SkinManager.RecheckCapeSyncAsync(i.Username, token)
+                        : await SkinManager.GetCapeSyncInfoAsync(i.Username, token);
+                }));
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch
+            {
+                return;
+            }
+            if (generation != loadGeneration || App.IsShuttingDown) return;
+
+            for (int i = 0; i < items.Count; i++)
+                ApplyCapeSyncStatus(items[i], items[i].CapeUrl, capeInfos[i]);
+
             // a freshly uploaded skin can take ~20s to propagate through the
             // github api before the worker proxy can serve it; re-check any
             // profile whose remote was unreachable until it resolves
@@ -284,7 +383,9 @@ namespace Yorii_Launcher.Pages
                 var x = a[i];
                 var y = b[i];
                 if (x.Username != y.Username || x.Kind != y.Kind ||
-                    x.Uuid != y.Uuid || x.SkinUrl != y.SkinUrl)
+                    x.Uuid != y.Uuid || x.SkinUrl != y.SkinUrl ||
+                    x.CapeUrl != y.CapeUrl || x.CapeVersion != y.CapeVersion ||
+                    x.Version != y.Version || x.LastSeenAt != y.LastSeenAt)
                     return false;
             }
             return true;
@@ -306,6 +407,183 @@ namespace Yorii_Launcher.Pages
         {
             if (sender is not Button btn || btn.Tag is not string username) return;
             await ShowAddOrUpdateProfileDialogAsync(username);
+        }
+
+        private async void UpdateCape_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not string username) return;
+            await ShowUploadCapeDialogAsync(username);
+        }
+
+        // cape uploads are attached to the skin profile: the cape kind always
+        // matches the profile kind (the worker enforces the same ownership)
+        private async Task ShowUploadCapeDialogAsync(string username)
+        {
+            string kind;
+            try
+            {
+                var allProfiles = await SkinManager.GetProfilesAsync();
+                var entry = allProfiles.FirstOrDefault(p => p.Username == username);
+                if (entry is null)
+                {
+                    ShowInfo($"No profile '{username}' found.");
+                    return;
+                }
+                kind = entry.Kind;
+            }
+            catch
+            {
+                ShowInfo("Couldn't load profiles. Check your connection and try again.");
+                return;
+            }
+
+            var dialog = new ContentDialog
+            {
+                Title = $"Upload cape - {username}",
+                XamlRoot = this.XamlRoot,
+                PrimaryButtonText = "Upload",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+                Background = DialogHelper.GetAcrylicBrush(),
+                RequestedTheme = ThemeHelper.GetCurrentTheme()
+            };
+
+            var fileButton = new Button
+            {
+                Content = "Select Cape File (64x32 PNG)",
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+
+            var fileText = new TextBlock
+            {
+                Opacity = 0.7,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+
+            var previewImage = new Image
+            {
+                MaxHeight = 128,
+                MaxWidth = 128,
+                Stretch = Stretch.Uniform,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 8),
+                Visibility = Visibility.Collapsed
+            };
+
+            string? selectedFile = null;
+            fileButton.Click += async (_, _) =>
+            {
+                var picker = new FileOpenPicker();
+                picker.FileTypeFilter.Add(".png");
+                var hwnd = WindowNative.GetWindowHandle(MainWindow.Instance!);
+                InitializeWithWindow.Initialize(picker, hwnd);
+                var file = await picker.PickSingleFileAsync();
+                if (App.IsShuttingDown) return;
+                if (file != null)
+                {
+                    selectedFile = file.Path;
+                    fileText.Text = $"Selected: {file.Name}";
+                    try
+                    {
+                        using var stream = await file.OpenReadAsync();
+                        var bmp = new BitmapImage();
+                        await bmp.SetSourceAsync(stream);
+                        previewImage.Source = bmp;
+                        previewImage.Visibility = Visibility.Visible;
+                    }
+                    catch { }
+                }
+            };
+
+            var panel = new StackPanel { Spacing = 4 };
+            panel.Children.Add(fileButton);
+            panel.Children.Add(fileText);
+            panel.Children.Add(previewImage);
+            dialog.Content = panel;
+
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
+            var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
+            if (result != ContentDialogResult.Primary) return;
+
+            if (selectedFile == null)
+            {
+                ShowInfo("Select a cape file.");
+                return;
+            }
+
+            SetBusy($"Uploading cape for '{username}'...");
+            try
+            {
+                // refuse absurd files before reading them fully into memory
+                // (a valid cape png is kilobytes; the worker caps at 1MB)
+                if (new FileInfo(selectedFile).Length > 2 * 1024 * 1024)
+                {
+                    ShowInfo("Cape file too large (max 2MB).");
+                    return;
+                }
+                byte[] data = await File.ReadAllBytesAsync(selectedFile);
+                if (!SkinManager.IsValidCapePng(data, out int width, out int height))
+                {
+                    ShowInfo($"Invalid cape dimensions {(width > 0 ? $"{width}x{height}" : "unknown")} (expected 64x32 or HD multiple).");
+                    return;
+                }
+
+                await SkinManager.AddOrUpdateCape(username, data, kind);
+                SkinManager.SaveLocalCape(username, data);
+                ShowInfo($"Cape for '{username}' published as {kind}.");
+                MainWindow.Instance?.RefreshAccounts();
+            }
+            catch (Exception ex)
+            {
+                ShowInfo($"Cape upload failed: {ex.Message}");
+            }
+            finally
+            {
+                SetBusy(null);
+                Logger.Info($"Cape upload finished for '{username}', re-rendering");
+                await LoadProfilesAsync();
+            }
+        }
+
+        private async void RemoveCape_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not string username) return;
+
+            var dialog = new ContentDialog
+            {
+                Title = "Remove cape",
+                Content = $"Remove the cape from '{username}'? The skin stays.",
+                XamlRoot = this.XamlRoot,
+                PrimaryButtonText = "Remove",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Close,
+                Background = DialogHelper.GetAcrylicBrush(),
+                RequestedTheme = ThemeHelper.GetCurrentTheme()
+            };
+
+            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
+            var result = await dialog.ShowAsync();
+            MemoryOptimizer.ReduceMemory();
+            if (result != ContentDialogResult.Primary) return;
+
+            try
+            {
+                SetBusy($"Removing cape from '{username}'...");
+                await SkinManager.RemoveCape(username);
+                ShowInfo($"Cape removed from '{username}'.");
+            }
+            catch (Exception ex)
+            {
+                ShowInfo($"Cape remove failed: {ex.Message}");
+            }
+            finally
+            {
+                SetBusy(null);
+                await LoadProfilesAsync();
+            }
         }
 
         private async Task ShowAddOrUpdateProfileDialogAsync(string? prefillUsername)
@@ -391,7 +669,7 @@ namespace Yorii_Launcher.Pages
             {
                 Header = "Private profile (GitHub)",
                 OnContent = "Private — linked to your GitHub account",
-                OffContent = "Public — visible to everyone, no login needed",
+                OffContent = "Public — visible to everyone, no login needed (temporary, deleted after 15 days idle)",
                 IsOn = SkinManager.IsLoggedIn,
                 IsEnabled = SkinManager.IsLoggedIn,
                 Margin = new Thickness(0, 4, 0, 0)
@@ -422,7 +700,7 @@ namespace Yorii_Launcher.Pages
                 {
                     var allProfiles = await SkinManager.GetProfilesAsync();
                     int privateCount = allProfiles.Count(p =>
-                        p.Kind == "private" && p.Owner == SettingsManager.Current.GitHubUsername);
+                        p.Kind == "private" && string.Equals(p.Owner, SettingsManager.Current.GitHubUsername, StringComparison.OrdinalIgnoreCase));
                     if (privateCount >= 5)
                     {
                         ShowInfo("You already have 5 private profiles (the maximum). Delete one or publish this skin as public instead.");
@@ -518,6 +796,7 @@ namespace Yorii_Launcher.Pages
                 {
                     await SkinManager.RemoveProfile(username);
                     SkinManager.DeleteLocalSkin(username);
+                    SkinManager.DeleteLocalCape(username);
                     ShowInfo($"Profile '{username}' deleted.");
                     MainWindow.Instance?.RefreshAccounts();
                 }
@@ -533,60 +812,6 @@ namespace Yorii_Launcher.Pages
             catch (Exception ex)
             {
                 ShowInfo($"Delete failed: {ex.Message}");
-            }
-        }
-
-        private async void RenameProfile_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not Button btn || btn.Tag is not string oldUsername) return;
-
-            var newNameBox = new TextBox
-            {
-                Header = "New username",
-                PlaceholderText = "New in-game name",
-                Text = oldUsername
-            };
-
-            var dialog = new ContentDialog
-            {
-                Title = $"Rename '{oldUsername}'",
-                Content = newNameBox,
-                XamlRoot = this.XamlRoot,
-                PrimaryButtonText = "Rename",
-                CloseButtonText = "Cancel",
-                DefaultButton = ContentDialogButton.Primary,
-                Background = DialogHelper.GetAcrylicBrush(),
-                RequestedTheme = ThemeHelper.GetCurrentTheme()
-            };
-
-            dialog.Resources["ContentDialogMaxWidth"] = DialogHelper.MaxWidth;
-            var result = await dialog.ShowAsync();
-            MemoryOptimizer.ReduceMemory();
-            if (result != ContentDialogResult.Primary) return;
-
-            string newUsername = newNameBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(newUsername) || string.Equals(oldUsername, newUsername, StringComparison.Ordinal))
-                return;
-
-            try
-            {
-                SetBusy($"Renaming '{oldUsername}' → '{newUsername}'...");
-                try
-                {
-                    await SkinManager.RenameProfileAsync(oldUsername, newUsername);
-                    ShowInfo($"Renamed '{oldUsername}' → '{newUsername}' (server-verified).");
-                    MainWindow.Instance?.RefreshAccounts();
-                }
-                finally
-                {
-                    SetBusy(null);
-                    Logger.Info($"Rename finished for '{oldUsername}' → '{newUsername}', re-rendering");
-                    await LoadProfilesAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowInfo($"Rename failed: {ex.Message}");
             }
         }
 
@@ -612,9 +837,12 @@ namespace Yorii_Launcher.Pages
         public string Username { get; set; } = "";
         public string CustomUUID { get; set; } = "";
         public string SkinUrl { get; set; } = "";
+        public string CapeUrl { get; set; } = "";
         public string Kind { get; set; } = "private";
         public string KindLabel { get; set; } = "Private";
         public string ClaimLabel { get; set; } = "";
+        public string ExpiryLabel { get; set; } = "";
+        public Visibility ExpiryVisibility { get; set; } = Visibility.Collapsed;
 
         private string _syncStatus = "";
         public string SyncStatus
@@ -628,6 +856,20 @@ namespace Yorii_Launcher.Pages
         {
             get => _syncBrush;
             set { if (ReferenceEquals(_syncBrush, value)) return; _syncBrush = value; OnPropertyChanged(nameof(SyncBrush)); }
+        }
+
+        private string _capeStatus = "";
+        public string CapeStatus
+        {
+            get => _capeStatus;
+            set { if (_capeStatus == value) return; _capeStatus = value; OnPropertyChanged(nameof(CapeStatus)); }
+        }
+
+        private Microsoft.UI.Xaml.Media.Brush _capeBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x8A, 0x8A, 0x8A));
+        public Microsoft.UI.Xaml.Media.Brush CapeBrush
+        {
+            get => _capeBrush;
+            set { if (ReferenceEquals(_capeBrush, value)) return; _capeBrush = value; OnPropertyChanged(nameof(CapeBrush)); }
         }
 
         private ImageSource? _previewImage;
