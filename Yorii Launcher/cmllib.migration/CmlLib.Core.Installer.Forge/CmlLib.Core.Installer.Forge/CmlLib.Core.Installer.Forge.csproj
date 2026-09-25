@@ -1,0 +1,47 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <LangVersion>12.0</LangVersion>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <OutputType>Library</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <Version>1.1.1</Version>
+        <Description>Minecraft Forge Installer</Description>
+        <Copyright>Copyright (c) 2023 CmlLib</Copyright>
+        <PackageProjectUrl>https://github.com/CmlLib/CmlLib.Core.Installer.Forge</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/CmlLib/CmlLib.Core.Installer.Forge</RepositoryUrl>
+        <PackageIcon>icon.png</PackageIcon>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>minecraft forge installer</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Authors>CmlLib</Authors>
+        <PackageReleaseNotes />
+        <PackageId>CmlLib.Core.Installer.Forge</PackageId>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="CmlLib.Core" Version="4.0.3" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="TunnelVisionLabs.ReferenceAssemblyAnnotator" Version="1.0.0-alpha.160" PrivateAssets="all" />
+        <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="[5.0.0]" />
+        <PackageReference Include="ConfigureAwait.Fody" Version="3.3.1" PrivateAssets="All" />
+        <PackageReference Include="Fody" Version="6.5.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../icon.png" Pack="true" Visible="false" PackagePath="" />
+        <None Include="../README.md" Pack="true" Visible="false" PackagePath="" />
+        <None Include="FodyWeavers.xsd" />
+    </ItemGroup>
+</Project>

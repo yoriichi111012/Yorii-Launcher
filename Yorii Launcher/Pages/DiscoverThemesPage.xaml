@@ -68,15 +68,17 @@
                     x:Name="ThemeList"
                     Grid.Row="2"
                     Margin="0,8,0,0"
-                    Padding="24,0,24,0"
+                    Padding="0"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
                     BorderThickness="0"
+                    ItemContainerStyle="{StaticResource PluginGridViewItemContainerStyle}"
                     SelectionMode="None"
                     Visibility="Collapsed">
+                    <!-- see MyThemesPage.xaml: grid panel in XAML, not via Apply (AOT crash). -->
                     <ListView.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <ItemsStackPanel Orientation="Vertical" />
+                            <ItemsWrapGrid HorizontalAlignment="Center" Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </ListView.ItemsPanel>
 

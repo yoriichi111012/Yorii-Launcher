@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <!-- net10.0: AOT-clean core without any UI broker.
+         net10.0-windows: adds the legacy WinForms+WebView2 interactive broker
+         for parity with upstream behavior until consumers migrate to their
+         own IWebUI implementation. -->
+    <TargetFrameworks>net10.0;net10.0-windows</TargetFrameworks>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PackageId>Quiescent.XboxAuthNet</PackageId>
+    <Description>Xbox Live authentication for .NET (forked from XboxAuthNet)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <InternalsVisibleTo>Quiescent.XboxAuthNet.Test</InternalsVisibleTo>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Compile Remove="Platforms/**/*" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+    <UseWindowsForms>true</UseWindowsForms>
+    <DefineConstants>$(DefineConstants);ENABLE_WEBVIEW2</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.1823.32" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Quiescent.Core.Commons\Quiescent.Core.Commons.csproj" />
+  </ItemGroup>
+</Project>

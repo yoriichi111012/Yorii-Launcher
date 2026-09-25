@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "yoriskinsloader",
+  "version": "${modFullVersion}",
+
+  "name": "yoriiSkinsLoader",
+  "description": "a fork of customskinloader mod optimized for faster skin loading",
+  "authors": ["xfl03", "JLChnToZ", "ZekerZhayard"],
+  "contact": {
+    "homepage": "https://github.com/xfl03/MCCustomSkinLoader",
+    "issues": "https://github.com/xfl03/MCCustomSkinLoader/issues",
+    "sources": "https://github.com/xfl03/MCCustomSkinLoader"
+  },
+  "license": "GPL-3.0-only",
+
+  "icon": "yoriiSkinsLoader.png",
+
+  "environment": "client",
+  "depends": {
+    "minecraft": ">=1.8.9"
+  },
+  "mixins": [
+    "customskinloader.bootstrap.fabric.v1.mixins.json"
+  ]
+}

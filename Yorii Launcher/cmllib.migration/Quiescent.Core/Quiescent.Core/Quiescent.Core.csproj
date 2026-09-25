@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <PackageId>Quiescent.Core</PackageId>
+    <Description>Minecraft Launcher Library for .NET (forked from CmlLib.Core, NativeAOT-compatible)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <InternalsVisibleTo>Quiescent.Core.Test</InternalsVisibleTo>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Quiescent.Core.Commons\Quiescent.Core.Commons.csproj" />
+    <PackageReference Include="LZMA-SDK" Version="19.0.0" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <PackageReference Include="Fody" Version="6.8.1" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+    <PackageReference Include="ConfigureAwait.Fody" Version="3.3.2" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

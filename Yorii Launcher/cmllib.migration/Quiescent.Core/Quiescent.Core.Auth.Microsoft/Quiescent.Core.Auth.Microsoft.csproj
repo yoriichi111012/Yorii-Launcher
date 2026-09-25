@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <PackageId>Quiescent.Core.Auth.Microsoft</PackageId>
+    <Description>Minecraft login with Microsoft Xbox Live account (forked from CmlLib.Core.Auth.Microsoft, NativeAOT-compatible)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Quiescent.XboxAuthNet.Game\Quiescent.XboxAuthNet.Game.csproj" />
+    <ProjectReference Include="..\Quiescent.Core.Commons\Quiescent.Core.Commons.csproj" />
+  </ItemGroup>
+</Project>

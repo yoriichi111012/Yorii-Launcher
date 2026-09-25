@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "PSkGdcLr80M=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\yorii\\source\\repos\\Yorii Launcher\\cmllib.migration\\Quiescent.Core\\Quiescent.XboxAuthNet.Game\\Quiescent.XboxAuthNet.Game.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\yorii\\.nuget\\packages\\configureawait.fody\\3.3.2\\configureawait.fody.3.3.2.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\fody\\6.8.1\\fody.6.8.1.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.1\\microsoft.extensions.dependencyinjection.abstractions.8.0.1.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.1\\microsoft.extensions.logging.abstractions.8.0.1.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\microsoft.net.illink.tasks\\10.0.12\\microsoft.net.illink.tasks.10.0.12.nupkg.sha512"
+  ],
+  "logs": []
+}

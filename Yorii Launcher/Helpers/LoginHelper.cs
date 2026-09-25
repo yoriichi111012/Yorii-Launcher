@@ -11,6 +11,13 @@ namespace Yorii_Launcher.Helpers
 {
     public static class LoginHelper
     {
+        // single choke point so every flow (interactive, silent, sign-out)
+        // uses the WinUI login surface instead of the legacy WinForms broker.
+        private static JELoginHandler CreateLoginHandler() =>
+            new JELoginHandlerBuilder()
+                .WithOAuthProvider(new WinUIOAuthProvider(JELoginHandler.DefaultMicrosoftOAuthClientInfo))
+                .Build();
+
         // make fake offline session with uuid from username same as vanilla does
         public static MSession CreateOfflineSession(string username)
         {
@@ -34,7 +41,7 @@ namespace Yorii_Launcher.Helpers
 
         public static async Task<(MSession session, string identifier)> LoginWithMojangInteractive()
         {
-            var loginHandler = JELoginHandlerBuilder.BuildDefault();
+            var loginHandler = CreateLoginHandler();
             var session = await loginHandler.AuthenticateInteractively();
 
             var accounts = loginHandler.AccountManager.GetAccounts();
@@ -45,7 +52,7 @@ namespace Yorii_Launcher.Helpers
 
         public static async Task<MSession> LoginWithMojangSilently(string identifier)
         {
-            var loginHandler = JELoginHandlerBuilder.BuildDefault();
+            var loginHandler = CreateLoginHandler();
             var accounts = loginHandler.AccountManager.GetAccounts();
             var account = accounts.GetAccount(identifier);
 
@@ -59,7 +66,7 @@ namespace Yorii_Launcher.Helpers
         {
             try
             {
-                var loginHandler = JELoginHandlerBuilder.BuildDefault();
+                var loginHandler = CreateLoginHandler();
                 var accounts = loginHandler.AccountManager.GetAccounts();
                 var account = accounts.GetAccount(identifier);
 

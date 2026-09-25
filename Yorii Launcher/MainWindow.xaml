@@ -317,7 +317,7 @@
                                                     <FontIcon
                                                         VerticalAlignment="Center"
                                                         FontSize="18"
-                                                        Glyph="&#xF4A5;" />
+                                                        Glyph="&#xE771;" />
                                                     <TextBlock VerticalAlignment="Center" Text="Themes" />
                                                 </StackPanel>
                                             </Button>

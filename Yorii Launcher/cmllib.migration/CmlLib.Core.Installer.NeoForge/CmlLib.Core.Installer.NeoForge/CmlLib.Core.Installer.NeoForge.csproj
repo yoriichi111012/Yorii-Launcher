@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <LangVersion>12.0</LangVersion>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <OutputType>Library</OutputType>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <Version>4.0.1</Version>
+        <Description>Minecraft Forge Installer</Description>
+        <Copyright>Copyright (c) 2026 by GamerVII</Copyright>
+        <PackageProjectUrl>https://github.com/Gml-Launcher/CmlLib.Core.Installer.NeoForge</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Gml-Launcher/CmlLib.Core.Installer.NeoForge</RepositoryUrl>
+        <PackageIcon>icon.png</PackageIcon>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>minecraft neoforge installer</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Authors>CmlLib, GamerVII</Authors>
+        <PackageReleaseNotes />
+        <PackageId>CmlLib.Core.Installer.NeoForge</PackageId>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+    
+    <ItemGroup>
+      <PackageReference Include="CmlLib.Core" Version="4.0.6" />
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="TunnelVisionLabs.ReferenceAssemblyAnnotator" Version="1.0.0-alpha.160" PrivateAssets="all" />
+        <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="[5.0.0]" />
+        <PackageReference Include="ConfigureAwait.Fody" Version="3.3.1" PrivateAssets="All" />
+        <PackageReference Include="Fody" Version="6.5.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="../icon.png" Pack="true" Visible="false" PackagePath="" />
+        <None Include="../README.md" Pack="true" Visible="false" PackagePath="" />
+    </ItemGroup>
+</Project>

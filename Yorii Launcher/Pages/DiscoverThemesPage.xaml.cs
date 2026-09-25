@@ -31,7 +31,9 @@ public sealed partial class DiscoverThemesPage : Page
         InitializeComponent();
         ThemeList.ItemsSource = themes;
         ThemeList.ContainerContentChanging += ThemeList_ContainerContentChanging;
-        PluginViewModeHelper.Apply(ThemeList, PluginViewMode.Grid);
+        // grid panel/style are declared in DiscoverThemesPage.xaml — do NOT call
+        // PluginViewModeHelper.Apply here (its runtime resource casts crash
+        // under NativeAOT MSIX).
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         MemoryOptimizer.ReduceMemory();

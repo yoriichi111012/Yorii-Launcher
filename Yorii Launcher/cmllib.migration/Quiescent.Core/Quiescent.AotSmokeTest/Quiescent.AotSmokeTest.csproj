@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PublishAot>true</PublishAot>
+    <!-- keep reflection-based STJ alive under AOT until the source-gen pass lands -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Quiescent.Core\Quiescent.Core.csproj" />
+    <ProjectReference Include="..\Quiescent.Core.Auth.Microsoft\Quiescent.Core.Auth.Microsoft.csproj" />
+    <!-- keep DTO ctors/setters until the source-gen JSON pass replaces reflection STJ -->
+    <TrimmerRootAssembly Include="Quiescent.Core" />
+    <TrimmerRootAssembly Include="Quiescent.XboxAuthNet" />
+    <TrimmerRootAssembly Include="Quiescent.XboxAuthNet.Game" />
+    <TrimmerRootAssembly Include="Quiescent.Core.Auth.Microsoft" />
+  </ItemGroup>
+</Project>

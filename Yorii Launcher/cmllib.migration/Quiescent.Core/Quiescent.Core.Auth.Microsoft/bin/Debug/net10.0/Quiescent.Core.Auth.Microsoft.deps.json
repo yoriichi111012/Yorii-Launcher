@@ -1,0 +1,107 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Quiescent.Core.Auth.Microsoft/0.1.0": {
+        "dependencies": {
+          "Quiescent.Core.Commons": "0.1.0",
+          "Quiescent.XboxAuthNet.Game": "0.1.0"
+        },
+        "runtime": {
+          "Quiescent.Core.Auth.Microsoft.dll": {}
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.1": {
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.324.11423"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging.Abstractions/8.0.1": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.1"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.Logging.Abstractions.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.324.11423"
+          }
+        }
+      },
+      "Quiescent.Core.Commons/0.1.0": {
+        "runtime": {
+          "Quiescent.Core.Commons.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Quiescent.XboxAuthNet/0.1.0": {
+        "dependencies": {
+          "Quiescent.Core.Commons": "0.1.0"
+        },
+        "runtime": {
+          "Quiescent.XboxAuthNet.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Quiescent.XboxAuthNet.Game/0.1.0": {
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.1",
+          "Quiescent.Core.Commons": "0.1.0",
+          "Quiescent.XboxAuthNet": "0.1.0"
+        },
+        "runtime": {
+          "Quiescent.XboxAuthNet.Game.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Quiescent.Core.Auth.Microsoft/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Extensions.DependencyInjection.Abstractions/8.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-fGLiCRLMYd00JYpClraLjJTNKLmMJPnqxMaiRzEBIIvevlzxz33mXy39Lkd48hu1G+N21S7QpaO5ZzKsI6FRuA==",
+      "path": "microsoft.extensions.dependencyinjection.abstractions/8.0.1",
+      "hashPath": "microsoft.extensions.dependencyinjection.abstractions.8.0.1.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging.Abstractions/8.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-RIFgaqoaINxkM2KTOw72dmilDmTrYA0ns2KW4lDz4gZ2+o6IQ894CzmdL3StM2oh7QQq44nCWiqKqc4qUI9Jmg==",
+      "path": "microsoft.extensions.logging.abstractions/8.0.1",
+      "hashPath": "microsoft.extensions.logging.abstractions.8.0.1.nupkg.sha512"
+    },
+    "Quiescent.Core.Commons/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Quiescent.XboxAuthNet/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Quiescent.XboxAuthNet.Game/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

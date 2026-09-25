@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "aL6+6cIaua8=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\yorii\\source\\repos\\Yorii Launcher\\cmllib.migration\\Quiescent.Core\\Quiescent.Core\\Quiescent.Core.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\yorii\\.nuget\\packages\\configureawait.fody\\3.3.2\\configureawait.fody.3.3.2.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\fody\\6.8.1\\fody.6.8.1.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\lzma-sdk\\19.0.0\\lzma-sdk.19.0.0.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\microsoft.net.illink.tasks\\10.0.12\\microsoft.net.illink.tasks.10.0.12.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\sharpziplib\\1.4.2\\sharpziplib.1.4.2.nupkg.sha512"
+  ],
+  "logs": []
+}

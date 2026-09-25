@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CmlLib.Core.Auth.Microsoft" Version="3.0.2" />
+    <PackageReference Include="XboxAuthNet.Game.Msal" Version="0.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MojangAPI\MojangAPI.csproj" />
+  </ItemGroup>
+
+</Project>

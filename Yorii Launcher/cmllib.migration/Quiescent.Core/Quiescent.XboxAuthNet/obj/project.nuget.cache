@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "WvkatYBhDJs=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\yorii\\source\\repos\\Yorii Launcher\\cmllib.migration\\Quiescent.Core\\Quiescent.XboxAuthNet\\Quiescent.XboxAuthNet.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\yorii\\.nuget\\packages\\microsoft.net.illink.tasks\\10.0.12\\microsoft.net.illink.tasks.10.0.12.nupkg.sha512",
+    "C:\\Users\\yorii\\.nuget\\packages\\microsoft.web.webview2\\1.0.1823.32\\microsoft.web.webview2.1.0.1823.32.nupkg.sha512"
+  ],
+  "logs": []
+}

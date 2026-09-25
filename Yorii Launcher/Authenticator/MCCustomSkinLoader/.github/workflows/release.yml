@@ -1,0 +1,117 @@
+name: Release
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    outputs:
+      mod_name: ${{ steps.build.outputs.mod_name }}
+      edition: ${{ steps.build.outputs.edition }}
+      short_version: ${{ steps.build.outputs.short_version }}
+      loaders: ${{ steps.build.outputs.loaders }}
+      game_versions: ${{ steps.build.outputs.game_versions }}
+      java: ${{ steps.build.outputs.java }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/build
+        id: build
+        with:
+          artifact-name: CustomSkinLoader-Release-${{ github.run_number }}
+
+  publish-release:
+    name: Publish to GitHub Release
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: CustomSkinLoader-Release-${{ github.run_number }}
+          path: artifact
+
+      - uses: ./.github/actions/publish-release
+        with:
+          artifact-path: artifact
+          tag-name: ${{ github.event.release.tag_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: '*.jar'
+          generate-notes: 'true'
+
+  publish-object-storage:
+    name: Publish to Object Storage
+    needs: build
+    runs-on: windows-latest
+    environment: Build
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: CustomSkinLoader-Release-${{ github.run_number }}
+          path: artifact
+
+      - name: Upload jar to R2
+        uses: ./.github/actions/publish-object-storage
+        with:
+          artifact-path: artifact
+          endpoint-url: ${{ secrets.R2_BASE_URL }}
+          bucket: ${{ secrets.R2_BUCKET }}
+          access-key-id: ${{ secrets.R2_SECRET_ID }}
+          secret-access-key: ${{ secrets.R2_SECRET_KEY }}
+          target-path: mods/
+          files: '*.jar'
+
+      - name: Upload JSONs to R2
+        uses: ./.github/actions/publish-object-storage
+        with:
+          artifact-path: artifact
+          endpoint-url: ${{ secrets.R2_BASE_URL }}
+          bucket: ${{ secrets.R2_BUCKET }}
+          access-key-id: ${{ secrets.R2_SECRET_ID }}
+          secret-access-key: ${{ secrets.R2_SECRET_KEY }}
+          files: '*.json'
+
+  publish-mod-sites:
+    name: Publish to Mod Sites
+    needs: build
+    runs-on: windows-latest
+    environment: Build
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: CustomSkinLoader-Release-${{ github.run_number }}
+          path: artifact
+
+      - uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: idMHQ4n2
+          modrinth-featured: true
+          modrinth-unfeature-mode: subset
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          curseforge-id: 286924
+          curseforge-token: ${{ secrets.CURSEFORGE_API_KEY }}
+          name: ${{ needs.build.outputs.mod_name }}_${{ needs.build.outputs.edition }}_${{ needs.build.outputs.short_version }}
+          version: ${{ needs.build.outputs.short_version }}-${{ needs.build.outputs.edition }}
+          version-type: release
+          loaders: |
+            ${{ needs.build.outputs.loaders }}
+          game-versions: |
+            ${{ needs.build.outputs.game_versions }}
+          game-version-filter: releases
+          java: |
+            ${{ needs.build.outputs.java }}
+          retry-attempts: 2
+          retry-delay: 10000
+          fail-mode: fail
+          files: |
+            artifact/*.jar

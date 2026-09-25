@@ -1,0 +1,47 @@
+{
+    "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+    "metadata": [
+      {
+        "src": [
+          {
+            "src": ".",
+            "files": [
+              "CmlLib.Core.Installer.Forge/CmlLib.Core.Installer.Forge.csproj"
+            ]
+          }
+        ],
+        "dest": "api",
+        "outputFormat": "markdown"
+      }
+    ],
+    "build": {
+      "content": [
+        {
+          "files": [
+            "**/*.{md,yml}"
+          ],
+          "exclude": [
+            "_site/**"
+          ]
+        }
+      ],
+      "resource": [
+        {
+          "files": [
+            "images/**"
+          ]
+        }
+      ],
+      "output": "_site",
+      "template": [
+        "default",
+        "modern"
+      ],
+      "globalMetadata": {
+        "_appName": "CmlLib.Core.Installer.Forge",
+        "_appTitle": "CmlLib.Core.Installer.Forge",
+        "_enableSearch": true,
+        "pdf": false
+      }
+    }
+  }

@@ -1,0 +1,38 @@
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.Game.deps.json
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.Game.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.Core.Commons.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.Core.Commons.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.csproj.AssemblyReference.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.AssemblyInfoInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.AssemblyInfo.cs
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.csproj.CoreCompileInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.csproj.Fody.CopyLocal.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.csproj.Fody.RuntimeCopyLocal.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescen.A2958D20.Up2Date
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\refint\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\ref\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.Game.deps.json
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.Game.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.Core.Commons.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.XboxAuthNet.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\bin\Release\net10.0\Quiescent.Core.Commons.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.csproj.AssemblyReference.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.AssemblyInfoInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.AssemblyInfo.cs
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.csproj.CoreCompileInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.csproj.Fody.CopyLocal.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.csproj.Fody.RuntimeCopyLocal.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescen.A2958D20.Up2Date
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\refint\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\Quiescent.XboxAuthNet.Game.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet.Game\obj\Release\net10.0\ref\Quiescent.XboxAuthNet.Game.dll

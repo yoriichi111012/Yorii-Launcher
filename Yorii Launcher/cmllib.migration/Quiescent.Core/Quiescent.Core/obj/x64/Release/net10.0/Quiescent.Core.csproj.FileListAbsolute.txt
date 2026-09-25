@@ -1,0 +1,15 @@
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\bin\x64\Release\net10.0\Quiescent.Core.deps.json
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\bin\x64\Release\net10.0\Quiescent.Core.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\bin\x64\Release\net10.0\Quiescent.Core.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\bin\x64\Release\net10.0\Quiescent.Core.Commons.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\bin\x64\Release\net10.0\Quiescent.Core.Commons.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\Quiescent.Core.csproj.AssemblyReference.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\Quiescent.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\Quiescent.Core.AssemblyInfoInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\Quiescent.Core.AssemblyInfo.cs
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\Quiescent.Core.csproj.CoreCompileInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\Quiescen.C841593A.Up2Date
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\Quiescent.Core.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\refint\Quiescent.Core.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\Quiescent.Core.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core\obj\x64\Release\net10.0\ref\Quiescent.Core.dll

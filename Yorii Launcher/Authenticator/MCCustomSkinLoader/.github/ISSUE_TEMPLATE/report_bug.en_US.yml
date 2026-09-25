@@ -1,0 +1,126 @@
+name: Report Bug
+description: Report a bug and help us improve CustomSkinLoader
+labels: [ bug ]
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Here is the Report Bug issue for CustomSkinLoader
+        With a red asterisk for the mandatory items
+        Please keep the work order content neat and tidy, do not paste the contents of the log file directly onto the work order, it will look very messy and unattractive work orders
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: |
+        A clear and concise description of what the issue is.
+        Provide as much information as possible, videos, crash reports, etc. 
+        DO NOT PASTE A CRASH REPORT HERE!!!
+    validations:
+      required: true
+  - type: textarea
+    id: reproducing
+    attributes:
+      label: Steps to reproduce 
+      description: How do you trigger this bug? 
+      render: bash
+      value:  |
+       1. 
+       2. 
+       3. 
+    validations:
+      required: true
+  - type: input
+    id: crash-report
+    attributes:
+      label: Link to crash-report if applicable
+      description: |
+       The files are in the folder `<minecraft-directory>/crash-reports`
+       [Generate URL](https://mclo.gs)
+      placeholder: "Ex: https://mclo.gs/xxxxxx"
+  - type: input
+    id: csl-log
+    validations:
+      required: true
+    attributes:
+      label: Link to CustomSkinLoader.log if applicable
+      description: |
+       The path to the file is `<minecraft-directory>/CustomSkinLoader/CustomSkinLoader.log`.
+       [Generate URL](https://mclo.gs)
+      placeholder: "Ex: https://mclo.gs/xxxxxx"
+  - type: input
+    id: latest-log
+    attributes:
+      label: Link to latest.log if applicable
+      description: |
+       The path to the file is `<minecraft-directory>/logs/latest.log`.
+       [Generate URL](https://mclo.gs)
+      placeholder: "Ex: https://mclo.gs/xxxxxx"
+  - type: input
+    id: forge-log
+    attributes:
+      label: "[Only Forge User] Link to Forge Log  if applicable"
+      description: |
+       The path to the file is `<minecraft-directory>/logs/debug.log` or `<minecraft-directory>/logs/fml-client-latest.log`.
+       if your mod loader isn't `Forge`, URL can set empty
+       [Generate URL](https://mclo.gs)
+      placeholder: "Ex: https://mclo.gs/xxxxxx"
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod Version
+      placeholder: "Ex: 14.16"
+    validations:
+      required: true
+  - type: input
+    id: mc-version
+    attributes:
+      label: Minecraft Version
+      placeholder: "Ex: 1.19.4"
+    validations:
+      required: true
+  - type: input
+    id: mc-launcher-version
+    attributes:
+      label: Minecraft Launcher Name and Version
+      placeholder: "Ex: HMCL v3.5.4.232"
+      description: |
+        If you don't know the version of the game, you can just fill in the name of the game launcher
+  - type: dropdown
+    id: loader-type
+    attributes:
+      label: Mod Loader
+      options:
+        - Quilt
+        - Fabric
+        - Forge
+        - <without mod loader>
+    validations:
+      required: true
+  - type: dropdown
+    id: operating-systems
+    attributes:
+      label: Operating System
+      options:
+        - Windows
+        - Linux
+        - macOS
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Before submitting a bug report
+      options:
+        - label: |
+            This bug wasn't already reported (I have searched bug reports on GitHub).
+          required: true
+        - label: |
+            This is a valid bug (I am able to reproduce this on the latest dev build).
+          required: true
+        - label: |
+            This problem is triggered in the latest version of the mod (if not the latest please upgrade the mod first)
+          required: true
+

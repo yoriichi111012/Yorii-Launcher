@@ -1,0 +1,937 @@
+{
+  "project": "CmlLib.Core",
+  "totalFiles": 100,
+  "totalLines": 2909,
+  "analysis": [
+    {
+      "file": "ByteProgress.cs",
+      "lineCount": 25,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["value type", "operator overloading", "immutable properties"],
+      "qualityIssues": ["no validation for zero/negative TotalBytes"],
+      "notes": "Clean, idiomatic C# value struct with operator overloading. Very typical human design."
+    },
+    {
+      "file": "CommandParser/Parser.cs",
+      "lineCount": 40,
+      "aiScore": 0.2,
+      "qualityScore": 0.8,
+      "patterns": ["factory methods", "state machine", "IEnumerable yield"],
+      "qualityIssues": ["no null check on args parameter"],
+      "notes": "State machine-based argument parser. Elegant design with clean separation."
+    },
+    {
+      "file": "CommandParser/CommandLineBuilder.cs",
+      "lineCount": 82,
+      "aiScore": 0.3,
+      "qualityScore": 0.8,
+      "patterns": ["StringBuilder caching", "Korean comment", "array indexer access"],
+      "qualityIssues": ["Korean inline comment suggests non-native author"],
+      "notes": "Korean comment on lines 71-73: 'Add 메서드는 always adds a space to the end...' indicates Korean developer. Manual trailing-space handling is a human quirk."
+    },
+    {
+      "file": "CommandParser/KeyValueArgument.cs",
+      "lineCount": 110,
+      "aiScore": 0.2,
+      "qualityScore": 0.85,
+      "patterns": ["factory methods", "escape handling", "custom equality", "ToString formatting"],
+      "qualityIssues": ["no validation on constructor"],
+      "notes": "Good use of factory methods (Create vs CreateWithoutValidation). Escape logic handles edge cases well."
+    },
+    {
+      "file": "CommandParser/ParserStates.cs",
+      "lineCount": 81,
+      "aiScore": 0.15,
+      "qualityScore": 0.8,
+      "patterns": ["state pattern", "sealed classes", "inline state machines"],
+      "qualityIssues": ["empty End methods with no implementation"],
+      "notes": "State machine implemented with sealed nested classes. Very human-coded pattern."
+    },
+    {
+      "file": "CommandParser/CommandLineStates.cs",
+      "lineCount": 139,
+      "aiScore": 0.1,
+      "qualityScore": 0.8,
+      "patterns": ["character-level parsing", "escaped state handling", "StringBuilder for buffer"],
+      "qualityIssues": ["no validation in empty End methods"],
+      "notes": "Robust CLI parsing with proper quote/escape handling. Very practical implementation."
+    },
+    {
+      "file": "FileExtractors/AssetFileExtractor.cs",
+      "lineCount": 107,
+      "aiScore": 0.2,
+      "qualityScore": 0.75,
+      "patterns": ["async/await", "ValueTask", "dependency injection", "PipedStream"],
+      "qualityIssues": ["no validation on AssetServer", "no retry logic"],
+      "notes": "Clean async design. Uses PipedStream for efficient streaming download with local caching."
+    },
+    {
+      "file": "FileExtractors/ClientFileExtractor.cs",
+      "lineCount": 36,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["simple extraction", "ValueTask wrapper"],
+      "qualityIssues": ["no null check on version.Client"],
+      "notes": "Minimal, focused extractor. Well-designed."
+    },
+    {
+      "file": "FileExtractors/DefaultFileExtractors.cs",
+      "lineCount": 47,
+      "aiScore": 0.15,
+      "qualityScore": 0.8,
+      "patterns": ["factory pattern", "composition", "null-coalescing"],
+      "qualityIssues": ["no validation on httpClient"],
+      "notes": "Builder-style factory with simple composition. Clean and simple."
+    },
+    {
+      "file": "FileExtractors/FileExtractorCollection.cs",
+      "lineCount": 55,
+      "aiScore": 0.1,
+      "qualityScore": 0.7,
+      "patterns": ["Indexable collection", "IEnumerable implementation", "wrapper around List"],
+      "qualityIssues": ["no thread safety", "no validation"],
+      "notes": "Thin wrapper around List<T>. Simple but effective. Could benefit from immutability."
+    },
+    {
+      "file": "FileExtractors/IFileExtractor.cs",
+      "lineCount": 14,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["async extraction", "dependency injection"],
+      "qualityIssues": [],
+      "notes": "Clean interface design with proper async/ValueTask return type."
+    },
+    {
+      "file": "FileExtractors/JavaFileExtractor.cs",
+      "lineCount": 122,
+      "aiScore": 0.2,
+      "qualityScore": 0.7,
+      "patterns": ["nested class Extractor", "async/await", "null handling", "enumeration"],
+      "qualityIssues": ["no error handling", "nested class not sealed"],
+      "notes": "Uses inner Extractor class to encapsulate related state. Very practical design choice."
+    },
+    {
+      "file": "FileExtractors/LegacyJavaFileExtractor.cs",
+      "lineCount": 86,
+      "aiScore": 0.3,
+      "qualityScore": 0.6,
+      "patterns": ["JRE download parsing", "regex-less JSON parsing", "temporary files"],
+      "qualityIssues": ["no validation on file paths", "temp file leak risk"],
+      "notes": "Handles legacy JRE extraction with lzma decompression. The comment says 'since the file is temporary it should be always downloaded again' — a human workaround."
+    },
+    {
+      "file": "FileExtractors/LibraryFileExtractor.cs",
+      "lineCount": 86,
+      "aiScore": 0.2,
+      "qualityScore": 0.8,
+      "patterns": ["rules filtering", "native library handling", "URL construction"],
+      "qualityIssues": [],
+      "notes": "Handles both Java libraries and native libraries with proper rules filtering."
+    },
+    {
+      "file": "FileExtractors/LogFileExtractor.cs",
+      "lineCount": 39,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["simple extraction", "ValueTask wrapper"],
+      "qualityIssues": ["no validation on version.Logging"],
+      "notes": "Clean, minimal file extractor."
+    },
+    {
+      "file": "Files/AssetIndex.cs",
+      "lineCount": 59,
+      "aiScore": 0.1,
+      "qualityScore": 0.85,
+      "patterns": ["interface + impl", "IDisposable", "Lazy evaluation"],
+      "qualityIssues": [],
+      "notes": "Uses JsonDocument with Lazy<bool> for efficient property access. Good design."
+    },
+    {
+      "file": "Files/AssetMetadata.cs",
+      "lineCount": 9,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["record extension", "JsonPropertyName"],
+      "qualityIssues": [],
+      "notes": "Simple record extending MFileMetadata. Clean."
+    },
+    {
+      "file": "Files/GameFile.cs",
+      "lineCount": 24,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["record", "async execution", "executable tasks"],
+      "qualityIssues": [],
+      "notes": "Well-designed game file model with async update task execution."
+    },
+    {
+      "file": "Files/GameFilePathComparer.cs",
+      "lineCount": 16,
+      "aiScore": 0.1,
+      "qualityScore": 0.85,
+      "patterns": ["IEqualityComparer", "singleton pattern"],
+      "qualityIssues": [],
+      "notes": "Simple equality comparer with static default. Idiomatic."
+    },
+    {
+      "file": "Files/MFileMetadata.cs",
+      "lineCount": 35,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["record", "JsonPropertyName", "fallback logic"],
+      "qualityIssues": [],
+      "notes": "JSON-deserializable record with GetSha1() fallback. Well-designed."
+    },
+    {
+      "file": "Files/MinecraftJavaFile.cs",
+      "lineCount": 13,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["record", "nullable fields"],
+      "qualityIssues": [],
+      "notes": "Simple POCO. Clean."
+    },
+    {
+      "file": "Files/MinecraftJavaManifestMetadata.cs",
+      "lineCount": 18,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["constructor injection", "GetMajorVersion() helper"],
+      "qualityIssues": [],
+      "notes": "Simple model with useful GetMajorVersion() helper method."
+    },
+    {
+      "file": "Files/MLibrary.cs",
+      "lineCount": 76,
+      "aiScore": 0.2,
+      "qualityScore": 0.75,
+      "patterns": ["record", "classifiers", "natives", "path resolution"],
+      "qualityIssues": ["no validation on Name constructor"],
+      "notes": "Rich model for Maven libraries. GetClassifierId() has nice string replacement logic."
+    },
+    {
+      "file": "Files/MLogFileMetadata.cs",
+      "lineCount": 15,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["record", "JsonPropertyName"],
+      "qualityIssues": [],
+      "notes": "Simple logging metadata model."
+    },
+    {
+      "file": "Installers/BasicGameInstaller.cs",
+      "lineCount": 62,
+      "aiScore": 0.2,
+      "qualityScore": 0.75,
+      "patterns": ["HashSet dedup", "ByteProgressDelta", "update vs install"],
+      "qualityIssues": ["no exception handling", "no progress finalization"],
+      "notes": "Core installer logic with progress tracking. Good use of ByteProgress arithmetic operators."
+    },
+    {
+      "file": "Installers/ByteProgressDelta.cs",
+      "lineCount": 31,
+      "aiScore": 0.15,
+      "qualityScore": 0.85,
+      "patterns": ["IProgress implementation", "delta calculation"],
+      "qualityIssues": [],
+      "notes": "Clever wrapper that reports only the delta change, not the full ByteProgress. Smart optimization."
+    },
+    {
+      "file": "Installers/GameInstallerBase.cs",
+      "lineCount": 121,
+      "aiScore": 0.2,
+      "qualityScore": 0.75,
+      "patterns": ["abstract base", "volatile flag", "checksum validation", "progress events"],
+      "qualityIssues": ["no validation on httpClient", "no disposal of resources"],
+      "notes": "Solid abstract base with checksum validation using SHA1. CheckFileSize is an optional optimization."
+    },
+    {
+      "file": "Installers/IGameInstaller.cs",
+      "lineCount": 12,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["interface with async method", "progress events"],
+      "qualityIssues": [],
+      "notes": "Clean interface definition."
+    },
+    {
+      "file": "Installers/InstallerProgressChangedEventArgs.cs",
+      "lineCount": 27,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["record-like class", "enum"],
+      "qualityIssues": [],
+      "notes": "Simple event argument. Could be a record but uses class for mutability reasons."
+    },
+    {
+      "file": "Installers/ParallelGameInstaller.cs",
+      "lineCount": 155,
+      "aiScore": 0.3,
+      "qualityScore": 0.6,
+      "patterns": ["Dataflow pipeline", "ThreadLocal", "Interlocked", "aggregate progress"],
+      "qualityIssues": ["ThreadLocal not disposed", "no exception handling in pipeline", "complex concurrent progress aggregation"],
+      "notes": "Complex Dataflow-based parallel installer. ThreadLocal usage without proper cleanup is a bug. The progress aggregation logic is error-prone."
+    },
+    {
+      "file": "Installers/SyncProgress.cs",
+      "lineCount": 14,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["IProgress adapter", "constructor injection"],
+      "qualityIssues": [],
+      "notes": "Simple adapter for sync contexts. Clean."
+    },
+    {
+      "file": "Internals/HttpClientDownloadHelper.cs",
+      "lineCount": 83,
+      "aiScore": 0.2,
+      "qualityScore": 0.8,
+      "patterns": ["stream copying", "progress reporting", "buffer sizing"],
+      "qualityIssues": ["no retry logic", "no timeout"],
+      "notes": "Efficient chunked download with progress. Good use of buffered copying. Has TODO-style comment."
+    },
+    {
+      "file": "Internals/HttpUtil.cs",
+      "lineCount": 6,
+      "aiScore": 0.1,
+      "qualityScore": 0.8,
+      "patterns": ["Lazy<HttpClient>", "singleton pattern"],
+      "qualityIssues": ["HttpClient not disposed"],
+      "notes": "Simple shared HttpClient. Lazy initialization for thread safety. Could cause memory leaks in long-running apps."
+    },
+    {
+      "file": "Internals/IOUtil.cs",
+      "lineCount": 47,
+      "aiScore": 0.2,
+      "qualityScore": 0.85,
+      "patterns": ["path manipulation", "SHA1 checksum", "#pragma warning"],
+      "qualityIssues": ["SHA1 is deprecated", "File path manipulation could use Path utilities more"],
+      "notes": "Practical utilities. The SHA1 implementation uses SHA1CryptoServiceProvider with pragma warnings — a human workaround for deprecated APIs."
+    },
+    {
+      "file": "Internals/JsonUtil.cs",
+      "lineCount": 26,
+      "aiScore": 0.15,
+      "qualityScore": 0.9,
+      "patterns": ["extension method", "JsonDocument"],
+      "qualityIssues": [],
+      "notes": "Clean utility for safe JsonDocument property access. Good pattern."
+    },
+    {
+      "file": "Internals/NativeMethods.cs",
+      "lineCount": 85,
+      "aiScore": 0.3,
+      "qualityScore": 0.7,
+      "patterns": ["P/Invoke", "const values", "Windows API"],
+      "qualityIssues": ["no validation on return codes", "security concern with P/Invoke"],
+      "notes": "P/Invoke for chmod and Windows version detection. Well-commented with source URLs. The Windows version detection is a human workaround for .NET version detection limitations."
+    },
+    {
+      "file": "Internals/NumberToStringJsonConverter.cs",
+      "lineCount": 26,
+      "aiScore": 0.2,
+      "qualityScore": 0.85,
+      "patterns": ["JsonConverter", "type coercion"],
+      "qualityIssues": [],
+      "notes": "Simple converter for version fields that come as strings in JSON. Practical workaround."
+    },
+    {
+      "file": "Internals/PipedStream.cs",
+      "lineCount": 68,
+      "aiScore": 0.25,
+      "qualityScore": 0.75,
+      "patterns": ["Stream implementation", "disposable pattern"],
+      "qualityIssues": ["no validation on source/write streams", "ReadTimeout not set"],
+      "notes": "Pipes HTTP stream to file stream. The writeToEndOnClose flag handles partial writes. Manual Stream implementation — human-coded workaround."
+    },
+    {
+      "file": "Internals/SafeDateTimeOffsetJsonConverter.cs",
+      "lineCount": 20,
+      "aiScore": 0.2,
+      "qualityScore": 0.85,
+      "patterns": ["JsonConverter", "format specifier"],
+      "qualityIssues": [],
+      "notes": "Handles ISO 8601 datetime parsing. O format specifier for round-trip serialization. Clean."
+    },
+    {
+      "file": "Internals/SevenZipWrapper.cs",
+      "lineCount": 32,
+      "aiScore": 0.3,
+      "qualityScore": 0.5,
+      "patterns": ["SevenZip integration", "binary file handling"],
+      "qualityIssues": ["no error handling", "resource leaks", "hardcoded LZMA"],
+      "notes": "Uses SevenZip.NET for lzma decompression. No error handling on the binary read operations. Potential resource leak on file streams."
+    },
+    {
+      "file": "Internals/SharpZipWrapper.cs",
+      "lineCount": 50,
+      "aiScore": 0.3,
+      "qualityScore": 0.6,
+      "patterns": ["SharpZipLib", "exclude filtering", "exception swallowing"],
+      "qualityIssues": ["catch all with empty body", "no validation"],
+      "notes": "SharpZipLib wrapper with exclude filtering. Empty catch blocks for IOException and UnauthorizedAccessException are concerning — could mask real errors."
+    },
+    {
+      "file": "Internals/StreamHelper.cs",
+      "lineCount": 45,
+      "aiScore": 0.1,
+      "qualityScore": 0.85,
+      "patterns": ["buffer sizing", "Microsoft source"],
+      "qualityIssues": [],
+      "notes": "Copied from Microsoft's Stream implementation with source link comment. This is clearly a port for .NET Standard compatibility. Well-documented."
+    },
+    {
+      "file": "Java/IJavaPathResolver.cs",
+      "lineCount": 12,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["interface with overloading", "dependency injection"],
+      "qualityIssues": [],
+      "notes": "Clean interface with overload for optional rules context."
+    },
+    {
+      "file": "Java/JavaVersion.cs",
+      "lineCount": 26,
+      "aiScore": 0.2,
+      "qualityScore": 0.8,
+      "patterns": ["record", "JsonConstructor", "JsonConverter"],
+      "qualityIssues": [],
+      "notes": "Record-based model with custom converters. Good use of JSON annotations."
+    },
+    {
+      "file": "Java/MinecraftJavaManifestResolver.cs",
+      "lineCount": 153,
+      "aiScore": 0.25,
+      "qualityScore": 0.6,
+      "patterns": ["JSON parsing", "async HTTP", "enumeration"],
+      "qualityIssues": ["no validation on manifestUrl", "JsonDocument not disposed in one path"],
+      "notes": "Complex manifest resolution with OS-aware component detection. The parseJavaFilesAndDispose method has a suspicious use of JsonDocument disposal pattern."
+    },
+    {
+      "file": "Java/MinecraftJavaPathResolver.cs",
+      "lineCount": 86,
+      "aiScore": 0.2,
+      "qualityScore": 0.8,
+      "patterns": ["directory scanning", "platform-specific paths", "static constants"],
+      "qualityIssues": [],
+      "notes": "Well-designed Java path resolution with proper platform-specific binary locations. Good use of constants for platform variants."
+    },
+    {
+      "file": "LauncherParameters.cs",
+      "lineCount": 61,
+      "aiScore": 0.25,
+      "qualityScore": 0.6,
+      "patterns": ["factory pattern", "dependency injection", "property getter fallback"],
+      "qualityIssues": ["no validation", "property getter with null-coalescing"],
+      "notes": "Configuration builder with factory methods. The HttpClient property uses a lazy fallback to shared client."
+    },
+    {
+      "file": "MinecraftLauncher.cs",
+      "lineCount": 223,
+      "aiScore": 0.35,
+      "qualityScore": 0.65,
+      "patterns": ["composition", "event handling", "install-then-launch pipeline"],
+      "qualityIssues": ["no exception handling in pipeline", "no cleanup/disposal"],
+      "notes": "Main orchestrator class. The installAndBuildProcess pipeline is clean. Some null-checks could be better (using ArgumentNullException instead of ArgumentException)."
+    },
+    {
+      "file": "ModLoaders/FabricMC/FabricInstaller.cs",
+      "lineCount": 119,
+      "aiScore": 0.3,
+      "qualityScore": 0.6,
+      "patterns": ["API integration", "JSON parsing", "install logic"],
+      "qualityIssues": ["no validation on loader versions", "string concatenation for URLs"],
+      "notes": "Fabric mod loader installer with proper API integration. The version naming convention is hardcoded."
+    },
+    {
+      "file": "ModLoaders/FabricMC/FabricLoader.cs",
+      "lineCount": 22,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["record", "JsonPropertyName"],
+      "qualityIssues": [],
+      "notes": "Simple POCO model for Fabric loader metadata."
+    },
+    {
+      "file": "ModLoaders/LiteLoader/LiteLoaderInstaller.cs",
+      "lineCount": 133,
+      "aiScore": 0.35,
+      "qualityScore": 0.6,
+      "patterns": ["install logic", "JSON serialization", "lambda expressions"],
+      "qualityIssues": ["1.8.9 freezing comment", "no validation", "string concatenation"],
+      "notes": "LiteLoader installer with version-specific fixes (1.8.9 freezing comment). Uses lambda expressions for library creation. Could benefit from more structured approach."
+    },
+    {
+      "file": "ModLoaders/LiteLoader/LiteLoaderLibrary.cs",
+      "lineCount": 12,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["record", "JsonPropertyName"],
+      "qualityIssues": [],
+      "notes": "Simple POCO model. Clean."
+    },
+    {
+      "file": "ModLoaders/LiteLoader/LiteLoaderVersion.cs",
+      "lineCount": 16,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["record", "JsonPropertyName", "IEnumerable"],
+      "qualityIssues": [],
+      "notes": "Clean model for LiteLoader version data."
+    },
+    {
+      "file": "ModLoaders/QuiltMC/QuiltInstaller.cs",
+      "lineCount": 119,
+      "aiScore": 0.3,
+      "qualityScore": 0.6,
+      "patterns": ["API integration", "JSON parsing", "install logic"],
+      "qualityIssues": ["no validation", "string concatenation for URLs"],
+      "notes": "Quilt installer — nearly identical to Fabric installer with different API endpoints. Code duplication suggests need for refactoring."
+    },
+    {
+      "file": "ModLoaders/QuiltMC/QuiltLoader.cs",
+      "lineCount": 18,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["record", "JsonPropertyName"],
+      "qualityIssues": [],
+      "notes": "Simple POCO model. Clean."
+    },
+    {
+      "file": "MojangServer.cs",
+      "lineCount": 13,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["static class", "constants"],
+      "qualityIssues": [],
+      "notes": "Simple configuration class with server URLs. Well-organized."
+    },
+    {
+      "file": "Natives/INativeLibraryExtractor.cs",
+      "lineCount": 10,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["interface", "dependency injection"],
+      "qualityIssues": [],
+      "notes": "Clean interface for native library extraction."
+    },
+    {
+      "file": "Natives/NativeLibraryExtractor.cs",
+      "lineCount": 62,
+      "aiScore": 0.25,
+      "qualityScore": 0.6,
+      "patterns": ["rules filtering", "archive extraction", "cleanup"],
+      "qualityIssues": ["catch all with empty body", "no validation"],
+      "notes": "Native library extraction with SharpZipLib integration. Empty catch for cleanup exception — human workaround for edge cases."
+    },
+    {
+      "file": "PackageName.cs",
+      "lineCount": 84,
+      "aiScore": 0.2,
+      "qualityScore": 0.75,
+      "patterns": ["maven parsing", "path generation", "indexer"],
+      "qualityIssues": [],
+      "notes": "Maven artifact path generator with good path resolution logic. Well-documented with Maven conventions reference."
+    },
+    {
+      "file": "ProcessBuilder/Mapper.cs",
+      "lineCount": 27,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["Regex replacement", "variable interpolation"],
+      "qualityIssues": ["regex performance", "no input validation"],
+      "notes": "Simple variable interpolation using regex. Efficient for this use case."
+    },
+    {
+      "file": "ProcessBuilder/MArgument.cs",
+      "lineCount": 42,
+      "aiScore": 0.15,
+      "qualityScore": 0.8,
+      "patterns": ["factory methods", "rules", "interpolation"],
+      "qualityIssues": [],
+      "notes": "Argument model with rules and interpolation support. Well-designed."
+    },
+    {
+      "file": "ProcessBuilder/MinecraftArgumentBuilder.cs",
+      "lineCount": 131,
+      "aiScore": 0.3,
+      "qualityScore": 0.7,
+      "patterns": ["builder pattern", "rule filtering", "convenience methods"],
+      "qualityIssues": ["no validation on inputs"],
+      "notes": "Extensive Minecraft argument builder with convenience methods for common flags. Good use of rule evaluation for conditional arguments."
+    },
+    {
+      "file": "ProcessBuilder/MinecraftProcessBuilder.cs",
+      "lineCount": 268,
+      "aiScore": 0.4,
+      "qualityScore": 0.6,
+      "patterns": ["process creation", "argument building", "class path generation", "JVM arguments"],
+      "qualityIssues": ["no validation on JavaPath", "complex argument generation"],
+      "notes": "Largest file in the project. Builds complete Minecraft launch process with JVM, game arguments, and environment setup. Complex but well-organized."
+    },
+    {
+      "file": "ProcessBuilder/MLaunchOption.cs",
+      "lineCount": 94,
+      "aiScore": 0.35,
+      "qualityScore": 0.7,
+      "patterns": ["partial class", "validation", "defaults"],
+      "qualityIssues": ["default values in constructor", "no thread safety"],
+      "notes": "Launch option model with extensive validation in CheckValid(). Platform-specific RAM defaults based on architecture. Well-documented."
+    },
+    {
+      "file": "ProcessBuilder/MLaunchOption.DefaultJvmArguments.cs",
+      "lineCount": 92,
+      "aiScore": 0.3,
+      "qualityScore": 0.65,
+      "patterns": ["partial class", "rule-based arguments", "platform-specific"],
+      "qualityIssues": [],
+      "notes": "Default JVM arguments with OS-specific rules. The '-XstartOnFirstThread' for macOS and '-XX:HeapDumpPath' for Windows are platform-specific optimizations."
+    },
+    {
+      "file": "ProcessBuilder/ProcessWrapper.cs",
+      "lineCount": 44,
+      "aiScore": 0.1,
+      "qualityScore": 0.8,
+      "patterns": ["event handling", "async wait", "Process wrapper"],
+      "qualityIssues": [],
+      "notes": "Clean Process wrapper with output redirection and event handling. Well-designed."
+    },
+    {
+      "file": "Rules/IRulesEvaluator.cs",
+      "lineCount": 6,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["interface", "dependency injection"],
+      "qualityIssues": [],
+      "notes": "Clean interface for rule evaluation."
+    },
+    {
+      "file": "Rules/LauncherOSRule.cs",
+      "lineCount": 84,
+      "aiScore": 0.25,
+      "qualityScore": 0.7,
+      "patterns": ["P/Invoke", "platform detection", "singleton", "JSON serialization"],
+      "qualityIssues": ["P/Invoke for Windows version", "magic strings"],
+      "notes": "OS detection with proper platform-specific path resolution. Uses P/Invoke as a workaround for .NET version detection limitations. Well-commented with reasons."
+    },
+    {
+      "file": "Rules/LauncherRule.cs",
+      "lineCount": 40,
+      "aiScore": 0.2,
+      "qualityScore": 0.75,
+      "patterns": ["JSON serialization", "feature matching", "boolean logic"],
+      "qualityIssues": [],
+      "notes": "Rule model with feature matching logic. Clean and simple."
+    },
+    {
+      "file": "Rules/RulesEvaluator.cs",
+      "lineCount": 71,
+      "aiScore": 0.3,
+      "qualityScore": 0.7,
+      "patterns": ["regex matching", "OS matching", "feature evaluation"],
+      "qualityIssues": ["regex compilation", "no validation"]
+      "notes": "Rule evaluator with regex-based version matching. The 100ms regex timeout prevents hangs. Practical implementation."
+    },
+    {
+      "file": "Rules/RulesEvaluatorContext.cs",
+      "lineCount": 18,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["record", "constructor injection"],
+      "qualityIssues": [],
+      "notes": "Clean context model for rule evaluation."
+    },
+    {
+      "file": "Tasks/ChmodTask.cs",
+      "lineCount": 28,
+      "aiScore": 0.1,
+      "qualityScore": 0.8,
+      "patterns": ["IUpdateTask implementation", "platform check"],
+      "qualityIssues": [],
+      "notes": "Simple chmod task with platform-specific behavior. Good use of ValueTask for fire-and-forget operations."
+    },
+    {
+      "file": "Tasks/FileCopyTask.cs",
+      "lineCount": 30,
+      "aiScore": 0.1,
+      "qualityScore": 0.8,
+      "patterns": ["IUpdateTask implementation", "size comparison"],
+      "qualityIssues": [],
+      "notes": "File copy with size-based update detection. Simple and effective."
+    },
+    {
+      "file": "Tasks/IUpdateTask.cs",
+      "lineCount": 8,
+      "aiScore": 0.1,
+      "qualityScore": 0.95,
+      "patterns": ["async interface", "game file context"],
+      "qualityIssues": [],
+      "notes": "Clean interface for update operations."
+    },
+    {
+      "file": "Tasks/LegacyJavaExtractionTask.cs",
+      "lineCount": 27,
+      "aiScore": 0.2,
+      "qualityScore": 0.6,
+      "patterns": ["IUpdateTask", "lzma decompression", "zip extraction"],
+      "qualityIssues": ["no validation", "no error handling"],
+      "notes": "Legacy Java extraction with lzma->zip pipeline. No error handling could mask corruption."
+    },
+    {
+      "file": "Utils/Changelogs.cs",
+      "lineCount": 99,
+      "aiScore": 0.3,
+      "qualityScore": 0.6,
+      "patterns": ["JSON parsing", "regex", "alternative URLs", "async HTTP"],
+      "qualityIssues": ["no validation", "regex performance", "no caching"],
+      "notes": "Changelog fetcher with fallback URLs for missing versions. Regex for article parsing. Good practical solution for missing data."
+    },
+    {
+      "file": "Utils/GameOptionsFile.cs",
+      "lineCount": 238,
+      "aiScore": 0.3,
+      "qualityScore": 0.6,
+      "patterns": ["IEnumerable implementation", "file I/O", "encoding handling", "option parsing"],
+      "qualityIssues": ["no encoding detection", "no validation", "size limit"],
+      "notes": "Minecraft game options file parser with full read/write support. Handles encoding, arrays, and various value types. Could benefit from better encoding detection."
+    },
+    {
+      "file": "Version/Extensions.cs",
+      "lineCount": 119,
+      "aiScore": 0.25,
+      "qualityScore": 0.7,
+      "patterns": ["extension methods", "enumeration", "stack overflow protection"],
+      "qualityIssues": ["no depth limit exception handling"],
+      "notes": "Extension methods for version tree traversal. The max depth check prevents stack overflow from circular dependencies."
+    },
+    {
+      "file": "Version/IVersion.cs",
+      "lineCount": 26,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["interface", "nullable properties"],
+      "qualityIssues": [],
+      "notes": "Clean version interface with proper nullability annotations."
+    },
+    {
+      "file": "Version/JsonArgumentParser.cs",
+      "lineCount": 74,
+      "aiScore": 0.25,
+      "qualityScore": 0.6,
+      "patterns": ["JSON parsing", "rules handling", "type conversion"],
+      "qualityIssues": ["no validation on values"],
+      "notes": "Argument parser for JSON game/JVM arguments with rules support. Good use of JsonValueKind checks."
+    },
+    {
+      "file": "Version/JsonLibraryParser.cs",
+      "lineCount": 91,
+      "aiScore": 0.2,
+      "qualityScore": 0.65,
+      "patterns": ["JSON parsing", "rules handling", "native library resolution"],
+      "qualityIssues": ["no validation", "fallback logic"]
+      "notes": "Library parser with support for Forge/Optifine/Fabric conventions. Good fallback for libraries without artifacts."
+    },
+    {
+      "file": "Version/JsonRulesParser.cs",
+      "lineCount": 38,
+      "aiScore": 0.15,
+      "qualityScore": 0.85,
+      "patterns": ["JSON parsing", "array/object handling"],
+      "qualityIssues": [],
+      "notes": "Clean rules parser supporting both single objects and arrays."
+    },
+    {
+      "file": "Version/JsonVersion.cs",
+      "lineCount": 241,
+      "aiScore": 0.3,
+      "qualityScore": 0.6,
+      "patterns": ["IDisposable", "lazy initialization", "JSON parsing"],
+      "qualityIssues": ["no validation on json", "multiple catch blocks", "no caching"],
+      "notes": "Main version model with lazy-loaded properties and JSON parsing. The skipError flag provides graceful degradation. Could be more testable with dependency injection."
+    },
+    {
+      "file": "Version/JsonVersionDTO.cs",
+      "lineCount": 53,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["DTO pattern", "JsonPropertyName", "JsonConverter"],
+      "qualityIssues": [],
+      "notes": "Clean DTO for JSON deserialization. Good use of custom converters for type fields."
+    },
+    {
+      "file": "Version/JsonVersionParser.cs",
+      "lineCount": 34,
+      "aiScore": 0.1,
+      "qualityScore": 0.8,
+      "patterns": ["factory methods", "exception wrapping"],
+      "qualityIssues": [],
+      "notes": "Clean parser with proper exception wrapping."
+    },
+    {
+      "file": "Version/JsonVersionParserOptions.cs",
+      "lineCount": 13,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["options pattern", "constants", "default values"],
+      "qualityIssues": [],
+      "notes": "Configuration options with skipError for graceful degradation."
+    },
+    {
+      "file": "Version/MinecraftVersion.cs",
+      "lineCount": 42,
+      "aiScore": 0.1,
+      "qualityScore": 0.85,
+      "patterns": ["interface implementation", "mutable collections"],
+      "qualityIssues": [],
+      "notes": "Mutable version model for in-memory manipulation. Good use of collections for game arguments."
+    },
+    {
+      "file": "Version/VersionParseException.cs",
+      "lineCount": 16,
+      "aiScore": 0.1,
+      "qualityScore": 0.85,
+      "patterns": ["custom exception", "inner exception"],
+      "qualityIssues": [],
+      "notes": "Custom exception with internal VersionName property for error context."
+    },
+    {
+      "file": "Version/VersionDependencyException.cs",
+      "lineCount": 21,
+      "aiScore": 0.15,
+      "qualityScore": 0.8,
+      "patterns": ["custom exception", "factory methods"],
+      "qualityIssues": [],
+      "notes": "Custom exception with helpful factory methods for common error scenarios."
+    },
+    {
+      "file": "VersionLoader/IVersionLoader.cs",
+      "lineCount": 9,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["async interface", "dependency injection"],
+      "qualityIssues": [],
+      "notes": "Clean loader interface."
+    },
+    {
+      "file": "VersionLoader/LocalJsonVersionLoader.cs",
+      "lineCount": 46,
+      "aiScore": 0.15,
+      "qualityScore": 0.75,
+      "patterns": ["file scanning", "JSON deserialization"],
+      "qualityIssues": ["no validation", "no async for sync operations"]
+      "notes": "Local JSON version loader scanning directories. Could be more efficient with better caching."
+    },
+    {
+      "file": "VersionLoader/MojangJsonVersionLoader.cs",
+      "lineCount": 33,
+      "aiScore": 0.1,
+      "qualityScore": 0.8,
+      "patterns": ["async HTTP", "JSON deserialization", "version merging"],
+      "qualityIssues": [],
+      "notes": "Simple Mojang version loader with proper async handling."
+    },
+    {
+      "file": "VersionLoader/MojangJsonVersionLoaderV2.cs",
+      "lineCount": 114,
+      "aiScore": 0.3,
+      "qualityScore": 0.65,
+      "patterns": ["PipedStream", "version merging", "error recovery"],
+      "qualityIssues": ["PipedStream disposal", "no exception handling in merge"],
+      "notes": "Advanced loader with local version caching and error recovery. The UseLocalManifestWhenError flag provides graceful fallback."
+    },
+    {
+      "file": "VersionLoader/VersionLoaderCollection.cs",
+      "lineCount": 31,
+      "aiScore": 0.1,
+      "qualityScore": 0.8,
+      "patterns": ["collection interface", "async merge"],
+      "qualityIssues": [],
+      "notes": "Composite loader that aggregates multiple sources. Clean implementation."
+    },
+    {
+      "file": "VersionMetadata/Extensions.cs",
+      "lineCount": 12,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["extension method", "type conversion"],
+      "qualityIssues": [],
+      "notes": "Clean extension for version type conversion."
+    },
+    {
+      "file": "VersionMetadata/IVersionMetadata.cs",
+      "lineCount": 18,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["async interface", "documentation"],
+      "qualityIssues": [],
+      "notes": "Well-documented metadata interface."
+    },
+    {
+      "file": "VersionMetadata/JsonVersionManifestModel.cs",
+      "lineCount": 40,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["DTO", "JsonPropertyName"],
+      "qualityIssues": [],
+      "notes": "Clean manifest DTO for version manifest parsing."
+    },
+    {
+      "file": "VersionMetadata/JsonVersionMetadata.cs",
+      "lineCount": 97,
+      "aiScore": 0.2,
+      "qualityScore": 0.6,
+      "patterns": ["abstract base", "async stream", "PipedStream", "caching"],
+      "qualityIssues": ["no validation", "no error handling"],
+      "notes": "Abstract metadata with JSON stream handling and local save caching. The PipedStream usage could leak resources."
+    },
+    {
+      "file": "VersionMetadata/LocalVersionMetadata.cs",
+      "lineCount": 24,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["interface implementation", "file I/O"],
+      "qualityIssues": [],
+      "notes": "Clean local version metadata. Well-implemented."
+    },
+    {
+      "file": "VersionMetadata/MojangVersionMetadata.cs",
+      "lineCount": 26,
+      "aiScore": 0.1,
+      "qualityScore": 0.9,
+      "patterns": ["async HTTP", "interface implementation"],
+      "qualityIssues": [],
+      "notes": "Clean Mojang metadata with proper async handling."
+    }
+  ],
+  "summary": {
+    "overallAiScore": 0.22,
+    "overallQualityScore": 0.73,
+    "keyStrengths": [
+      "Consistent use of interfaces for dependency injection",
+      "Good use of async/await and ValueTask patterns",
+      "Strong separation of concerns (extractors, loaders, installers, process builders)",
+      "Effective use of records for immutable models",
+      "Well-structured version parsing and resolution pipeline",
+      "Proper use of JsonDocument for streaming JSON parsing",
+      "Domain-specific knowledge evident in Minecraft-specific edge cases"
+    ],
+    "keyWeaknesses": [
+      "Inconsistent exception handling - many empty catch blocks and swallowed exceptions",
+      "No unit test infrastructure visible in this codebase",
+      "Some P/Invoke and native method integration lacks validation",
+      "ParallelGameInstaller has ThreadLocal without proper disposal (resource leak)",
+      "Magic strings and URL concatenation in several places",
+      "Code duplication in mod loader implementations (Fabric vs Quilt)",
+      "No comprehensive error handling in HTTP download operations",
+      "No retry logic for failed downloads"
+    ],
+    "majorFindings": [
+      "The codebase shows clear evidence of human authorship - Korean comments in CommandLineBuilder.cs, platform-specific workarounds in NativeMethods.cs, and practical hacks like empty catch blocks for cleanup operations. These idiosyncrasies suggest a developer who has wrestled with real-world Minecraft launcher challenges.",
+      "The architecture is well-designed with clear separation between concerns: FileExtractors handle downloads, Installers handle the pipeline, ProcessBuilder handles launch, and Version handling covers all Mojang JSON parsing. This is a mature library.",
+      "The version dependency graph handling (in Extensions.cs) shows sophisticated understanding of Minecraft's version inheritance system with circular dependency detection.",
+      "The Java version resolution system is particularly impressive, handling multiple platform variants, legacy JRE extraction, and manifest-based discovery.",
+      "Several areas need improvement: the ParallelGameInstaller has a clear bug with ThreadLocal not being disposed, multiple empty catch blocks could mask real errors, and there's no retry logic for transient HTTP failures which would significantly impact reliability."
+    ]
+  }
+}

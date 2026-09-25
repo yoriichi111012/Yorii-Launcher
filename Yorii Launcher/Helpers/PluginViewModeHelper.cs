@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using System;
 
 namespace Yorii_Launcher.Helpers
 {
@@ -11,19 +12,35 @@ namespace Yorii_Launcher.Helpers
 
     public static class PluginViewModeHelper
     {
-        // swap the listview template between a grid layout and a list layout based on what the user picked
-        public static void Apply(ListView listView, PluginViewMode mode)
+        // Dual-ListView toggle (NativeAOT-safe): each page declares a list
+        // ListView (ItemsStackPanel + list container style) and a grid ListView
+        // (ItemsWrapGrid + grid container style) sharing one ItemsSource; code
+        // only flips Visibility — a plain bool DP on strongly-typed references.
+        // no VisualStates (self-targets never resolve, Page-level states proved
+        // unreliable here) and no resource-dictionary casts (fail over the WinRT
+        // RCW under NativeAOT). renders exactly the pre-AOT look: same panels,
+        // styles and templates Apply() used to install at runtime.
+        // TEMP-DIAG(viewmode): info log per switch. remove after.
+        public static void ApplyDualView(ListView listView, ListView gridView, PluginViewMode mode)
         {
-            var resources = Application.Current.Resources;
-
-            listView.ItemsPanel = (ItemsPanelTemplate)resources[mode == PluginViewMode.Grid ? "PluginGridItemsPanel" : "PluginListItemsPanel"];
-            listView.ItemContainerStyle = (Style)resources[mode == PluginViewMode.Grid ? "PluginGridViewItemContainerStyle" : "PluginListViewItemContainerStyle"];
-            listView.Padding = new Thickness(0);
+            var grid = mode == PluginViewMode.Grid;
+            try
+            {
+                if (listView is not null)
+                    listView.Visibility = grid ? Visibility.Collapsed : Visibility.Visible;
+                if (gridView is not null)
+                    gridView.Visibility = grid ? Visibility.Visible : Visibility.Collapsed;
+            }
+            catch (Exception ex)
+            {
+                try { Logger.Error($"PluginViewModeHelper.ApplyDualView failed ({mode}): {ex.Message}"); } catch { }
+            }
+            try { Logger.Info($"PluginViewModeHelper: dual view -> {mode} (list={(listView is not null ? listView.Visibility.ToString() : "null")}, grid={(gridView is not null ? gridView.Visibility.ToString() : "null")})"); } catch { }
         }
 
-        public static void ApplyFromSelectedIndex(ListView listView, int selectedIndex)
+        public static void ApplyDualViewFromSelectedIndex(ListView listView, ListView gridView, int selectedIndex)
         {
-            Apply(listView, selectedIndex == 1 ? PluginViewMode.Grid : PluginViewMode.List);
+            ApplyDualView(listView, gridView, selectedIndex == 1 ? PluginViewMode.Grid : PluginViewMode.List);
         }
     }
 }

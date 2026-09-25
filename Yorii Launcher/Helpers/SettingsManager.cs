@@ -61,6 +61,43 @@ namespace Yorii_Launcher.Helpers
             SaveSettings();
         }
 
+        // one-time (idempotent) migration: stored raw installed ids
+        // (fabric-loader-*, ...) become display names ("Fabric 26.2", ...).
+        // display names, vanilla ids and unknown values pass through
+        // untouched, so this is safe to run on every startup.
+        public static void NormalizeStoredVersions()
+        {
+            try
+            {
+                current ??= new UserSettings();
+                string versionsDir = Path.Combine(current.MinecraftPath, "versions");
+                bool changed = false;
+
+                var selected = VersionDisplay.NormalizeStored(current.SelectedVersion, versionsDir);
+                if (!string.Equals(selected, current.SelectedVersion, StringComparison.Ordinal))
+                {
+                    current.SelectedVersion = selected ?? "";
+                    changed = true;
+                }
+
+                var lastSaved = VersionDisplay.NormalizeStored(current.LastSavedVersion, versionsDir);
+                if (!string.Equals(lastSaved, current.LastSavedVersion, StringComparison.Ordinal))
+                {
+                    current.LastSavedVersion = lastSaved ?? "";
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    SaveSettings();
+                    Logger.Info("Migrated stored versions to display names");
+                }
+            }
+            catch
+            {
+            }
+        }
+
         // save settings as yaml
         public static void SaveSettings()
         {

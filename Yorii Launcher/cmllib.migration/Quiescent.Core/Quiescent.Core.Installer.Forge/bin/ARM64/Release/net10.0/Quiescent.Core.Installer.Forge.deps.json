@@ -1,0 +1,119 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Quiescent.Core.Installer.Forge/0.1.0": {
+        "dependencies": {
+          "ConfigureAwait.Fody": "3.3.1",
+          "HtmlAgilityPack": "1.11.48",
+          "Quiescent.Core": "0.1.0"
+        },
+        "runtime": {
+          "Quiescent.Core.Installer.Forge.dll": {}
+        }
+      },
+      "ConfigureAwait.Fody/3.3.1": {
+        "runtime": {
+          "lib/netstandard2.0/ConfigureAwait.dll": {
+            "assemblyVersion": "3.3.1.0",
+            "fileVersion": "3.3.1.0"
+          }
+        }
+      },
+      "HtmlAgilityPack/1.11.48": {
+        "runtime": {
+          "lib/netstandard2.0/HtmlAgilityPack.dll": {
+            "assemblyVersion": "1.11.48.0",
+            "fileVersion": "1.11.48.0"
+          }
+        }
+      },
+      "LZMA-SDK/19.0.0": {
+        "runtime": {
+          "lib/netstandard2.0/SevenZip.dll": {
+            "assemblyVersion": "19.0.0.0",
+            "fileVersion": "19.0.0.0"
+          }
+        }
+      },
+      "SharpZipLib/1.4.2": {
+        "runtime": {
+          "lib/net6.0/ICSharpCode.SharpZipLib.dll": {
+            "assemblyVersion": "1.4.2.13",
+            "fileVersion": "1.4.2.13"
+          }
+        }
+      },
+      "Quiescent.Core/0.1.0": {
+        "dependencies": {
+          "LZMA-SDK": "19.0.0",
+          "Quiescent.Core.Commons": "0.1.0",
+          "SharpZipLib": "1.4.2"
+        },
+        "runtime": {
+          "Quiescent.Core.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      },
+      "Quiescent.Core.Commons/0.1.0": {
+        "runtime": {
+          "Quiescent.Core.Commons.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Quiescent.Core.Installer.Forge/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ConfigureAwait.Fody/3.3.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-R9PQYf0AT4RBZcUXm22xWkCpSmNHdTzQ0dOyLIsxIK6dwXH4S9pY/rZdXU/63i8vZvSzZ99sB1kP7xer8MCe6w==",
+      "path": "configureawait.fody/3.3.1",
+      "hashPath": "configureawait.fody.3.3.1.nupkg.sha512"
+    },
+    "HtmlAgilityPack/1.11.48": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-BTYfqMoTtnlUz5hqJZ3qxh/SDWMtJAulcz2vIr2TRj5BhfdJZD1E1HSpNI9rvIQiYJzl2xoVtCNzCcANjzbScQ==",
+      "path": "htmlagilitypack/1.11.48",
+      "hashPath": "htmlagilitypack.1.11.48.nupkg.sha512"
+    },
+    "LZMA-SDK/19.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-/4yPB/YNtttdbxmHifyNUw6rUiBqCCUgeuokXsWvM/X9CDXJq1eQdI9uVgNpJdrzAZhTIAqNzbOP7Z2ogZt+2g==",
+      "path": "lzma-sdk/19.0.0",
+      "hashPath": "lzma-sdk.19.0.0.nupkg.sha512"
+    },
+    "SharpZipLib/1.4.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-yjj+3zgz8zgXpiiC3ZdF/iyTBbz2fFvMxZFEBPUcwZjIvXOf37Ylm+K58hqMfIBt5JgU/Z2uoUS67JmTLe973A==",
+      "path": "sharpziplib/1.4.2",
+      "hashPath": "sharpziplib.1.4.2.nupkg.sha512"
+    },
+    "Quiescent.Core/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Quiescent.Core.Commons/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

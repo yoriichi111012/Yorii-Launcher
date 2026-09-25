@@ -1,0 +1,22 @@
+[16:14:11] [main/INFO]: Loading tweak class name optifine.OptiFineTweaker
+[16:14:11] [main/INFO]: Using primary tweak class name optifine.OptiFineTweaker
+[16:14:11] [main/INFO]: Calling tweak class optifine.OptiFineTweaker
+[16:14:11] [main/INFO]: [OptiFine] OptiFineTweaker: acceptOptions
+[16:14:11] [main/INFO]: [OptiFine] OptiFineTweaker: injectIntoClassLoader
+[16:14:11] [main/INFO]: [OptiFine] OptiFine ClassTransformer
+[16:14:11] [main/INFO]: [OptiFine] OptiFine ZIP file: C:\Users\yorii\AppData\Roaming\.minecraft\instances\1-21-1\minecraft\libraries\optifine\OptiFine\1.21.1_HD_U_J1\OptiFine-1.21.1_HD_U_J1.jar
+[16:14:11] [main/INFO]: [OptiFine] OptiFineTweaker: getLaunchArguments
+[16:14:11] [main/INFO]: [OptiFine] OptiFineTweaker: getLaunchTarget
+[16:14:11] [main/ERROR]: Unable to launch
+java.lang.ClassNotFoundException: net.minecraft.client.main.Main
+	at net.minecraft.launchwrapper.LaunchClassLoader.findClass(LaunchClassLoader.java:187) ~[launchwrapper-of-2.3.jar:2.3]
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:593) ~[?:?]
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:526) ~[?:?]
+	at java.base/java.lang.Class.forName0(Native Method) ~[?:?]
+	at java.base/java.lang.Class.forName(Class.java:534) ~[?:?]
+	at java.base/java.lang.Class.forName(Class.java:513) ~[?:?]
+	at net.minecraft.launchwrapper.Launch.launch(Launch.java:155) [launchwrapper-of-2.3.jar:2.3]
+	at net.minecraft.launchwrapper.Launch.main(Launch.java:30) [launchwrapper-of-2.3.jar:2.3]
+Caused by: java.lang.NullPointerException: Cannot read the array length because "transformedClass" is null
+	at net.minecraft.launchwrapper.LaunchClassLoader.findClass(LaunchClassLoader.java:178) ~[launchwrapper-of-2.3.jar:2.3]
+	... 7 more

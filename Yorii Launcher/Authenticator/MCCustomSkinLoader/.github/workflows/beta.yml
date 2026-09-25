@@ -1,0 +1,83 @@
+name: Beta
+on:
+  push:
+    branches: [15-develop]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/build
+        with:
+          artifact-name: CustomSkinLoader-Beta-${{ github.run_number }}
+
+  publish-release:
+    name: Publish to GitHub Release
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: CustomSkinLoader-Beta-${{ github.run_number }}
+          path: artifact
+
+      - name: Generate release body
+        shell: pwsh
+        run: |
+          @"
+          Build Time / 构建时间 : $((Get-Date).ToUniversalTime().AddHours(8).ToString("yyyy.MM.dd HH:mm"))
+          Auto build from branch $env:GITHUB_REF_NAME
+
+          [How to use?](https://github.com/xfl03/MCCustomSkinLoader/wiki/How-to-Use)
+          "@ | Set-Content -Path ci-build-body.md -NoNewline
+
+      - uses: ./.github/actions/publish-release
+        with:
+          artifact-path: artifact
+          tag-name: CI-Build
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: '*.jar'
+          prerelease: 'true'
+          notes-file: ci-build-body.md
+
+  publish-object-storage:
+    name: Publish to Object Storage
+    needs: build
+    runs-on: windows-latest
+    environment: Build
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: CustomSkinLoader-Beta-${{ github.run_number }}
+          path: artifact
+
+      - name: Upload jar to R2
+        uses: ./.github/actions/publish-object-storage
+        with:
+          artifact-path: artifact
+          endpoint-url: ${{ secrets.R2_BASE_URL }}
+          bucket: ${{ secrets.R2_BUCKET }}
+          access-key-id: ${{ secrets.R2_SECRET_ID }}
+          secret-access-key: ${{ secrets.R2_SECRET_KEY }}
+          target-path: mods/
+          files: '*.jar'
+
+      - name: Upload JSONs to R2
+        uses: ./.github/actions/publish-object-storage
+        with:
+          artifact-path: artifact
+          endpoint-url: ${{ secrets.R2_BASE_URL }}
+          bucket: ${{ secrets.R2_BUCKET }}
+          access-key-id: ${{ secrets.R2_SECRET_ID }}
+          secret-access-key: ${{ secrets.R2_SECRET_KEY }}
+          files: '*.json'

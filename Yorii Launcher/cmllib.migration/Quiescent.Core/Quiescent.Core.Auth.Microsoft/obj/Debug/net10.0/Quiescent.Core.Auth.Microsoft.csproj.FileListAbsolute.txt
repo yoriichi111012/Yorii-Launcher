@@ -1,0 +1,47 @@
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Auth.Microsoft.deps.json
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Auth.Microsoft.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Auth.Microsoft.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Commons.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.XboxAuthNet.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.XboxAuthNet.Game.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Commons.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.XboxAuthNet.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.csproj.AssemblyReference.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.AssemblyInfoInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.AssemblyInfo.cs
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.csproj.CoreCompileInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescen.30584B03.Up2Date
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\refint\Quiescent.Core.Auth.Microsoft.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\ref\Quiescent.Core.Auth.Microsoft.dll
+C:\temp\yoriibuild\Quiescent.Core.Auth.Microsoft.deps.json
+C:\temp\yoriibuild\Quiescent.Core.Auth.Microsoft.dll
+C:\temp\yoriibuild\Quiescent.Core.Auth.Microsoft.pdb
+C:\temp\yoriibuild_x64\Quiescent.Core.Auth.Microsoft.deps.json
+C:\temp\yoriibuild_x64\Quiescent.Core.Auth.Microsoft.dll
+C:\temp\yoriibuild_x64\Quiescent.Core.Auth.Microsoft.pdb
+C:\temp\yoriibuild_x64_clean\Quiescent.Core.Auth.Microsoft.deps.json
+C:\temp\yoriibuild_x64_clean\Quiescent.Core.Auth.Microsoft.dll
+C:\temp\yoriibuild_x64_clean\Quiescent.Core.Auth.Microsoft.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Auth.Microsoft.deps.json
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Auth.Microsoft.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Auth.Microsoft.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Commons.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.XboxAuthNet.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.XboxAuthNet.Game.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.XboxAuthNet.Game.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.Core.Commons.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\bin\Debug\net10.0\Quiescent.XboxAuthNet.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.csproj.AssemblyReference.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.AssemblyInfoInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.AssemblyInfo.cs
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.csproj.CoreCompileInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescen.30584B03.Up2Date
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\refint\Quiescent.Core.Auth.Microsoft.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\Quiescent.Core.Auth.Microsoft.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Auth.Microsoft\obj\Debug\net10.0\ref\Quiescent.Core.Auth.Microsoft.dll

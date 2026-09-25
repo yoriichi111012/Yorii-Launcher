@@ -7,7 +7,8 @@ namespace Yorii_Launcher.Models
     // one entry in the home-page player picker: a real account, or the special
     // "add player" / "manage players" rows. the 16x16 skin head is loaded
     // asynchronously (local skin first, no network) and pops in via inpc
-    public sealed class AccountComboItem : INotifyPropertyChanged
+    [WinRT.GeneratedWinRTExposedType]
+    public sealed partial class AccountComboItem : INotifyPropertyChanged
     {
         public PlayerAccount? Account { get; init; }
         public bool IsAddNew { get; init; }

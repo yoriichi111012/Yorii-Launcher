@@ -1,0 +1,41 @@
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Installer.NeoForge.deps.json
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Installer.NeoForge.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Installer.NeoForge.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Commons.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Commons.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.csproj.AssemblyReference.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.AssemblyInfoInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.AssemblyInfo.cs
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.csproj.CoreCompileInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescen.55E8A97C.Up2Date
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\refint\Quiescent.Core.Installer.NeoForge.dll
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.pdb
+C:\Users\yorii\source\repos\Yorii Launcher 0.8\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\ref\Quiescent.Core.Installer.NeoForge.dll
+C:\temp\yoriibuild\Quiescent.Core.Installer.NeoForge.deps.json
+C:\temp\yoriibuild\Quiescent.Core.Installer.NeoForge.dll
+C:\temp\yoriibuild\Quiescent.Core.Installer.NeoForge.pdb
+C:\temp\yoriibuild_x64\Quiescent.Core.Installer.NeoForge.deps.json
+C:\temp\yoriibuild_x64\Quiescent.Core.Installer.NeoForge.dll
+C:\temp\yoriibuild_x64\Quiescent.Core.Installer.NeoForge.pdb
+C:\temp\yoriibuild_x64_clean\Quiescent.Core.Installer.NeoForge.deps.json
+C:\temp\yoriibuild_x64_clean\Quiescent.Core.Installer.NeoForge.dll
+C:\temp\yoriibuild_x64_clean\Quiescent.Core.Installer.NeoForge.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Installer.NeoForge.deps.json
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Installer.NeoForge.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Installer.NeoForge.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Commons.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\bin\Debug\net10.0\Quiescent.Core.Commons.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.csproj.AssemblyReference.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.AssemblyInfoInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.AssemblyInfo.cs
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.csproj.CoreCompileInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescen.55E8A97C.Up2Date
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\refint\Quiescent.Core.Installer.NeoForge.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\Quiescent.Core.Installer.NeoForge.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.Core.Installer.NeoForge\obj\Debug\net10.0\ref\Quiescent.Core.Installer.NeoForge.dll

@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Quiescent.XboxAuthNet/0.1.0": {
+        "dependencies": {
+          "Quiescent.Core.Commons": "0.1.0"
+        },
+        "runtime": {
+          "Quiescent.XboxAuthNet.dll": {}
+        }
+      },
+      "Quiescent.Core.Commons/0.1.0": {
+        "runtime": {
+          "Quiescent.Core.Commons.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Quiescent.XboxAuthNet/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Quiescent.Core.Commons/0.1.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

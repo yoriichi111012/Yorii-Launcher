@@ -1,0 +1,16 @@
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\bin\ARM64\Debug\net10.0-windows\runtimes\win-x64\native\WebView2Loader.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\bin\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.deps.json
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\bin\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\bin\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\bin\ARM64\Debug\net10.0-windows\Quiescent.Core.Commons.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\bin\ARM64\Debug\net10.0-windows\Quiescent.Core.Commons.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.csproj.AssemblyReference.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.AssemblyInfoInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.AssemblyInfo.cs
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.csproj.CoreCompileInputs.cache
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\Quiescen.855FB2CB.Up2Date
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\refint\Quiescent.XboxAuthNet.dll
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\Quiescent.XboxAuthNet.pdb
+C:\Users\yorii\source\repos\Yorii Launcher\cmllib.migration\Quiescent.Core\Quiescent.XboxAuthNet\obj\ARM64\Debug\net10.0-windows\ref\Quiescent.XboxAuthNet.dll

@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RepositoryUrl>https://github.com/mzggr0914/Optifine.Installer</RepositoryUrl>
+    <PackageTags>minecraft;installer;optifine</PackageTags>
+    <PackageProjectUrl>https://github.com/mzggr0914/Optifine.Installer</PackageProjectUrl>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Version>1.0.1</Version>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.1" />
+    <PackageReference Include="System.Text.Json" Version="9.0.5" />
+  </ItemGroup>
+
+</Project>

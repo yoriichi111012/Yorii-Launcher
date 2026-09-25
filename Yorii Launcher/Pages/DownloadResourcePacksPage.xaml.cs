@@ -25,8 +25,9 @@ namespace Yorii_Launcher.Pages
             NavigationCacheMode = NavigationCacheMode.Required;
 
             ResourcePacksList.ItemsSource = OnlineResourcePacks;
+            ResourcePacksGridList.ItemsSource = OnlineResourcePacks;
             var savedMode = (PluginViewMode)SettingsManager.Current.DownloadResourcePacksViewMode;
-            PluginViewModeHelper.Apply(ResourcePacksList, savedMode);
+            PluginViewModeHelper.ApplyDualView(ResourcePacksList, ResourcePacksGridList, savedMode);
             ResourcePacksViewModeSegmented.SelectedIndex = (int)savedMode;
 
             _ = LoadFeaturedResourcePacks();
@@ -35,7 +36,7 @@ namespace Yorii_Launcher.Pages
 
         private void ViewModeSegmented_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            PluginViewModeHelper.ApplyFromSelectedIndex(ResourcePacksList, ResourcePacksViewModeSegmented.SelectedIndex);
+            PluginViewModeHelper.ApplyDualViewFromSelectedIndex(ResourcePacksList, ResourcePacksGridList, ResourcePacksViewModeSegmented.SelectedIndex);
             SettingsManager.Current.DownloadResourcePacksViewMode = ResourcePacksViewModeSegmented.SelectedIndex;
             SettingsManager.SaveSettings();
         }
