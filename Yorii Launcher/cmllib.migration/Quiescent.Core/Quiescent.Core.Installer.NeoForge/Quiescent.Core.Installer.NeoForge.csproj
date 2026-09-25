@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <PackageId>Quiescent.Core.Installer.NeoForge</PackageId>
+    <Description>Minecraft NeoForge Installer (forked from CmlLib.Core.Installer.NeoForge, NativeAOT-compatible)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Quiescent.Core\Quiescent.Core.csproj" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
+  </ItemGroup>
+</Project>

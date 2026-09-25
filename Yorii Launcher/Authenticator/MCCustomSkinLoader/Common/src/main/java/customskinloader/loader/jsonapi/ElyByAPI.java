@@ -1,0 +1,101 @@
+package customskinloader.loader.jsonapi;
+
+import java.util.List;
+import java.util.Map;
+
+import com.google.common.collect.Lists;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.mojang.authlib.minecraft.MinecraftProfileTexture;
+import customskinloader.loader.JsonAPILoader;
+import customskinloader.plugin.ICustomSkinLoaderPlugin;
+import customskinloader.profile.ModelManager0;
+import customskinloader.profile.UserProfile;
+
+public class ElyByAPI implements JsonAPILoader.IJsonAPI {
+
+    public static class ElyBy extends JsonAPILoader.DefaultProfile {
+        public ElyBy(JsonAPILoader loader) {
+            super(loader);
+        }
+
+        @Override
+        public String getName() {
+            return "ElyBy";
+        }
+
+        @Override
+        public int getPriority() {
+            return 400;
+        }
+
+        @Override
+        public String getRoot() {
+            return "http://skinsystem.ely.by/textures/";
+        }
+    }
+
+    public static class TLauncher extends JsonAPILoader.DefaultProfile {
+        public TLauncher(JsonAPILoader loader) {
+            super(loader);
+        }
+
+        @Override
+        public String getName() {
+            return "TLauncher";
+        }
+
+        @Override
+        public int getPriority() {
+            return 550;
+        }
+
+        @Override
+        public String getRoot() {
+            return "https://auth.tlauncher.org/skin/profile/texture/login/";
+        }
+    }
+
+    public static class GlitchlessGames extends JsonAPILoader.DefaultProfile {
+        public GlitchlessGames(JsonAPILoader loader) {
+            super(loader);
+        }
+
+        @Override
+        public String getName() {
+            return "GlitchlessGames";
+        }
+
+        @Override
+        public int getPriority() {
+            return 700;
+        }
+
+        @Override
+        public String getRoot() {
+            return "https://games.glitchless.ru/api/minecraft/users/profiles/textures/?nickname=";
+        }
+    }
+
+    @Override
+    public List<ICustomSkinLoaderPlugin.IDefaultProfile> getDefaultProfiles(JsonAPILoader loader) {
+        return Lists.newArrayList(new ElyBy(loader), new TLauncher(loader), new GlitchlessGames(loader));
+    }
+
+    @Override
+    public String toJsonUrl(String root, String username) {
+        return root + username;
+    }
+
+    @Override
+    public UserProfile toUserProfile(String root, String json, boolean local) {
+        Map<MinecraftProfileTexture.Type, MinecraftProfileTexture> result = new Gson().fromJson(json, new TypeToken<Map<MinecraftProfileTexture.Type, MinecraftProfileTexture>>() {
+        }.getType());
+        return ModelManager0.toUserProfile(result);
+    }
+
+    @Override
+    public String getName() {
+        return "ElyByAPI";
+    }
+}

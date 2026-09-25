@@ -109,5 +109,15 @@ namespace Yorii_Launcher.Helpers
             // stroke on accent surfaces (textbox accent underline, accent button borders)
             ("ControlStrokeColorOnAccentDefaultBrush", AccentBrushRole.Base),
         };
+
+        // focused textbox underline. winui keeps this one as a gradient brush instead of a
+        // plain solid, first stop is just the system accent shade, so it gets recolored stop
+        // by stop - putting a flat brush on the key paints the whole border instead of only
+        // the line at the bottom
+        public static readonly string[] FocusGradientKeys =
+        {
+            "TextControlBorderBrushFocused",
+            "TextControlElevationBorderFocusedBrush",
+        };
     }
 }

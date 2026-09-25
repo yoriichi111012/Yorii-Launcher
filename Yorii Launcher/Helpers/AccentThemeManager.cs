@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Windows.UI;
 
@@ -49,6 +50,13 @@ namespace Yorii_Launcher.Helpers
             {
                 SetBrush(key, ColorForRole(palette, role));
             }
+
+            // focused textbox underline lives as a gradient inside winui's own theme
+            // dictionaries, recolor it through its stops instead of swapping the brush
+            foreach (var key in AccentResourceMap.FocusGradientKeys)
+            {
+                RecolorGradient(resources, key, palette);
+            }
         }
 
         // uisettings construction is a slow winrt activation so cache it
@@ -96,15 +104,78 @@ namespace Yorii_Launcher.Helpers
                 {
                     continue;
                 }
+                // framework dictionaries (xamlcontrolsresources and friends) go read-only once
+                // they have been used - inserting a new value there throws 0x800f0902 and the
+                // app dies during OnLaunched, so only recolor the brushes already declared
                 if (td[key] is SolidColorBrush brush)
                 {
                     brush.Color = color;
                 }
-                else
+            }
+        }
+
+        // stops we already recolored, remembered so changing the accent again later can just
+        // retint them instead of matching the system colors all over
+        private static readonly Dictionary<GradientStop, AccentBrushRole> focusStops = [];
+
+        // walks the gradient of that key and puts our palette shade on every stop that is
+        // holding a system accent color
+        private static void RecolorGradient(ResourceDictionary resources, string key, AccentPalette palette)
+        {
+            var ramp = SystemAccentRamp();
+            var found = 0;
+            foreach (var brush in FindGradients(resources, key))
+            {
+                foreach (var stop in brush.GradientStops)
                 {
-                    td[key] = new SolidColorBrush(color);
+                    if (focusStops.TryGetValue(stop, out var role) || ramp.TryGetValue(stop.Color, out role))
+                    {
+                        focusStops[stop] = role;
+                        stop.Color = ColorForRole(palette, role);
+                        found++;
+                    }
                 }
             }
+
+            if (found == 0)
+            {
+                Logger.Warn($"focus gradient {key} had no system accent stops to recolor");
+            }
+        }
+
+        private static IEnumerable<LinearGradientBrush> FindGradients(ResourceDictionary resources, string key)
+        {
+            if (resources[key] is LinearGradientBrush root)
+            {
+                yield return root;
+            }
+
+            foreach (var merged in resources.MergedDictionaries)
+            {
+                foreach (var themeEntry in merged.ThemeDictionaries)
+                {
+                    if (themeEntry.Value is ResourceDictionary td && td.ContainsKey(key) && td[key] is LinearGradientBrush brush)
+                    {
+                        yield return brush;
+                    }
+                }
+            }
+        }
+
+        private static Dictionary<Color, AccentBrushRole> SystemAccentRamp()
+        {
+            var ramp = new Dictionary<Color, AccentBrushRole>();
+            void Add(Windows.UI.ViewManagement.UIColorType type, AccentBrushRole role) =>
+                ramp[uiSettings.GetColorValue(type)] = role;
+
+            Add(Windows.UI.ViewManagement.UIColorType.Accent, AccentBrushRole.Base);
+            Add(Windows.UI.ViewManagement.UIColorType.AccentLight1, AccentBrushRole.Light1);
+            Add(Windows.UI.ViewManagement.UIColorType.AccentLight2, AccentBrushRole.Light2);
+            Add(Windows.UI.ViewManagement.UIColorType.AccentLight3, AccentBrushRole.Light3);
+            Add(Windows.UI.ViewManagement.UIColorType.AccentDark1, AccentBrushRole.Dark1);
+            Add(Windows.UI.ViewManagement.UIColorType.AccentDark2, AccentBrushRole.Dark2);
+            Add(Windows.UI.ViewManagement.UIColorType.AccentDark3, AccentBrushRole.Dark3);
+            return ramp;
         }
 
         private static Color ColorForRole(AccentPalette palette, AccentBrushRole role) => role switch

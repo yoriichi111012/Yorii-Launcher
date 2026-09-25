@@ -1,0 +1,55 @@
+# Composite action: setup JDK, build with Gradle, upload artifact
+name: Build
+description: Build project with Gradle and upload artifact
+
+inputs:
+  artifact-name:
+    description: Artifact name for upload
+    required: true
+
+outputs:
+  mod_name:
+    description: Display name of the mod
+    value: ${{ steps.info.outputs.mod_name }}
+  edition:
+    description: Target mod loader edition
+    value: ${{ steps.info.outputs.edition }}
+  short_version:
+    description: Shortened version identifier
+    value: ${{ steps.info.outputs.short_version }}
+  loaders:
+    description: List of supported mod loaders
+    value: ${{ steps.info.outputs.loaders }}
+  game_versions:
+    description: List of compatible Minecraft game versions
+    value: ${{ steps.info.outputs.game_versions }}
+  java:
+    description: List of compatible Java versions
+    value: ${{ steps.info.outputs.java }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: '25'
+        cache: gradle
+
+    - name: Build with Gradle
+      shell: pwsh
+      run: |
+        ./gradlew clean build --info --stacktrace -Pbuild_type=${{ github.event_name }}
+        ./gradlew --stop
+
+    - name: Generate metadata JSONs
+      if: github.event_name != 'pull_request'
+      shell: pwsh
+      id: info
+      run: ./.github/scripts/Get-PublishInfo.ps1 -ArtifactDir 'Bootstrap/build/libs' -Type '${{ github.event_name }}'
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: Bootstrap/build/libs/
+        if-no-files-found: error

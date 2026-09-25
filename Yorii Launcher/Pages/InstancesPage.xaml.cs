@@ -41,6 +41,7 @@ namespace Yorii_Launcher.Pages
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
+            Logger.Info("Navigated to InstancesPage");
             LoadInstances();
         }
 
@@ -98,29 +99,56 @@ namespace Yorii_Launcher.Pages
             InstanceManager.EnsureYoriiSkinsLoaderInstalled();
         }
 
-        // setup filesystem watcher so the instance list updates when folders are added/deleted externally
+        // setup filesystem watcher so the instance list updates when folders are added/deleted externally.
+        // same locked swap as InstalledModsPage: watcher events arrive on pool
+        // threads while Start runs on the ui thread
+        private readonly object watcherLock = new();
         private void StartInstancesWatcher()
         {
             Directory.CreateDirectory(InstanceManager.InstancesRoot);
 
-            instancesWatcher?.Dispose();
-            instancesWatcher = new FileSystemWatcher(InstanceManager.InstancesRoot)
+            FileSystemWatcher? oldWatcher;
+            CancellationTokenSource? oldCts;
+            lock (watcherLock)
             {
-                IncludeSubdirectories = false,
-                EnableRaisingEvents = true
-            };
+                oldWatcher = instancesWatcher;
+                oldCts = watcherCts;
+                instancesWatcher = new FileSystemWatcher(InstanceManager.InstancesRoot)
+                {
+                    IncludeSubdirectories = false,
+                    EnableRaisingEvents = true
+                };
 
-            instancesWatcher.Created += InstancesChanged;
-            instancesWatcher.Deleted += InstancesChanged;
-            instancesWatcher.Renamed += InstancesChanged;
+                instancesWatcher.Created += InstancesChanged;
+                instancesWatcher.Deleted += InstancesChanged;
+                instancesWatcher.Renamed += InstancesChanged;
+                watcherCts = null;
+            }
+            oldWatcher?.Dispose();
+            CancelAndDisposeCts(oldCts);
+            Logger.Info($"Instances watcher watching {InstanceManager.InstancesRoot}");
+        }
+
+        private static void CancelAndDisposeCts(CancellationTokenSource? cts)
+        {
+            if (cts is null) return;
+            try { cts.Cancel(); } catch (ObjectDisposedException) { }
+            cts.Dispose();
         }
 
         // debounce filesystem changes with a short delay so rapid changes dont hammer the ui
         private void InstancesChanged(object sender, FileSystemEventArgs e)
         {
-            watcherCts?.Cancel();
-            watcherCts = new CancellationTokenSource();
-            var token = watcherCts.Token;
+            CancellationTokenSource? oldCts;
+            CancellationTokenSource freshCts;
+            lock (watcherLock)
+            {
+                oldCts = watcherCts;
+                freshCts = new CancellationTokenSource();
+                watcherCts = freshCts;
+            }
+            CancelAndDisposeCts(oldCts);
+            var token = freshCts.Token;
 
             _ = Task.Run(async () =>
             {
@@ -229,9 +257,17 @@ namespace Yorii_Launcher.Pages
             if (AccountManager.GetSelectedAccount() is { } selectedAccount)
             {
                 SkinManager.CopyLocalSkinToPath(selectedAccount.Username, instance.MinecraftPath);
-                // also pull the latest published skin so a brand-new instance
-                // never shows a missing/stale head in the ui or in-game
-                _ = SkinManager.SyncSkinToAllInstancesAsync(selectedAccount.Username);
+                SkinManager.CopyLocalCapeToPath(selectedAccount.Username, instance.MinecraftPath);
+                // offline accounts have no published skin: the local copy above
+                // is the truth, a remote sync would clobber it with any
+                // same-name published skin
+                if (!selectedAccount.IsOffline)
+                {
+                    // also pull the latest published skin so a brand-new instance
+                    // never shows a missing/stale head in the ui or in-game
+                    _ = SkinManager.SyncSkinToAllInstancesAsync(selectedAccount.Username);
+                    _ = SkinManager.SyncCapeToAllInstancesAsync(selectedAccount.Username);
+                }
             }
 
             InstanceManager.SetSelectedInstance(instance.Id);

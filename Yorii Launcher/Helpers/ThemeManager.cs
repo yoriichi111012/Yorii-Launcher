@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 
@@ -8,7 +9,7 @@ namespace Yorii_Launcher.Helpers
 {
     public static class ThemeManager
     {
-        private static readonly object saveLock = new();
+        private static readonly Lock saveLock = new();
         private static ThemeSettings? current;
 
         public static event Action? ThemeSettingsChanged;

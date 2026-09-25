@@ -15,6 +15,14 @@ namespace Yorii_Launcher.Helpers
     [JsonSerializable(typeof(ThemeSettings))]
     [JsonSerializable(typeof(LoaderVersionCache))]
     [JsonSerializable(typeof(VersionIndexEntry))]
+    [JsonSerializable(typeof(GitHubPutContentPayload))]
+    [JsonSerializable(typeof(GitHubDeleteContentPayload))]
+    [JsonSerializable(typeof(OAuthCodeRequest))]
+    [JsonSerializable(typeof(SkinUploadPayload))]
+    [JsonSerializable(typeof(CapeUploadPayload))]
+    [JsonSerializable(typeof(HeartbeatPayload))]
+    [JsonSerializable(typeof(SkinIndexSnapshot))]
+    [JsonSerializable(typeof(CslProfilePayload))]
     internal sealed partial class LauncherJsonContext : JsonSerializerContext
     {
     }

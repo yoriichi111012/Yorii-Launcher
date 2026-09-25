@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>Quiescent.Core.Commons</PackageId>
+    <Description>Common utilities for Quiescent.Core (forked from CmlLib.Core.Commons)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+</Project>

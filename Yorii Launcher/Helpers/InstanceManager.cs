@@ -85,6 +85,47 @@ namespace Yorii_Launcher.Helpers
             SaveMetadata(instancePath, metadata);
         }
 
+        // one-time (idempotent) migration of per-instance versions to display
+        // names, resolved against each instance's own versions folder so
+        // loader collisions keep their " (loader x)" suffix.
+        public static void MigrateStoredVersions()
+        {
+            try
+            {
+                if (!Directory.Exists(InstancesRoot))
+                    return;
+
+                int migrated = 0;
+                foreach (var directory in Directory.GetDirectories(InstancesRoot))
+                {
+                    try
+                    {
+                        var metadata = LoadMetadata(directory);
+                        if (metadata == null || string.IsNullOrWhiteSpace(metadata.MinecraftVersion))
+                            continue;
+
+                        string versionsDir = Path.Combine(directory, "minecraft", "versions");
+                        var normalized = VersionDisplay.NormalizeStored(metadata.MinecraftVersion, versionsDir);
+                        if (!string.Equals(normalized, metadata.MinecraftVersion, StringComparison.Ordinal))
+                        {
+                            metadata.MinecraftVersion = normalized;
+                            SaveMetadata(directory, metadata);
+                            migrated++;
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                if (migrated > 0)
+                    Logger.Info($"Migrated {migrated} instance versions to display names");
+            }
+            catch
+            {
+            }
+        }
+
         public static List<LauncherInstance> LoadInstances(double scale = 1.0)
         {
             Directory.CreateDirectory(InstancesRoot);
@@ -383,7 +424,22 @@ namespace Yorii_Launcher.Helpers
             if (string.IsNullOrWhiteSpace(version))
                 return false;
 
-            string trimmed = version.Trim();
+            string trimmed = VersionDisplay.StripLoaderSuffix(version.Trim());
+
+            // unmigrated raw ids (fabric-loader-*, *-forge-*) resolve by name
+            // alone; display names resolve by prefix below.
+            var raw = VersionDisplay.ParseInstalledFolder(trimmed, "");
+            if (raw is not null)
+            {
+                loader = raw.Loader switch
+                {
+                    LoaderKind.Fabric => ModLoaderKind.Fabric,
+                    LoaderKind.Forge => ModLoaderKind.Forge,
+                    LoaderKind.NeoForge => ModLoaderKind.NeoForge,
+                    _ => ModLoaderKind.Vanilla
+                };
+                return Version.TryParse(raw.McVersion, out baseVersion);
+            }
 
             if (trimmed.StartsWith("Fabric ", StringComparison.OrdinalIgnoreCase))
                 loader = ModLoaderKind.Fabric;

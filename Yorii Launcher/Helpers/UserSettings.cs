@@ -9,7 +9,7 @@ namespace Yorii_Launcher.Helpers
         // launcher
         public string MinecraftPath { get; set; } = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".minecraft");
-        public string SelectedVersion { get; set; } = "26.2";
+        public string SelectedVersion { get; set; } = "26.3";
         public string LastSavedVersion { get; set; } = "";
         public bool InstancesEnabled { get; set; } = true;
         public bool ServerListEnabled { get; set; } = true;
@@ -52,7 +52,6 @@ namespace Yorii_Launcher.Helpers
         public string CachedUUID { get; set; } = "";
         public string CachedAccessToken { get; set; } = "";
 
-        // yorii skins is our cloudflare auth server worker which fetches skins from github repo
         public string? GitHubToken { get; set; }
         public string? GitHubUsername { get; set; }
 
@@ -78,10 +77,11 @@ namespace Yorii_Launcher.Helpers
             return MinecraftPath;
         }
 
-        // strips "fabric ", "forge ", "neoforge " prefix from version string
+        // strips "fabric ", "forge ", "neoforge " prefix (and any
+        // " (loader x)" collision suffix) from version string
         public string GetCleanSelectedVersion()
         {
-            var selected = SelectedVersion;
+            var selected = VersionDisplay.StripLoaderSuffix(SelectedVersion);
             if (selected.StartsWith("Fabric "))
                 selected = selected["Fabric ".Length..].Trim();
             else if (selected.StartsWith("Forge "))

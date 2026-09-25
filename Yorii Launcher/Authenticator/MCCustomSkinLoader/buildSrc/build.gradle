@@ -1,0 +1,25 @@
+plugins {
+    id 'java-gradle-plugin'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+dependencies {
+    implementation localGroovy()
+}
+
+gradlePlugin {
+    plugins {
+        manifestLibraries {
+            id = 'customskinloader.manifest-libraries'
+            implementationClass = 'customskinloader.gradle.ManifestLibrariesPlugin'
+        }
+    }
+}

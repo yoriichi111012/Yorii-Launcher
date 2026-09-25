@@ -35,8 +35,9 @@ namespace Yorii_Launcher.Pages
             NavigationCacheMode = NavigationCacheMode.Required;
 
             ResourcePacksList.ItemsSource = ResourcePacks;
+            ResourcePacksGridList.ItemsSource = ResourcePacks;
             var savedMode = (PluginViewMode)SettingsManager.Current.InstalledResourcePacksViewMode;
-            PluginViewModeHelper.Apply(ResourcePacksList, savedMode);
+            PluginViewModeHelper.ApplyDualView(ResourcePacksList, ResourcePacksGridList, savedMode);
             ResourcePacksViewModeSegmented.SelectedIndex = (int)savedMode;
 
             _ = LoadResourcePacks();
@@ -47,7 +48,7 @@ namespace Yorii_Launcher.Pages
 
         private void ViewModeSegmented_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            PluginViewModeHelper.ApplyFromSelectedIndex(ResourcePacksList, ResourcePacksViewModeSegmented.SelectedIndex);
+            PluginViewModeHelper.ApplyDualViewFromSelectedIndex(ResourcePacksList, ResourcePacksGridList, ResourcePacksViewModeSegmented.SelectedIndex);
             SettingsManager.Current.InstalledResourcePacksViewMode = ResourcePacksViewModeSegmented.SelectedIndex;
             SettingsManager.SaveSettings();
         }
@@ -61,16 +62,36 @@ namespace Yorii_Launcher.Pages
             }
         }
 
+        // same locked swap as InstalledModsPage: watcher events arrive on pool
+        // threads while Start runs on the ui thread
+        private readonly object watcherLock = new();
         private void StartResourcePacksWatcher()
         {
             Directory.CreateDirectory(ResourcePacksFolder);
 
-            resourcePacksWatcher?.Dispose();
-            resourcePacksWatcher = new FileSystemWatcher(ResourcePacksFolder);
-            resourcePacksWatcher.Created += ResourcePacksChanged;
-            resourcePacksWatcher.Deleted += ResourcePacksChanged;
-            resourcePacksWatcher.Renamed += ResourcePacksChanged;
-            resourcePacksWatcher.EnableRaisingEvents = true;
+            FileSystemWatcher? oldWatcher;
+            CancellationTokenSource? oldCts;
+            lock (watcherLock)
+            {
+                oldWatcher = resourcePacksWatcher;
+                oldCts = watcherCts;
+                resourcePacksWatcher = new FileSystemWatcher(ResourcePacksFolder);
+                resourcePacksWatcher.Created += ResourcePacksChanged;
+                resourcePacksWatcher.Deleted += ResourcePacksChanged;
+                resourcePacksWatcher.Renamed += ResourcePacksChanged;
+                resourcePacksWatcher.EnableRaisingEvents = true;
+                watcherCts = null;
+            }
+            oldWatcher?.Dispose();
+            CancelAndDisposeCts(oldCts);
+            Logger.Info($"Resource packs watcher watching {ResourcePacksFolder}");
+        }
+
+        private static void CancelAndDisposeCts(CancellationTokenSource? cts)
+        {
+            if (cts is null) return;
+            try { cts.Cancel(); } catch (ObjectDisposedException) { }
+            cts.Dispose();
         }
 
         private void ResourcePacksChanged(object sender, FileSystemEventArgs e)
@@ -80,14 +101,22 @@ namespace Yorii_Launcher.Pages
 
             Debug.WriteLine($"WATCHER: {e.ChangeType} -> {e.FullPath}");
 
-            watcherCts?.Cancel();
-            watcherCts = new CancellationTokenSource();
+            CancellationTokenSource? oldCts;
+            CancellationTokenSource freshCts;
+            lock (watcherLock)
+            {
+                oldCts = watcherCts;
+                freshCts = new CancellationTokenSource();
+                watcherCts = freshCts;
+            }
+            CancelAndDisposeCts(oldCts);
+            var token = freshCts.Token;
 
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await Task.Delay(250, watcherCts.Token);
+                    await Task.Delay(250, token);
 
                     await DispatcherQueue.EnqueueAsync(async () =>
                     {
@@ -286,6 +315,7 @@ namespace Yorii_Launcher.Pages
 
                 resourcePacks = loadedResourcePacks.OrderBy(r => r.Name).ToList();
                 SyncResourcePacks(resourcePacks);
+                Logger.Info($"Loaded {resourcePacks.Count} resource packs");
             }
             finally
             {
@@ -317,8 +347,8 @@ namespace Yorii_Launcher.Pages
         protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             base.OnNavigatedTo(e);
-
             // re-point the watcher at the active instance, then refresh the list
+            Logger.Info("Navigated to InstalledResourcePacksPage");
             StartResourcePacksWatcher();
             await LoadResourcePacks();
         }

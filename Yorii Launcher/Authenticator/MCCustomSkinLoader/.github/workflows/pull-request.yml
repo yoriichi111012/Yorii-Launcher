@@ -1,0 +1,16 @@
+name: Pull Request
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [15-develop]
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/build
+        with:
+          artifact-name: CustomSkinLoader-PR-${{ github.run_number }}

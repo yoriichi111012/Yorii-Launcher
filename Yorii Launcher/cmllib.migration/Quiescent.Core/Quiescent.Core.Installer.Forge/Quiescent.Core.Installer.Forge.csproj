@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <PackageId>Quiescent.Core.Installer.Forge</PackageId>
+    <Description>Minecraft Forge Installer (forked from CmlLib.Core.Installer.Forge, NativeAOT-compatible)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Quiescent.Core\Quiescent.Core.csproj" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.48" />
+    <PackageReference Include="Fody" Version="6.5.3" PrivateAssets="all" />
+    <PackageReference Include="ConfigureAwait.Fody" Version="3.3.1" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

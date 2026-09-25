@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
+using Yorii_Launcher.Helpers;
 
 namespace Yorii_Launcher.ViewModels
 {
@@ -130,7 +131,7 @@ namespace Yorii_Launcher.ViewModels
         // returns a zero-padded comparable string so "26.2" beats "1.21.11"
         private static string GetVersionSortKey(VersionItem v)
         {
-            string name = v.Name;
+            string name = VersionDisplay.StripLoaderSuffix(v.Name);
             string versionPart = name;
 
             if (name.StartsWith("Fabric ", StringComparison.Ordinal))

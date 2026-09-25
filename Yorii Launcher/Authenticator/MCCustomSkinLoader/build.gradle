@@ -1,0 +1,98 @@
+import groovy.json.JsonSlurper
+import org.apache.tools.ant.filters.ReplaceTokens
+import org.gradle.api.attributes.java.TargetJvmVersion
+
+def info = new JsonSlurper().parse(file("build.info.json"))
+
+def releaseGroup = info['mod_group']
+def releaseName = info['mod_name']
+def releaseVersion = info['mod_version']
+def releaseEdition = info['edition']
+def releaseIsSnapshot = build_type != 'release'
+def releaseBuildNumber = System.getenv('GITHUB_RUN_NUMBER')?.trim() ?: '0'
+def releaseFullVersion = (releaseIsSnapshot ? "${releaseVersion}-SNAPSHOT-${releaseBuildNumber}" : releaseVersion).toString()
+
+group = releaseGroup
+version = releaseFullVersion
+
+ext {
+    modName = releaseName
+    modVersion = releaseVersion
+    modBuildNumber = releaseBuildNumber
+    modFullVersion = releaseFullVersion
+    releaseArchiveBaseName = "${releaseName}_${releaseEdition}".toString()
+}
+
+def macroValues = {
+    [
+            modVersion     : rootProject.ext.modVersion.toString(),
+            modFullVersion : rootProject.ext.modFullVersion.toString(),
+            modBuildNumber : rootProject.ext.modBuildNumber.toString()
+    ]
+}
+
+def javaMacroTokens = {
+    def values = macroValues()
+    [
+            MOD_VERSION      : values.modVersion,
+            MOD_FULL_VERSION : values.modFullVersion,
+            MOD_BUILD_NUMBER : values.modBuildNumber
+    ]
+}
+
+def resourceMacroTokens = {
+    macroValues()
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'customskinloader.manifest-libraries'
+
+    manifestLibraries {
+        // Share Bootstrap's dependency set with all packaged child modules.
+        add "https://raw.githubusercontent.com/PrismLauncher/meta-launcher/refs/heads/master/net.minecraft/${minecraft_version}.json"
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    def generatedJavaDir = layout.buildDirectory.dir('generated/sources/java-macros/main/java').get().asFile
+
+    def generateJavaMacros = tasks.register('generateJavaMacros', Sync) {
+        inputs.properties(javaMacroTokens())
+
+        from('src/main/java') {
+            include '**/*.java'
+            filteringCharset = 'UTF-8'
+            filter(ReplaceTokens, tokens: javaMacroTokens())
+        }
+
+        into(generatedJavaDir)
+    }
+
+    configurations.configureEach { configuration ->
+        if (configuration.canBeResolved) {
+            configuration.attributes.attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 25)
+        }
+    }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    compileJava {
+        dependsOn(generateJavaMacros)
+        source = generatedJavaDir
+    }
+
+    processResources {
+        inputs.properties(resourceMacroTokens())
+        filteringCharset = 'UTF-8'
+
+        filesMatching(['**/*.json', '**/*.toml', '**/mcmod.info']) {
+            filter(ReplaceTokens, beginToken: '${', endToken: '}', tokens: resourceMacroTokens())
+        }
+    }
+}

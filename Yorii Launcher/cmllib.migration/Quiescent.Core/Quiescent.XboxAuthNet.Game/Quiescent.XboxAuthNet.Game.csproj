@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <PackageId>Quiescent.XboxAuthNet.Game</PackageId>
+    <Description>XboxAuthNet.Game (forked, NativeAOT-compatible)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Quiescent.XboxAuthNet\Quiescent.XboxAuthNet.csproj" />
+    <ProjectReference Include="..\Quiescent.Core.Commons\Quiescent.Core.Commons.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
+    <PackageReference Include="Fody" Version="6.8.1" PrivateAssets="all" />
+    <PackageReference Include="ConfigureAwait.Fody" Version="3.3.2" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

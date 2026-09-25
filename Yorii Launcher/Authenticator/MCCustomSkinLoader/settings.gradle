@@ -1,0 +1,14 @@
+rootProject.name = 'MCCustomSkinLoader'
+
+include(
+        'Bootstrap',
+        'Bootstrap:Core',
+        'Bootstrap:FabricV1',
+        'Bootstrap:ForgeV1',
+        'Bootstrap:ForgeV2',
+        'Bootstrap:NeoForgeV1',
+        'Bootstrap:NeoForgeV2',
+        'Common',
+        'Dummy:Bootstrap',
+        'Dummy:Common'
+)

@@ -126,20 +126,18 @@ namespace Yorii_Launcher.Helpers
                         sha = shaEl.GetString();
                 }
 
-                var payload = new
-                {
-                    message = $"Update version index ({DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC)",
-                    content = base64,
+                var payload = new GitHubPutContentPayload(
+                    $"Update version index ({DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC)",
+                    base64,
                     branch,
-                    sha
-                };
+                    sha);
 
                 var putReq = new HttpRequestMessage(HttpMethod.Put, $"{apiBase}/repos/{IndexRepoOwner}/{IndexRepo}/contents/{IndexFile}");
                 putReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 putReq.Headers.Add("Accept", "application/vnd.github+json");
                 putReq.Headers.UserAgent.Add(new ProductInfoHeaderValue("YoriiLauncher", "1.0"));
                 putReq.Content = new StringContent(
-                    JsonSerializer.Serialize(payload), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
+                    JsonSerializer.Serialize(payload, LauncherJsonContext.Default.GitHubPutContentPayload), Encoding.UTF8, new MediaTypeHeaderValue("application/json"));
 
                 await web.SendAsync(putReq);
             }
