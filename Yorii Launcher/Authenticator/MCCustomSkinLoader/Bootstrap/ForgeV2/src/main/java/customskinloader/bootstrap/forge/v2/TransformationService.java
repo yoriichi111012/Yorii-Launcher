@@ -3,6 +3,7 @@ package customskinloader.bootstrap.forge.v2;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -24,6 +25,7 @@ public final class TransformationService implements ITransformationService {
     @Override
     public void initialize(IEnvironment environment) {
         LOGGER.info("Initializing CustomSkinLoader Bootstrap transformation service");
+        TransformerBootstrap.publishModLoaderInfo();
         try {
             List<Path> extraLocators = ModDirTransformerDiscoverer.getExtraLocators();
             Path servicePath = Paths.get(this.getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).toAbsolutePath().normalize();
@@ -54,8 +56,7 @@ public final class TransformationService implements ITransformationService {
 
     @Override
     public List<ITransformer> transformers() {
-        List<ITransformer> transformers = TransformerBootstrap.buildTransformers();
-        LOGGER.info("Provided " + transformers.size() + " CustomSkinLoader ModLauncher transformer(s)");
-        return transformers;
+        LOGGER.info("Providing CustomSkinLoader ModLauncher transformer");
+        return Collections.singletonList(new TransformerBootstrap());
     }
 }

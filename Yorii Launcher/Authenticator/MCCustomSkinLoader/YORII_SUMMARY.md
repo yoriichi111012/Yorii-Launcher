@@ -65,15 +65,14 @@ The `getPreloadProfile()` helper:
 7. MinecraftCapes              ← Capes
 8. OptiFine                    ← Capes
 9. CloakPlus                   ← Capes
-10. Cosmetica                  ← Capes
 ```
 
 ## Result
 
 - **YoriiSkins user**: Skin loads in **0ms** (preloaded file, no network, no placeholder flash)
 - **Non-YoriiSkins players**: Falls through to normal loadlist (all providers work)
-- **Capes**: Preloaded capes load instantly; otherwise fetched from Cosmetica/MinecraftCapes/etc.
-- **Compatibility**: All 10 default providers preserved as fallbacks
+- **Capes**: Preloaded capes load instantly; otherwise fetched from MinecraftCapes/Cloaks+/etc.
+- **Compatibility**: All 9 default providers preserved as fallbacks
 
 ## Files Modified
 

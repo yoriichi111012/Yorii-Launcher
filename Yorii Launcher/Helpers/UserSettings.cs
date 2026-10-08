@@ -15,6 +15,9 @@ namespace Yorii_Launcher.Helpers
         public bool ServerListEnabled { get; set; } = true;
         public bool WorldListEnabled { get; set; } = true;
         public double RamAmount { get; set; } = 4;
+        public string GameResolution { get; set; } = "Default";
+        public bool OverrideInGameFullscreen { get; set; } = false;
+        public List<string> CustomResolutions { get; set; } = [];
 
         // version filters
         public bool ShowSnapshots { get; set; } = false;

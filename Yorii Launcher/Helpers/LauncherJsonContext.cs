@@ -14,6 +14,7 @@ namespace Yorii_Launcher.Helpers
     [JsonSerializable(typeof(UserSettings))]
     [JsonSerializable(typeof(ThemeSettings))]
     [JsonSerializable(typeof(LoaderVersionCache))]
+    [JsonSerializable(typeof(SkinsLoaderState))]
     [JsonSerializable(typeof(VersionIndexEntry))]
     [JsonSerializable(typeof(GitHubPutContentPayload))]
     [JsonSerializable(typeof(GitHubDeleteContentPayload))]

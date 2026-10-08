@@ -42,6 +42,8 @@ namespace Yorii_Launcher
             LoadOverlaySettings();
             UpdateOverlayControlsEnabled();
             LoadWindowBehaviorComboBox();
+            LoadResolutionComboBox();
+            LoadOverrideFullscreenSetting();
             LoadShowConsoleSetting();
             LoadSavedFolder();
             LoadInstancesSetting();
@@ -331,6 +333,18 @@ namespace Yorii_Launcher
             showConsoleToggle.IsOn = SettingsManager.Current.ShowConsole;
         }
 
+        private void LoadOverrideFullscreenSetting()
+        {
+            overrideFullscreenToggle.IsOn = SettingsManager.Current.OverrideInGameFullscreen;
+        }
+
+        private void OverrideFullscreenToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (isInitializing) return;
+            SettingsManager.Current.OverrideInGameFullscreen = overrideFullscreenToggle.IsOn;
+            SettingsManager.SaveSettings();
+        }
+
         private void ShowConsoleToggle_Toggled(object sender, RoutedEventArgs e)
         {
             if (isInitializing) return;
@@ -473,6 +487,129 @@ namespace Yorii_Launcher
                 SettingsManager.Current.WindowBehavior = item.Tag?.ToString() ?? "None";
                 SettingsManager.SaveSettings();
             }
+        }
+
+        private void LoadResolutionComboBox()
+        {
+            foreach (var custom in SettingsManager.Current.CustomResolutions)
+                AddResolutionItem(custom, false);
+
+            SelectResolutionItem(SettingsManager.Current.GameResolution);
+        }
+
+        private void AddResolutionItem(string resolution, bool select)
+        {
+            foreach (ComboBoxItem existing in gameResolution.Items.OfType<ComboBoxItem>())
+            {
+                if (existing.Tag?.ToString() == resolution)
+                {
+                    if (select)
+                        gameResolution.SelectedItem = existing;
+                    return;
+                }
+            }
+
+            var item = new ComboBoxItem { Content = FormatResolution(resolution), Tag = resolution };
+            gameResolution.Items.Insert(Math.Max(0, gameResolution.Items.Count - 1), item);
+            if (select)
+                gameResolution.SelectedItem = item;
+        }
+
+        private void SelectResolutionItem(string resolution)
+        {
+            foreach (ComboBoxItem item in gameResolution.Items.OfType<ComboBoxItem>())
+            {
+                if (item.Tag?.ToString() == resolution)
+                {
+                    gameResolution.SelectedItem = item;
+                    return;
+                }
+            }
+            gameResolution.SelectedIndex = 0;
+        }
+
+        private static string FormatResolution(string resolution)
+        {
+            var parts = resolution.Split('x');
+            return parts.Length == 2 ? $"{parts[0]} x {parts[1]}" : resolution;
+        }
+
+        private async void GameResolution_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (isInitializing) return;
+            if (gameResolution.SelectedItem is not ComboBoxItem item) return;
+
+            if (item.Tag?.ToString() == "Custom")
+            {
+                var custom = await ShowCustomResolutionDialogAsync();
+                if (custom != null)
+                {
+                    if (!SettingsManager.Current.CustomResolutions.Contains(custom))
+                    {
+                        SettingsManager.Current.CustomResolutions.Add(custom);
+                        SettingsManager.SaveSettings();
+                    }
+                    SettingsManager.Current.GameResolution = custom;
+                    SettingsManager.SaveSettings();
+                    AddResolutionItem(custom, true);
+                }
+                else
+                {
+                    SelectResolutionItem(SettingsManager.Current.GameResolution);
+                }
+                return;
+            }
+
+            SettingsManager.Current.GameResolution = item.Tag?.ToString() ?? "Default";
+            SettingsManager.SaveSettings();
+        }
+
+        private async Task<string?> ShowCustomResolutionDialogAsync()
+        {
+            var widthBox = new NumberBox
+            {
+                Header = "Width",
+                Minimum = 320,
+                Maximum = 7680,
+                Value = 1920,
+                SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline
+            };
+            var heightBox = new NumberBox
+            {
+                Header = "Height",
+                Minimum = 320,
+                Maximum = 7680,
+                Value = 1080,
+                SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline
+            };
+            var panel = new StackPanel { Spacing = 12 };
+            panel.Children.Add(widthBox);
+            panel.Children.Add(heightBox);
+
+            var dialog = new ContentDialog
+            {
+                Title = "Custom resolution",
+                Content = panel,
+                PrimaryButtonText = "Add",
+                CloseButtonText = "Cancel",
+                DefaultButton = ContentDialogButton.Primary,
+                Background = DialogHelper.GetAcrylicBrush(),
+                XamlRoot = XamlRoot,
+                RequestedTheme = ThemeHelper.GetCurrentTheme()
+            };
+            DialogHelper.Apply(dialog);
+
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+                return null;
+
+            int width = (int)widthBox.Value;
+            int height = (int)heightBox.Value;
+            if (width < 320 || height < 320)
+            {
+                NotificationHelper.Show("Invalid resolution", "Width and height must be at least 320.");
+                return null;
+            }
+            return $"{width}x{height}";
         }
 
         private async void backgroundImage_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -704,6 +841,8 @@ namespace Yorii_Launcher
             LoadBackgroundImageComboBox();
                     LoadOverlaySettings();
                     LoadWindowBehaviorComboBox();
+                    LoadResolutionComboBox();
+                    LoadOverrideFullscreenSetting();
                     LoadShowConsoleSetting();
                     LoadSavedFolder();
                     LoadInstancesSetting();

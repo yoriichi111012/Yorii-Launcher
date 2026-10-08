@@ -3,7 +3,7 @@
 	<OutputType>WinExe</OutputType>
 	<TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
 	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
-	<Version>0.9.7</Version>
+	<Version>0.9.9</Version>
 	<RootNamespace>Yorii_Launcher</RootNamespace>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
 	<Platforms>x64;ARM64</Platforms>
@@ -96,13 +96,7 @@
 	<Content Include="authlib-injector.jar">
 	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</Content>
-	<Content Include="yoriiSkinsLoader-fabric.jar">
-	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	</Content>
-	<Content Include="yoriiSkinsLoader-forge.jar">
-	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	</Content>
-	<Content Include="yoriiSkinsLoader-neoforge.jar">
+	<Content Include="yoriiSkinsLoader.jar">
 	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	</Content>
 	<Content Include="mc-version-index.json">

@@ -118,6 +118,30 @@ The launcher must:
 ## Result
 
 - **YoriiSkins user**: Skin loads instantly from preloaded file (0ms delay, no placeholder flash)
-- **Non-YoriiSkins players**: Falls through to normal loadlist (YoriiSkins API → Mojang → BlessingSkin → Cosmetica → etc.)
+- **Non-YoriiSkins players**: Falls through to normal loadlist (YoriiSkins API → Mojang → BlessingSkin → etc.)
 - **All providers still work**: The loadlist is only bypassed when a preloaded skin exists
 - **Capes still work**: Preloaded capes in `LocalSkin/capes/` are included in the preload profile
+
+## Publishing Updates
+
+The launcher no longer needs a release to ship a new mod build. It polls
+the remotely hosted jar itself (max once every 24h, in the background, never
+blocking launch) using a cached http etag - unchanged means a `304` with no
+body, changed means the new bytes, which are sanity-checked (valid zip with
+our mod id) before replacing the cached copy. Bundled jars stay as the
+offline fallback.
+
+There is no separate upload: the remote file IS the bundled
+`yoriiSkinsLoader.jar` in this repo (one universal file covers every loader),
+served at
+`https://raw.githubusercontent.com/yoriichi111012/Yorii-Launcher/main/Yorii%20Launcher/yoriiSkinsLoader.jar`.
+
+To publish a build (e.g. after rebasing onto a new upstream for a new
+Minecraft version):
+
+1. Build the Universal jar: `./gradlew clean build -Pbuild_type=release`
+2. Copy it over the bundled `yoriiSkinsLoader.jar` and push - that commit
+   is the entire publish
+
+Launchers pick it up on next launch and reinstall it into every instance
+automatically.

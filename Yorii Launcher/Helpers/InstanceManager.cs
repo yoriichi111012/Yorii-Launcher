@@ -13,6 +13,7 @@ namespace Yorii_Launcher.Helpers
         private const string InstanceFileName = "instance.yaml";
         private const string LegacyInstanceFileName = "instance.json";
 
+        internal const string YoriiSkinsLoaderJar = "yoriiSkinsLoader.jar";
         private const string YoriiSkinsLoaderFabricJar = "yoriiSkinsLoader-fabric.jar";
         private const string YoriiSkinsLoaderForgeJar = "yoriiSkinsLoader-forge.jar";
         private const string YoriiSkinsLoaderNeoForgeJar = "yoriiSkinsLoader-neoforge.jar";
@@ -287,6 +288,7 @@ namespace Yorii_Launcher.Helpers
                     if (!string.IsNullOrEmpty(activePath))
                         InstallYoriiSkinsLoader(activePath, SettingsManager.Current.SelectedVersion);
 
+                    SkinsLoaderUpdateService.RefreshInBackground();
                     return;
                 }
 
@@ -301,6 +303,8 @@ namespace Yorii_Launcher.Helpers
                         Logger.Warn($"Failed to install yoriiSkinsLoader into instance '{instance.Name}': {ex.Message}");
                     }
                 }
+
+                SkinsLoaderUpdateService.RefreshInBackground();
             }
             catch (Exception ex)
             {
@@ -333,10 +337,10 @@ namespace Yorii_Launcher.Helpers
             if (string.IsNullOrEmpty(jarName) || baseVersion < GetMinLoaderVersion(loader))
                 return;
 
-            string bundledJar = Path.Combine(AppContext.BaseDirectory, jarName);
-            if (!File.Exists(bundledJar))
+            string sourceJar = SkinsLoaderUpdateService.GetSourceJar();
+            if (!File.Exists(sourceJar))
             {
-                Logger.Warn($"{jarName} not found next to the launcher, skipping auto-install");
+                Logger.Warn($"{YoriiSkinsLoaderJar} not found next to the launcher, skipping auto-install");
                 return;
             }
 
@@ -346,13 +350,13 @@ namespace Yorii_Launcher.Helpers
             string destJar = Path.Combine(modsDir, jarName);
 
             // already up to date so skip
-            if (File.Exists(destJar) && new FileInfo(bundledJar).Length == new FileInfo(destJar).Length)
+            if (File.Exists(destJar) && new FileInfo(sourceJar).Length == new FileInfo(destJar).Length)
                 return;
 
             // clean out old jars so only the right loader one stays
             RemoveOtherYoriiSkinsJars(modsDir, jarName);
 
-            File.Copy(bundledJar, destJar, true);
+            File.Copy(sourceJar, destJar, true);
             Logger.Info($"Installed {jarName} into '{minecraftPath}' ({versionString})");
         }
 

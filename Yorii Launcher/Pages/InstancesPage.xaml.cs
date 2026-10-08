@@ -9,6 +9,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -170,27 +171,128 @@ namespace Yorii_Launcher.Pages
         }
 
         // show create dialog, make instance, refresh ui. had to build this whole dialog in code cause xaml was fighting me
+        private static (ToggleSwitch toggle, ComboBox box) AddCopyRow(StackPanel panel, string label, System.Collections.Generic.List<LauncherInstance> sources)
+        {
+            var labelText = new TextBlock
+            {
+                Text = label,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var toggle = new ToggleSwitch
+            {
+                OffContent = "",
+                OnContent = "",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, -8, 0) // optional: trims the template's empty content gap
+            };
+            toggle.Resources["ToggleSwitchThemeMinWidth"] = 0.0; // default is 154, which pushes things apart
+
+            var box = new ComboBox
+            {
+                IsEnabled = false,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            if (Application.Current.Resources.TryGetValue("AcrylicComboBoxStyle", out object resource) && resource is Style acrylicStyle)
+                box.Style = acrylicStyle;
+
+            foreach (var source in sources)
+                box.Items.Add(new ComboBoxItem { Content = source.Name, Tag = source });
+
+            var selected = InstanceManager.GetSelectedInstance();
+            box.SelectedItem = box.Items.OfType<ComboBoxItem>().FirstOrDefault(i => (i.Tag as LauncherInstance)?.Id == selected?.Id)
+                ?? box.Items.OfType<ComboBoxItem>().FirstOrDefault();
+
+            toggle.Toggled += (_, _) => box.IsEnabled = toggle.IsOn;
+
+            var row = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                ColumnSpacing = 12,
+                ColumnDefinitions =
+        {
+            new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+            new ColumnDefinition { Width = GridLength.Auto },
+            new ColumnDefinition { Width = GridLength.Auto }
+        }
+            };
+
+            Grid.SetColumn(labelText, 0);
+            Grid.SetColumn(toggle, 1);
+            Grid.SetColumn(box, 2);
+
+            row.Children.Add(labelText);
+            row.Children.Add(toggle);
+            row.Children.Add(box);
+
+            panel.Children.Add(row);
+            return (toggle, box);
+        }
+
+        private async Task CopyFromSourceAsync(LauncherInstance instance, string what, ToggleSwitch? toggle, ComboBox? box)
+        {
+            if (toggle?.IsOn != true || box?.SelectedItem is not ComboBoxItem item || item.Tag is not LauncherInstance source)
+                return;
+
+            try
+            {
+                if (what == "worlds")
+                {
+                    var from = Path.Combine(source.MinecraftPath, "saves");
+                    if (!Directory.Exists(from))
+                        return;
+                    int worlds = Directory.EnumerateDirectories(from).Count();
+                    await Task.Run(() => CopyDirectory(from, Path.Combine(instance.MinecraftPath, "saves")));
+                    NotificationHelper.Show("Instance created", $"Copied {worlds} worlds from '{source.Name}'.");
+                }
+                else
+                {
+                    var file = what == "servers" ? "servers.dat" : "options.txt";
+                    var from = Path.Combine(source.MinecraftPath, file);
+                    if (!File.Exists(from))
+                        return;
+                    File.Copy(from, Path.Combine(instance.MinecraftPath, file), true);
+                    NotificationHelper.Show("Instance created", $"Copied {what} from '{source.Name}'.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to copy {what} from '{source.Name}': {ex.Message}");
+                NotificationHelper.Show("Copy failed", $"Could not copy {what} from '{source.Name}'.");
+            }
+        }
+
+        private static void CopyDirectory(string source, string dest)
+        {
+            Directory.CreateDirectory(dest);
+            foreach (var file in Directory.EnumerateFiles(source))
+                File.Copy(file, Path.Combine(dest, Path.GetFileName(file)), true);
+            foreach (var dir in Directory.EnumerateDirectories(source))
+                CopyDirectory(dir, Path.Combine(dest, Path.GetFileName(dir)));
+        }
+
         private async void CreateInstance_Click(object sender, RoutedEventArgs e)
         {
             pendingIconPath = null;
-
             var nameBox = new TextBox
             {
                 Header = "Name",
-                PlaceholderText = "New instance"
+                PlaceholderText = "New Instance"
             };
 
             var iconText = new TextBlock
             {
                 Text = "No icon selected",
                 Opacity = 0.7,
+                VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = Microsoft.UI.Xaml.TextTrimming.CharacterEllipsis
             };
 
             var iconButton = new Button
             {
                 Content = "Choose Icon",
-                HorizontalAlignment = HorizontalAlignment.Left
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Right
             };
 
             iconButton.Click += async (_, __) =>
@@ -219,8 +321,47 @@ namespace Yorii_Launcher.Pages
             };
 
             panel.Children.Add(nameBox);
-            panel.Children.Add(iconButton);
-            panel.Children.Add(iconText);
+
+            var icon = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                ColumnSpacing = 10,
+                ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
+            };
+
+            Grid.SetColumn(iconText, 0);
+            Grid.SetColumn(iconButton, 1);
+
+            icon.Children.Add(iconText);
+            icon.Children.Add(iconButton);
+
+            panel.Children.Add(icon);
+
+            var copySources = InstanceManager.LoadInstances();
+            ToggleSwitch? settingsToggle = null;
+            ComboBox? settingsBox = null;
+            ToggleSwitch? worldsToggle = null;
+            ComboBox? worldsBox = null;
+            ToggleSwitch? serversToggle = null;
+            ComboBox? serversBox = null;
+
+            if (copySources.Count > 0)
+            {
+
+                panel.Children.Add(new TextBlock
+                {
+                    Text = "Copy from another instance",
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+                });
+
+                (settingsToggle, settingsBox) = AddCopyRow(panel, "Settings", copySources);
+                (worldsToggle, worldsBox) = AddCopyRow(panel, "Worlds", copySources);
+                (serversToggle, serversBox) = AddCopyRow(panel, "Servers", copySources);
+            }
 
             ElementTheme theme = ThemeHelper.GetCurrentTheme();
 
@@ -250,6 +391,10 @@ namespace Yorii_Launcher.Pages
 
             var scale = XamlRoot?.RasterizationScale ?? 1.0;
             var instance = InstanceManager.CreateInstance(name, pendingIconPath, scale);
+
+            await CopyFromSourceAsync(instance, "settings", settingsToggle, settingsBox);
+            await CopyFromSourceAsync(instance, "worlds", worldsToggle, worldsBox);
+            await CopyFromSourceAsync(instance, "servers", serversToggle, serversBox);
 
             // copy the selected player's local skin into the new instance so the
             // account-box head and in-game skin load instantly, then refresh the
@@ -344,39 +489,35 @@ namespace Yorii_Launcher.Pages
             {
                 Text = string.IsNullOrWhiteSpace(instance.IconPath) ? "No icon" : Path.GetFileName(instance.IconPath),
                 Opacity = 0.7,
+                VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = Microsoft.UI.Xaml.TextTrimming.CharacterEllipsis
             };
 
             var iconButton = new Button
             {
                 Content = "Change Icon",
-                HorizontalAlignment = HorizontalAlignment.Left
+                VerticalAlignment = VerticalAlignment.Center
             };
 
-            iconButton.Click += async (_, __) =>
+            var iconRow = new Grid
             {
-                var picker = new FileOpenPicker(iconButton.XamlRoot.ContentIslandEnvironment.AppWindowId)
-                {
-                    SuggestedStartLocation = PickerLocationId.PicturesLibrary,
-                    ViewMode = PickerViewMode.Thumbnail
-                };
-
-                picker.FileTypeFilter.Add(".png");
-                picker.FileTypeFilter.Add(".jpg");
-                picker.FileTypeFilter.Add(".jpeg");
-                var file = await picker.PickSingleFileAsync();
-
-                if (file != null)
-                {
-                    editPendingIconPath = file.Path;
-                    iconText.Text = Path.GetFileName(file.Path);
-                }
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                ColumnSpacing = 10,
+                ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto }
+            }
             };
+
+            Grid.SetColumn(iconText, 0);
+            Grid.SetColumn(iconButton, 1);
+            iconRow.Children.Add(iconText);
+            iconRow.Children.Add(iconButton);
 
             var panel = new StackPanel { Spacing = 10 };
             panel.Children.Add(nameBox);
-            panel.Children.Add(iconButton);
-            panel.Children.Add(iconText);
+            panel.Children.Add(iconRow);
 
             ElementTheme theme = ThemeHelper.GetCurrentTheme();
 

@@ -281,6 +281,34 @@
                                 HorizontalTextAlignment="Center" />
                         </StackPanel>
                     </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Description="Choose the game window resolution" Header="Game Resolution">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE7F4;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ComboBox
+                            x:Name="gameResolution"
+                            MinWidth="160"
+                            SelectionChanged="GameResolution_SelectionChanged"
+                            Style="{StaticResource AcrylicComboBoxStyle}">
+                            <ComboBoxItem Content="Default" Tag="Default" />
+                            <ComboBoxItem Content="1280 x 720" Tag="1280x720" />
+                            <ComboBoxItem Content="1600 x 900" Tag="1600x900" />
+                            <ComboBoxItem Content="1920 x 1080" Tag="1920x1080" />
+                            <ComboBoxItem Content="2560 x 1440" Tag="2560x1440" />
+                            <ComboBoxItem Content="3840 x 2160" Tag="3840x2160" />
+                            <ComboBoxItem Content="Custom..." Tag="Custom" />
+                        </ComboBox>
+                    </toolkit:SettingsCard>
+                    <toolkit:SettingsCard Description="Game Resolution setting can be overridden by In-Game Fullscreen mode in options.txt. Enable this setting to make the game always launch with the resolution specified by the launcher." Header="Override In-Game Fullscreen">
+                        <toolkit:SettingsCard.HeaderIcon>
+                            <FontIcon Glyph="&#xE7F4;" />
+                        </toolkit:SettingsCard.HeaderIcon>
+                        <ToggleSwitch
+                            x:Name="overrideFullscreenToggle"
+                            OffContent=""
+                            OnContent=""
+                            Toggled="OverrideFullscreenToggle_Toggled" />
+                    </toolkit:SettingsCard>
                     <TextBlock
                         Margin="0,8,0,6"
                         FontSize="14"

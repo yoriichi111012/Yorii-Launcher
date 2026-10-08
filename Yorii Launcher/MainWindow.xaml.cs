@@ -29,11 +29,13 @@ using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using System.Threading;
+using Windows.Foundation;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 using Microsoft.UI;
+using Windows.UI;
 
 namespace Yorii_Launcher
 {
@@ -58,6 +60,11 @@ namespace Yorii_Launcher
         // private progressbar? homedownloadprogressbar;
         private object? launchButtonContent = "Play";
         private bool launchButtonIsEnabled = true;
+        private Process? activeGameProcess;
+        private CancellationTokenSource? activeLaunchCts;
+        private DownloadItem? activeInstallItem;
+        private bool playCancelArmed;
+        private int playLaunchSequence;
         /* private double launchProgressOpacity;
          private double launchProgressValue;
          private bool launchProgressIsIndeterminate;*/
@@ -864,8 +871,32 @@ namespace Yorii_Launcher
 
         public async void PlayButton_Click(object sender, RoutedEventArgs e)
         {
+            if (playCancelArmed)
+            {
+                CancelActiveLaunch();
+                return;
+            }
+
             // prevent double click from launching two processes
             playButton.IsEnabled = false;
+
+            activeLaunchCts = new CancellationTokenSource();
+            int launchSeq = ++playLaunchSequence;
+
+            _ = Task.Run(async () =>
+            {
+                try { await Task.Delay(1000, activeLaunchCts.Token); }
+                catch (OperationCanceledException) { return; }
+                if (App.IsShuttingDown) return;
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (App.IsShuttingDown || launchSeq != playLaunchSequence || playCancelArmed || playButton.IsEnabled) return;
+                    playCancelArmed = true;
+                    playButton.Content = "Cancel";
+                    playButton.IsEnabled = false;
+                    AttachCancelCatcher();
+                });
+            });
 
             try
             {
@@ -874,13 +905,12 @@ namespace Yorii_Launcher
                 if (account == null || string.IsNullOrWhiteSpace(account.Username))
                 {
                     NotificationHelper.Show("No player selected", "Choose or add a player before launching.");
-                    playButton.IsEnabled = true;
+                    activeLaunchCts?.Cancel();
+                    ResetPlayButton();
                     return;
                 }
 
                 string username = account.Username;
-
-                DownloadItem? installItem = null;
 
                 bool hasInternet = await NetworkHelper.InternetAvailable();
 
@@ -919,7 +949,8 @@ namespace Yorii_Launcher
                     if (mainFrame.CurrentSourcePageType != typeof(HomePage))
                         mainFrame.Navigate(typeof(HomePage), null, new SuppressNavigationTransitionInfo());
 
-                    playButton.IsEnabled = true;
+                    activeLaunchCts?.Cancel();
+                    ResetPlayButton();
                     return;
                 }
 
@@ -940,7 +971,8 @@ namespace Yorii_Launcher
                 {
                     NotificationHelper.Show("No version selected", "Select or install a Minecraft version before launching.");
 
-                    playButton.IsEnabled = true;
+                    activeLaunchCts?.Cancel();
+                    ResetPlayButton();
                     return;
                 }
 
@@ -952,18 +984,23 @@ namespace Yorii_Launcher
                 launcher.ByteProgressChanged += (s, args) =>
                 {
                     if (App.IsShuttingDown) return;
+                    int progressSeq = launchSeq;
                     DispatcherQueue.TryEnqueue(() =>
                     {
+                        // stale events from a cancelled or superseded launch must
+                        // not spawn orphan flyout items that never resolve
+                        if (progressSeq != playLaunchSequence) return;
                         // vanilla: the flyout item is created only here, when
                         // bytes actually move, so verification-only launches
                         // never show up as a download
-                        if (lazyInstall && installItem == null)
+                        if (lazyInstall && activeInstallItem == null)
                         {
-                            installItem = DownloadManager.Add(selectedVersion, DownloadKind.Minecraft);
-                            installItem.Token.Register(() => vanillaCts?.Cancel());
-                            playButton.Content = "Downloading...";
+                            activeInstallItem = DownloadManager.Add(selectedVersion, DownloadKind.Minecraft);
+                            activeInstallItem.Token.Register(() => vanillaCts?.Cancel());
+                            if (!playCancelArmed)
+                                playButton.Content = "Downloading...";
                         }
-                        installItem?.SetByteProgress(args.ProgressedBytes, args.TotalBytes);
+                        activeInstallItem?.SetByteProgress(args.ProgressedBytes, args.TotalBytes);
                     });
                 };
 
@@ -988,7 +1025,7 @@ namespace Yorii_Launcher
                     if (hasInternet)
                     {
                         lazyInstall = true;
-                        vanillaCts = new CancellationTokenSource();
+                        vanillaCts = CancellationTokenSource.CreateLinkedTokenSource(activeLaunchCts!.Token);
                         await launcher.InstallAsync(versionToLaunch, vanillaCts.Token);
                     }
                     else
@@ -1004,7 +1041,7 @@ namespace Yorii_Launcher
                         // download item is created lazily when bytes actually move
                         var fabricInstaller = new FabricInstaller(HttpService.Client);
                         lazyInstall = true;
-                        vanillaCts = new CancellationTokenSource();
+                        vanillaCts = CancellationTokenSource.CreateLinkedTokenSource(activeLaunchCts!.Token);
                         versionToLaunch = await fabricInstaller.Install(baseVersion, path);
                         await launcher.InstallAsync(versionToLaunch, vanillaCts.Token);
                     }
@@ -1020,7 +1057,7 @@ namespace Yorii_Launcher
                     {
                         var forgeInstaller = new ForgeInstaller(launcher);
                         lazyInstall = true;
-                        vanillaCts = new CancellationTokenSource();
+                        vanillaCts = CancellationTokenSource.CreateLinkedTokenSource(activeLaunchCts!.Token);
                         versionToLaunch = await forgeInstaller.Install(baseVersion, new ForgeInstallOptions());
                         await launcher.InstallAsync(versionToLaunch, vanillaCts.Token);
                     }
@@ -1036,7 +1073,7 @@ namespace Yorii_Launcher
                     {
                         var neoForgeInstaller = new NeoForgeInstaller(launcher);
                         lazyInstall = true;
-                        vanillaCts = new CancellationTokenSource();
+                        vanillaCts = CancellationTokenSource.CreateLinkedTokenSource(activeLaunchCts!.Token);
                         versionToLaunch = await neoForgeInstaller.Install(baseVersion, new NeoForgeInstallOptions());
                         await launcher.InstallAsync(versionToLaunch, vanillaCts.Token);
                     }
@@ -1054,7 +1091,7 @@ namespace Yorii_Launcher
                         // handler, so file verification on every launch doesnt
                         // show up as a download in the flyout
                         lazyInstall = true;
-                        vanillaCts = new CancellationTokenSource();
+                        vanillaCts = CancellationTokenSource.CreateLinkedTokenSource(activeLaunchCts!.Token);
                         await launcher.InstallAsync(selectedVersion!, vanillaCts.Token);
                     }
                     else
@@ -1065,9 +1102,13 @@ namespace Yorii_Launcher
                     versionToLaunch = selectedVersion!;
                 }
 
-                installItem?.Complete();
+                activeInstallItem?.Complete();
+                activeInstallItem = null;
+                lazyInstall = false;
 
-                playButton.Content = "Launching...";
+                activeLaunchCts?.Token.ThrowIfCancellationRequested();
+
+                playButton.Content = "Cancel";
                 // downloadprogressbar.isindeterminate = false;
                 // downloadprogressbar.value = 100;
                 // downloadprogressvalue = 100;
@@ -1168,12 +1209,19 @@ namespace Yorii_Launcher
                     : null;
 
                 // begin building the launch options
+                var (resWidth, resHeight) = ParseResolutionSetting(SettingsManager.Current.GameResolution);
                 var launchOption = new MLaunchOption
                 {
                     MaximumRamMb = ramMb,
                     Session = loginResult.Session,
                     ExtraJvmArguments = jvmArgs.ToArray()
                 };
+
+                if (resWidth > 0 && resHeight > 0)
+                {
+                    launchOption.ScreenWidth = resWidth;
+                    launchOption.ScreenHeight = resHeight;
+                }
 
                 if (!string.IsNullOrWhiteSpace(selectedWorldId))
                 {
@@ -1218,6 +1266,9 @@ namespace Yorii_Launcher
                 // yoriiskinsloader is a fork of customskinloader optimized for faster skin loading and other improvements
                 InstanceManager.EnsureYoriiSkinsLoaderInstalled();
 
+                if (SettingsManager.Current.OverrideInGameFullscreen)
+                    EnsureFullscreenOverridden(minecraftPath);
+
                 var process = await launcher.BuildProcessAsync(versionToLaunch, launchOption);
 
                 // read behavior first so we can configure the process accordingly
@@ -1233,7 +1284,9 @@ namespace Yorii_Launcher
 
                 // empty working set before starting the game since the launcher is no longer needed
                 MemoryOptimizer.ReduceMemory();
+                activeLaunchCts?.Token.ThrowIfCancellationRequested();
                 process.Start();
+                activeGameProcess = process;
 
                 // hide progress bar now that the game has launched
                 // downloadprogressbar.opacity = 0;
@@ -1316,6 +1369,8 @@ namespace Yorii_Launcher
                                 DispatcherQueue.TryEnqueue(() =>
                                 {
                                     if (App.IsShuttingDown) return;
+                                    playCancelArmed = false;
+                                    activeGameProcess = null;
                                     playButton.Content = "Play";
                                     playButton.IsEnabled = true;
                                     // show window if hidden
@@ -1331,8 +1386,13 @@ namespace Yorii_Launcher
             catch (OperationCanceledException)
             {
                 // user pressed cancel on the install download mid-flight
+                playCancelArmed = false;
+                try { activeInstallItem?.Cancel(); } catch { }
+                activeInstallItem = null;
+                activeGameProcess = null;
                 playButton.Content = "Play";
                 playButton.IsEnabled = true;
+                DetachCancelCatcher();
                 // downloadprogressbar.opacity = 0;
                 // downloadprogressbar.isindeterminate = false;
             }
@@ -1344,8 +1404,13 @@ namespace Yorii_Launcher
                 Logger.Error($"Launch failed: {ex.GetType().Name}: {ex.Message} | root: {root.GetType().Name}: {root.Message}");
                 if (ex is Quiescent.Core.Version.VersionParseException)
                     Logger.Error($"  (version being launched: {InstanceManager.GetSelectedInstanceVersion()})");
+                playCancelArmed = false;
+                try { activeInstallItem?.Fail(ex.Message); } catch { }
+                activeInstallItem = null;
+                activeGameProcess = null;
                 playButton.Content = "Play";
                 playButton.IsEnabled = true;
+                DetachCancelCatcher();
                 // downloadprogressbar.opacity = 0;
                 // downloadprogressbar.isindeterminate = false;
 
@@ -1357,6 +1422,130 @@ namespace Yorii_Launcher
                 ShowNotification("Launch failed", isNetwork
                         ? "Could not connect to the internet. Check your connection and try again."
                         : $"An error occurred: {ex.Message}");
+            }
+        }
+
+        // the cancel button is genuinely disabled (IsEnabled = false) so its
+        // look is 100% stock framework in every theme - no brush hacking.
+        // a disabled button eats its own clicks, so the press is caught on
+        // the parent instead and only counts when it lands on the button.
+        private PointerEventHandler? cancelCatcher;
+        private Panel? cancelCatcherParent;
+        private Brush? catcherParentBackground;
+        private bool catcherParentBackgroundSet;
+
+        private void AttachCancelCatcher()
+        {
+            DetachCancelCatcher();
+            if (VisualTreeHelper.GetParent(playButton) is not Panel parent)
+                return;
+            cancelCatcherParent = parent;
+            catcherParentBackground = parent.Background;
+            catcherParentBackgroundSet = true;
+            parent.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            cancelCatcher = (_, e) =>
+            {
+                if (!playCancelArmed)
+                    return;
+                try
+                {
+                    var point = e.GetCurrentPoint(parent);
+                    if (point.Properties.IsRightButtonPressed)
+                        return;
+                    var button = playButton;
+                    if (button.ActualWidth <= 0 || button.ActualHeight <= 0)
+                        return;
+                    var bounds = button.TransformToVisual(parent).TransformBounds(new Rect(0, 0, button.ActualWidth, button.ActualHeight));
+                    if (!bounds.Contains(point.Position))
+                        return;
+                    e.Handled = true;
+                    CancelActiveLaunch();
+                }
+                catch { }
+            };
+            parent.PointerPressed += cancelCatcher;
+        }
+
+        private void DetachCancelCatcher()
+        {
+            if (cancelCatcherParent != null)
+            {
+                if (cancelCatcher != null)
+                    cancelCatcherParent.PointerPressed -= cancelCatcher;
+                if (catcherParentBackgroundSet)
+                {
+                    cancelCatcherParent.Background = catcherParentBackground;
+                    catcherParentBackgroundSet = false;
+                }
+            }
+            cancelCatcherParent = null;
+            cancelCatcher = null;
+        }
+
+        private void ResetPlayButton()
+        {
+            playCancelArmed = false;
+            activeGameProcess = null;
+            playButton.Content = "Play";
+            playButton.IsEnabled = true;
+            DetachCancelCatcher();
+        }
+
+        private void CancelActiveLaunch()
+        {
+            playLaunchSequence++;
+            playCancelArmed = false;
+            try { activeInstallItem?.Cancel(); } catch { }
+            activeInstallItem = null;
+            try { activeLaunchCts?.Cancel(); } catch { }
+            try
+            {
+                if (activeGameProcess is { HasExited: false })
+                    activeGameProcess.Kill();
+            }
+            catch (InvalidOperationException) { }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Cancel: could not kill game process: {ex.Message}");
+            }
+            activeGameProcess = null;
+            playButton.Content = "Play";
+            playButton.IsEnabled = true;
+            DetachCancelCatcher();
+        }
+
+        private static (int width, int height) ParseResolutionSetting(string? setting)
+        {
+            if (string.IsNullOrWhiteSpace(setting)) return (0, 0);
+            var parts = setting.Split('x');
+            if (parts.Length == 2 && int.TryParse(parts[0], out var w) && int.TryParse(parts[1], out var h) && w > 0 && h > 0)
+                return (w, h);
+            return (0, 0);
+        }
+
+        private static void EnsureFullscreenOverridden(string gameDirectory)
+        {
+            try
+            {
+                var optionsPath = Path.Combine(gameDirectory, "options.txt");
+                if (!File.Exists(optionsPath)) return;
+                var lines = File.ReadAllLines(optionsPath);
+                bool changed = false;
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (lines[i].TrimStart().StartsWith("fullscreen:", StringComparison.OrdinalIgnoreCase)
+                        && !lines[i].Trim().Equals("fullscreen:false", StringComparison.OrdinalIgnoreCase))
+                    {
+                        lines[i] = "fullscreen:false";
+                        changed = true;
+                    }
+                }
+                if (changed)
+                    File.WriteAllLines(optionsPath, lines);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to override fullscreen in options.txt: {ex.Message}");
             }
         }
 
@@ -1421,7 +1610,7 @@ namespace Yorii_Launcher
 
             var hintText = new TextBlock
             {
-                Text = "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page.",
+                Text = "Yorii Skins profiles live on the Skins page - pick this to go there.",
                 FontSize = 12,
                 Opacity = 0.6,
                 TextWrapping = TextWrapping.Wrap
@@ -1442,7 +1631,7 @@ namespace Yorii_Launcher
                 hintText.Text = isMojang
                     ? "You'll be signed in via Microsoft OAuth."
                     : isYoriiSkins
-                        ? "Yorii Skins profiles sync their skin through GitHub. Upload a skin on the Skins page."
+                        ? "Yorii Skins profiles live on the Skins page - pick Add to go there."
                         : "Offline players can join any server. After adding, set a local-only skin and cape from Edit player — singleplayer and modded servers.";
             };
 
@@ -1474,7 +1663,17 @@ namespace Yorii_Launcher
             if (accountTypeBox.SelectedItem is not ComboBoxItem selectedTypeItem ||
                 selectedTypeItem.Tag is not PlayerAccountType accountType)
             {
-                accountType = PlayerAccountType.YoriiSkins;
+                accountType = PlayerAccountType.Offline;
+            }
+
+            // yorii skins accounts are born on the skins page (claim or
+            // github login) - a bare homepage account would have no skin and
+            // get cleaned up on the next sync, so send them there instead
+            if (accountType == PlayerAccountType.YoriiSkins)
+            {
+                Instance?.SelectSection("skins");
+                ShowNotification("Skins page", "Yorii Skins profiles are created on the Skins page.");
+                return;
             }
 
             if (accountType == PlayerAccountType.Mojang)
@@ -1517,8 +1716,11 @@ namespace Yorii_Launcher
                 }
                 finally
                 {
+                    playCancelArmed = false;
+                    activeGameProcess = null;
                     playButton.Content = "Play";
                     playButton.IsEnabled = true;
+                    DetachCancelCatcher();
                 }
                 return;
             }
@@ -1531,37 +1733,19 @@ namespace Yorii_Launcher
                 return;
             }
 
-            PlayerAccount newAccount;
-            if (accountType == PlayerAccountType.Offline)
+            PlayerAccount newAccount = new()
             {
-                newAccount = new PlayerAccount
-                {
-                    Id = Guid.NewGuid().ToString("N"),
-                    Username = username,
-                    Password = null,
-                    AccountType = PlayerAccountType.Offline
-                };
-            }
-            else
-            {
-                // yorii skins is our cloudflare auth server worker which fetches skins from github repo
-                newAccount = new PlayerAccount
-                {
-                    Id = Guid.NewGuid().ToString("N"),
-                    Username = username,
-                    Password = null,
-                    AccountType = PlayerAccountType.YoriiSkins,
-                    CustomUUID = Guid.NewGuid().ToString("N")
-                };
-            }
+                Id = Guid.NewGuid().ToString("N"),
+                Username = username,
+                Password = null,
+                AccountType = PlayerAccountType.Offline
+            };
 
             AccountManager.SaveAccount(newAccount);
             LoadAccounts();
             accountComboBox.SelectedItem = accountItems.FirstOrDefault(x => x.Account?.Id == newAccount.Id);
 
-            ShowNotification("Account added", newAccount.AccountType == PlayerAccountType.Offline
-                ? $"{username} added as offline player."
-                : $"{username} added as Yorii Skins player.");
+            ShowNotification("Account added", $"{username} added as offline player.");
         }
 
         private async Task ShowManagePlayersDialogAsync()
@@ -1790,7 +1974,11 @@ namespace Yorii_Launcher
                 Header = "Account type"
             };
 
-            accountTypeBox.Items.Add(new ComboBoxItem { Content = "Yorii Skins", Tag = PlayerAccountType.YoriiSkins });
+            // yorii skins accounts are born on the skins page (claim or github
+            // login) - the type is only offered here to preserve an existing
+            // one, never to convert another type into an unlinked shell
+            if (account.AccountType == PlayerAccountType.YoriiSkins)
+                accountTypeBox.Items.Add(new ComboBoxItem { Content = "Yorii Skins", Tag = PlayerAccountType.YoriiSkins });
             accountTypeBox.Items.Add(new ComboBoxItem { Content = "Mojang (Microsoft)", Tag = PlayerAccountType.Mojang });
             accountTypeBox.Items.Add(new ComboBoxItem { Content = "Offline", Tag = PlayerAccountType.Offline });
             if (Application.Current.Resources.TryGetValue("AcrylicComboBoxStyle", out object resource) && resource is Style acrylicStyle)
@@ -2102,8 +2290,11 @@ namespace Yorii_Launcher
                         }
                         finally
                         {
+                            playCancelArmed = false;
+                            activeGameProcess = null;
                             playButton.Content = "Play";
                             playButton.IsEnabled = true;
+                            DetachCancelCatcher();
                         }
                     }
                     else
@@ -2131,8 +2322,11 @@ namespace Yorii_Launcher
                         }
                         finally
                         {
+                            playCancelArmed = false;
+                            activeGameProcess = null;
                             playButton.Content = "Play";
                             playButton.IsEnabled = true;
+                            DetachCancelCatcher();
                         }
                     }
                 }
